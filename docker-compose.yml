@@ -34,6 +34,8 @@ services:
       SESSION_DRIVER: redis
       QUEUE_CONNECTION: redis
       LOG_CHANNEL: stderr
+      APP_LOCALE: es
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       AUTORUN_ENABLED: "true"   # corre migraciones y cachea config al iniciar
     depends_on:
       mysql:
