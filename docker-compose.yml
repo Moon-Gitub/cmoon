@@ -13,8 +13,9 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
-    ports:
-      - "${APP_PORT:-8080}:8080"
+    networks:
+      - default
+      - dokploy-network
     environment: &app-env
       APP_NAME: ${APP_NAME:-CMoon}
       APP_ENV: ${APP_ENV:-production}
@@ -122,3 +123,9 @@ volumes:
   app-storage:
   mysql-data:
   redis-data:
+
+networks:
+  # Red de Traefik en Dokploy. Crear en local con:
+  #   docker network create dokploy-network
+  dokploy-network:
+    external: true
