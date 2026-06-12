@@ -13,7 +13,7 @@
             $tarjetas = [
                 ['titulo' => 'Ventas de hoy', 'valor' => '—', 'detalle' => 'Disponible en fase 3'],
                 ['titulo' => 'Caja actual', 'valor' => '—', 'detalle' => 'Disponible en fase 3'],
-                ['titulo' => 'Productos activos', 'valor' => '—', 'detalle' => 'Disponible en fase 2'],
+                ['titulo' => 'Productos activos', 'valor' => \App\Models\Producto::where('activo', true)->count(), 'detalle' => 'En el catálogo'],
                 ['titulo' => 'Usuarios', 'valor' => \App\Models\User::count(), 'detalle' => 'Activos en el sistema'],
             ];
         @endphp

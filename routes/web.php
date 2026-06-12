@@ -1,9 +1,12 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpresaController;
+use App\Http\Controllers\ListaPrecioController;
 use App\Http\Controllers\PerfilController;
+use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\SucursalController;
 use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
@@ -33,5 +36,21 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:empresa.ver')->group(function () {
         Route::get('/empresa', [EmpresaController::class, 'edit'])->name('empresa.edit');
         Route::put('/empresa', [EmpresaController::class, 'update'])->name('empresa.update');
+    });
+
+    Route::middleware('permission:productos.ver')->group(function () {
+        Route::get('/productos/{producto}/stock', [ProductoController::class, 'stock'])->name('productos.stock');
+        Route::post('/productos/{producto}/stock', [ProductoController::class, 'ajustarStock'])->name('productos.stock.ajustar');
+        Route::resource('productos', ProductoController::class)->except('show');
+    });
+
+    Route::middleware('permission:categorias.ver')->group(function () {
+        Route::resource('categorias', CategoriaController::class)->only(['index', 'store', 'update', 'destroy']);
+    });
+
+    Route::middleware('permission:listas-precio.ver')->group(function () {
+        Route::resource('listas-precio', ListaPrecioController::class)
+            ->only(['index', 'store', 'update', 'destroy'])
+            ->parameters(['listas-precio' => 'listaPrecio']);
     });
 });
