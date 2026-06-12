@@ -19,16 +19,16 @@ services:
       APP_NAME: ${APP_NAME:-CMoon}
       APP_ENV: ${APP_ENV:-production}
       APP_DEBUG: ${APP_DEBUG:-false}
-      APP_KEY: ${APP_KEY}
+      APP_KEY: ${APP_KEY:?Falta APP_KEY en Environment de Dokploy}
       APP_URL: ${APP_URL:-http://localhost:8080}
       DB_CONNECTION: mysql
       DB_HOST: mysql
       DB_PORT: 3306
       DB_DATABASE: ${DB_DATABASE:-cmoon}
       DB_USERNAME: ${DB_USERNAME:-cmoon}
-      DB_PASSWORD: ${DB_PASSWORD}
+      DB_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD en Environment de Dokploy}
       REDIS_HOST: redis
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Falta REDIS_PASSWORD en Environment de Dokploy}
       CACHE_STORE: redis
       SESSION_DRIVER: redis
       QUEUE_CONNECTION: redis
@@ -93,8 +93,8 @@ services:
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:-cmoon}
       MYSQL_USER: ${DB_USERNAME:-cmoon}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD en Environment de Dokploy}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Falta DB_ROOT_PASSWORD en Environment de Dokploy}
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
@@ -108,7 +108,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Falta REDIS_PASSWORD en Environment de Dokploy}
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
     volumes:
       - redis-data:/data
