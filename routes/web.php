@@ -2,11 +2,15 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CategoriaController;
+use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\CuentaCorrienteController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\ListaPrecioController;
+use App\Http\Controllers\MedioPagoController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\ProductoController;
+use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\SucursalController;
 use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
@@ -52,5 +56,28 @@ Route::middleware('auth')->group(function () {
         Route::resource('listas-precio', ListaPrecioController::class)
             ->only(['index', 'store', 'update', 'destroy'])
             ->parameters(['listas-precio' => 'listaPrecio']);
+    });
+
+    Route::middleware('permission:clientes.ver')->group(function () {
+        Route::resource('clientes', ClienteController::class)->except('show');
+    });
+
+    Route::middleware('permission:proveedores.ver')->group(function () {
+        Route::resource('proveedores', ProveedorController::class)
+            ->except('show')
+            ->parameters(['proveedores' => 'proveedor']);
+    });
+
+    Route::middleware('permission:cuentas.ver')->group(function () {
+        Route::get('/clientes/{cliente}/cuenta', [CuentaCorrienteController::class, 'cliente'])->name('clientes.cuenta');
+        Route::post('/clientes/{cliente}/cuenta', [CuentaCorrienteController::class, 'registrarCliente'])->name('clientes.cuenta.registrar');
+        Route::get('/proveedores/{proveedor}/cuenta', [CuentaCorrienteController::class, 'proveedor'])->name('proveedores.cuenta');
+        Route::post('/proveedores/{proveedor}/cuenta', [CuentaCorrienteController::class, 'registrarProveedor'])->name('proveedores.cuenta.registrar');
+    });
+
+    Route::middleware('permission:medios-pago.ver')->group(function () {
+        Route::resource('medios-pago', MedioPagoController::class)
+            ->only(['index', 'store', 'update', 'destroy'])
+            ->parameters(['medios-pago' => 'medioPago']);
     });
 });
