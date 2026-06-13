@@ -15,7 +15,7 @@ use Illuminate\View\View;
 
 class PosController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $usuario = auth()->user();
         $sucursal = $usuario->sucursal ?? Sucursal::where('activa', true)->first();
@@ -26,9 +26,29 @@ class PosController extends Controller
             ->latest('abierta_at')
             ->first();
 
+        // Precarga de un presupuesto pendiente en el carrito
+        $presupuesto = null;
+        $presupuestoItems = [];
+        if ($request->filled('presupuesto')) {
+            $presupuesto = \App\Models\Presupuesto::with('items.producto')
+                ->where('estado', 'pendiente')
+                ->find($request->integer('presupuesto'));
+
+            $presupuestoItems = $presupuesto?->items->map(fn ($i) => [
+                'producto_id' => $i->producto_id,
+                'codigo' => $i->producto?->codigo ?? '',
+                'nombre' => $i->descripcion,
+                'cantidad' => (float) $i->cantidad,
+                'precio' => (float) $i->precio_unitario,
+                'iva' => (float) ($i->producto?->alicuota_iva ?? 21),
+            ])->all() ?? [];
+        }
+
         return view('pos.index', [
             'sucursal' => $sucursal,
             'sesionAbierta' => $sesionAbierta,
+            'presupuesto' => $presupuesto,
+            'presupuestoItems' => $presupuestoItems,
         ]);
     }
 
@@ -72,6 +92,7 @@ class PosController extends Controller
     {
         $datos = $request->validate([
             'uuid' => ['required', 'uuid'],
+            'presupuesto_id' => ['nullable', 'exists:presupuestos,id'],
             'sucursal_id' => ['required', 'exists:sucursales,id'],
             'caja_sesion_id' => ['nullable', 'exists:caja_sesiones,id'],
             'cliente_id' => ['nullable', 'exists:clientes,id'],
@@ -91,6 +112,12 @@ class PosController extends Controller
         ]);
 
         $venta = $ventaService->crear($datos, auth()->id());
+
+        if (! empty($datos['presupuesto_id'])) {
+            \App\Models\Presupuesto::where('id', $datos['presupuesto_id'])
+                ->where('estado', 'pendiente')
+                ->update(['estado' => 'convertido', 'venta_id' => $venta->id]);
+        }
 
         return response()->json([
             'id' => $venta->id,

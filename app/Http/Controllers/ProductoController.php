@@ -52,7 +52,7 @@ class ProductoController extends Controller
 
         $producto = Producto::create([
             ...$this->validar($request),
-            'empresa_id' => Empresa::value('id'),
+            'empresa_id' => auth()->user()->empresa_id,
         ]);
 
         return redirect()->route('productos.index')
@@ -130,7 +130,7 @@ class ProductoController extends Controller
             'codigo' => [
                 'required', 'string', 'max:50',
                 Rule::unique('productos', 'codigo')
-                    ->where('empresa_id', Empresa::value('id'))
+                    ->where('empresa_id', auth()->user()->empresa_id)
                     ->ignore($producto)
                     ->withoutTrashed(),
             ],
@@ -139,6 +139,7 @@ class ProductoController extends Controller
             'categoria_id' => ['nullable', Rule::exists('categorias', 'id')],
             'unidad' => ['required', 'in:UN,KG,LT,MT'],
             'pesable' => ['boolean'],
+            'es_combo' => ['boolean'],
             'precio_compra' => ['required', 'numeric', 'min:0'],
             'precio_venta' => ['required', 'numeric', 'min:0'],
             'alicuota_iva' => ['required', 'in:0,10.5,21,27'],
@@ -153,8 +154,159 @@ class ProductoController extends Controller
             'stock_minimo' => 'stock mínimo',
         ]) + [
             'pesable' => $request->boolean('pesable'),
+            'es_combo' => $request->boolean('es_combo'),
             'activo' => $request->boolean('activo'),
             'stock_minimo' => $request->input('stock_minimo') ?: 0,
         ];
+    }
+
+    public function combo(Producto $producto): View
+    {
+        abort_unless(auth()->user()->can('productos.editar'), 403);
+        abort_unless($producto->es_combo, 404);
+
+        return view('productos.combo', [
+            'producto' => $producto->load('componentes.componente'),
+            'candidatos' => Producto::where('activo', true)
+                ->where('es_combo', false)
+                ->where('id', '!=', $producto->id)
+                ->orderBy('nombre')
+                ->get(['id', 'codigo', 'nombre']),
+        ]);
+    }
+
+    public function agregarComponente(Request $request, Producto $producto): RedirectResponse
+    {
+        abort_unless(auth()->user()->can('productos.editar'), 403);
+
+        $datos = $request->validate([
+            'componente_id' => [
+                'required',
+                Rule::exists('productos', 'id'),
+                Rule::notIn([$producto->id]),
+                Rule::unique('combo_componentes', 'componente_id')->where('combo_id', $producto->id),
+            ],
+            'cantidad' => ['required', 'numeric', 'gt:0'],
+        ], [], ['componente_id' => 'componente']);
+
+        $producto->componentes()->create($datos);
+
+        return back()->with('ok', 'Componente agregado al combo.');
+    }
+
+    public function quitarComponente(Producto $producto, \App\Models\ComboComponente $componente): RedirectResponse
+    {
+        abort_unless(auth()->user()->can('productos.editar'), 403);
+
+        $componente->delete();
+
+        return back()->with('ok', 'Componente quitado.');
+    }
+
+    public function importarForm(): View
+    {
+        abort_unless(auth()->user()->can('productos.crear'), 403);
+
+        return view('productos.importar');
+    }
+
+    public function importar(Request $request, StockService $stockService): RedirectResponse
+    {
+        abort_unless(auth()->user()->can('productos.crear'), 403);
+
+        $request->validate(['archivo' => ['required', 'file', 'mimes:csv,txt', 'max:10240']]);
+
+        $contenido = file_get_contents($request->file('archivo')->getRealPath());
+        // Normalizar encoding (Excel suele exportar en Latin-1)
+        if (! mb_check_encoding($contenido, 'UTF-8')) {
+            $contenido = mb_convert_encoding($contenido, 'UTF-8', 'ISO-8859-1');
+        }
+
+        $lineas = preg_split('/\r\n|\r|\n/', trim($contenido));
+        $separador = str_contains($lineas[0], ';') ? ';' : ',';
+        $cabecera = array_map(fn ($c) => strtolower(trim($c, "\xEF\xBB\xBF \"")), str_getcsv($lineas[0], $separador));
+
+        $requeridas = ['codigo', 'nombre', 'precio_venta'];
+        if (array_diff($requeridas, $cabecera) !== []) {
+            return back()->with('error', 'El archivo tiene que tener al menos las columnas: codigo, nombre, precio_venta. Descargá la plantilla.');
+        }
+
+        $empresaId = auth()->user()->empresa_id;
+        $sucursal = Sucursal::where('activa', true)->first();
+        $creados = 0;
+        $actualizados = 0;
+        $errores = [];
+
+        foreach (array_slice($lineas, 1) as $numero => $linea) {
+            if (trim($linea) === '') {
+                continue;
+            }
+
+            $fila = array_combine($cabecera, array_pad(str_getcsv($linea, $separador), count($cabecera), null));
+
+            if (empty($fila['codigo']) || empty($fila['nombre']) || ! is_numeric(str_replace(',', '.', (string) $fila['precio_venta']))) {
+                $errores[] = 'Línea '.($numero + 2).': datos incompletos o precio inválido.';
+
+                continue;
+            }
+
+            $decimal = fn ($v) => $v !== null && $v !== '' ? (float) str_replace(',', '.', (string) $v) : null;
+
+            $categoria = null;
+            if (! empty($fila['categoria'])) {
+                $categoria = Categoria::firstOrCreate(
+                    ['empresa_id' => $empresaId, 'nombre' => trim($fila['categoria'])],
+                    ['activa' => true],
+                );
+            }
+
+            $producto = Producto::withTrashed()
+                ->where('empresa_id', $empresaId)
+                ->where('codigo', trim($fila['codigo']))
+                ->first();
+
+            $datos = [
+                'nombre' => trim($fila['nombre']),
+                'precio_venta' => $decimal($fila['precio_venta']),
+                'precio_compra' => $decimal($fila['precio_compra'] ?? null) ?? 0,
+                'alicuota_iva' => $decimal($fila['iva'] ?? null) ?? 21,
+                'categoria_id' => $categoria?->id,
+                'unidad' => in_array(strtoupper($fila['unidad'] ?? ''), ['UN', 'KG', 'LT', 'MT']) ? strtoupper($fila['unidad']) : 'UN',
+                'stock_minimo' => $decimal($fila['stock_minimo'] ?? null) ?? 0,
+                'activo' => true,
+            ];
+
+            if ($producto) {
+                $producto->restore();
+                $producto->update($datos);
+                $actualizados++;
+            } else {
+                $producto = Producto::create([...$datos, 'codigo' => trim($fila['codigo']), 'empresa_id' => $empresaId]);
+                $creados++;
+            }
+
+            $stockInicial = $decimal($fila['stock'] ?? null);
+            if ($stockInicial !== null && $sucursal) {
+                $stockService->ajustarA($producto, $sucursal->id, $stockInicial, 'Importación de productos');
+            }
+        }
+
+        $mensaje = "Importación lista: {$creados} creados, {$actualizados} actualizados.";
+        if ($errores !== []) {
+            $mensaje .= ' Errores: '.implode(' ', array_slice($errores, 0, 5));
+        }
+
+        return redirect()->route('productos.index')->with($errores === [] ? 'ok' : 'error', $mensaje);
+    }
+
+    public function plantillaCsv(): \Symfony\Component\HttpFoundation\Response
+    {
+        $csv = "codigo;nombre;precio_venta;precio_compra;iva;categoria;unidad;stock;stock_minimo\n".
+            "7790001000001;Ejemplo gaseosa 1.5L;2500;1800;21;Bebidas;UN;10;2\n";
+
+        return response("\xEF\xBB\xBF".$csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="plantilla-productos.csv"',
+        ]);
     }
 }

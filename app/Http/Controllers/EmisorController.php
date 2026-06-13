@@ -25,7 +25,7 @@ class EmisorController extends Controller
 
         $datos = $this->validar($request);
 
-        Emisor::create([...$datos, 'empresa_id' => Empresa::value('id')]);
+        Emisor::create([...$datos, 'empresa_id' => auth()->user()->empresa_id]);
 
         return back()->with('ok', 'Emisor creado. Ahora subí el certificado AFIP y creá un punto de venta.');
     }
@@ -99,7 +99,7 @@ class EmisorController extends Controller
             'cuit' => [
                 'required', 'string', 'max:13',
                 Rule::unique('emisores', 'cuit')
-                    ->where('empresa_id', Empresa::value('id'))
+                    ->where('empresa_id', auth()->user()->empresa_id)
                     ->ignore($emisor),
             ],
             'condicion_iva' => ['required', 'in:RESPONSABLE_INSCRIPTO,MONOTRIBUTO'],

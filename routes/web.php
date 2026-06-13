@@ -4,7 +4,11 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CajaController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\CompraController;
 use App\Http\Controllers\CuentaCorrienteController;
+use App\Http\Controllers\EmpresasAdminController;
+use App\Http\Controllers\RolController;
+use App\Http\Controllers\PresupuestoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmisorController;
 use App\Http\Controllers\EmpresaController;
@@ -16,6 +20,7 @@ use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProveedorController;
+use App\Http\Controllers\RetencionController;
 use App\Http\Controllers\SucursalController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\VentaController;
@@ -49,8 +54,14 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('permission:productos.ver')->group(function () {
+        Route::get('/productos/importar', [ProductoController::class, 'importarForm'])->name('productos.importar');
+        Route::post('/productos/importar', [ProductoController::class, 'importar'])->name('productos.importar.procesar');
+        Route::get('/productos/plantilla-csv', [ProductoController::class, 'plantillaCsv'])->name('productos.plantilla');
         Route::get('/productos/{producto}/stock', [ProductoController::class, 'stock'])->name('productos.stock');
         Route::post('/productos/{producto}/stock', [ProductoController::class, 'ajustarStock'])->name('productos.stock.ajustar');
+        Route::get('/productos/{producto}/combo', [ProductoController::class, 'combo'])->name('productos.combo');
+        Route::post('/productos/{producto}/combo', [ProductoController::class, 'agregarComponente'])->name('productos.combo.agregar');
+        Route::delete('/productos/{producto}/combo/{componente}', [ProductoController::class, 'quitarComponente'])->name('productos.combo.quitar');
         Route::resource('productos', ProductoController::class)->except('show');
     });
 
@@ -111,8 +122,14 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('permission:facturacion.ver')->group(function () {
         Route::get('/facturacion', [FacturacionController::class, 'index'])->name('facturacion.index');
+        Route::get('/facturacion/manual', [FacturacionController::class, 'manualForm'])->name('facturacion.manual');
+        Route::post('/facturacion/manual', [FacturacionController::class, 'manualStore'])->name('facturacion.manual.store');
         Route::get('/facturacion/{comprobante}', [FacturacionController::class, 'show'])
             ->whereNumber('comprobante')->name('facturacion.show');
+        Route::get('/facturacion/{comprobante}/nota', [FacturacionController::class, 'notaForm'])
+            ->whereNumber('comprobante')->name('facturacion.nota');
+        Route::post('/facturacion/{comprobante}/nota', [FacturacionController::class, 'notaStore'])
+            ->whereNumber('comprobante')->name('facturacion.nota.store');
         Route::post('/ventas/{venta}/facturar', [FacturacionController::class, 'facturar'])->name('ventas.facturar');
         Route::post('/facturacion/{comprobante}/reintentar', [FacturacionController::class, 'reintentar'])->name('facturacion.reintentar');
     });
@@ -128,6 +145,43 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('permission:informes.ver')->group(function () {
         Route::get('/informes/ventas', [InformeController::class, 'ventas'])->name('informes.ventas');
+        Route::get('/informes/stock', [InformeController::class, 'stock'])->name('informes.stock');
         Route::get('/informes/libro-iva', [InformeController::class, 'libroIva'])->name('informes.libro-iva');
+    });
+
+    Route::middleware('permission:empresas.gestionar')->group(function () {
+        Route::get('/empresas', [EmpresasAdminController::class, 'index'])->name('empresas.index');
+        Route::post('/empresas', [EmpresasAdminController::class, 'store'])->name('empresas.store');
+        Route::put('/empresas/{empresa}', [EmpresasAdminController::class, 'update'])->name('empresas.update');
+    });
+
+    Route::middleware('permission:roles.gestionar')->group(function () {
+        Route::get('/roles', [RolController::class, 'index'])->name('roles.index');
+        Route::post('/roles', [RolController::class, 'store'])->name('roles.store');
+        Route::put('/roles/{rol}', [RolController::class, 'update'])->name('roles.update');
+        Route::delete('/roles/{rol}', [RolController::class, 'destroy'])->name('roles.destroy');
+    });
+
+    Route::middleware('permission:compras.ver')->group(function () {
+        Route::get('/compras', [CompraController::class, 'index'])->name('compras.index');
+        Route::get('/compras/nueva', [CompraController::class, 'create'])->name('compras.create');
+        Route::post('/compras', [CompraController::class, 'store'])->name('compras.store');
+        Route::get('/compras/{compra}', [CompraController::class, 'show'])->whereNumber('compra')->name('compras.show');
+        Route::post('/compras/{compra}/anular', [CompraController::class, 'anular'])->name('compras.anular');
+    });
+
+    Route::middleware('permission:presupuestos.ver')->group(function () {
+        Route::get('/presupuestos', [PresupuestoController::class, 'index'])->name('presupuestos.index');
+        Route::get('/presupuestos/nuevo', [PresupuestoController::class, 'create'])->name('presupuestos.create');
+        Route::post('/presupuestos', [PresupuestoController::class, 'store'])->name('presupuestos.store');
+        Route::get('/presupuestos/{presupuesto}', [PresupuestoController::class, 'show'])->whereNumber('presupuesto')->name('presupuestos.show');
+        Route::post('/presupuestos/{presupuesto}/anular', [PresupuestoController::class, 'anular'])->name('presupuestos.anular');
+    });
+
+    Route::middleware('permission:retenciones.ver')->group(function () {
+        Route::get('/retenciones', [RetencionController::class, 'index'])->name('retenciones.index');
+        Route::post('/retenciones', [RetencionController::class, 'store'])->name('retenciones.store');
+        Route::post('/retenciones/{retencion}/anular', [RetencionController::class, 'anular'])->name('retenciones.anular');
+        Route::get('/retenciones/txt', [RetencionController::class, 'exportarTxt'])->name('retenciones.txt');
     });
 });

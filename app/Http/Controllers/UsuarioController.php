@@ -17,6 +17,7 @@ class UsuarioController extends Controller
     public function index(Request $request): View
     {
         $usuarios = User::with(['roles', 'sucursal'])
+            ->where('empresa_id', auth()->user()->empresa_id)
             ->when($request->filled('buscar'), function ($query) use ($request) {
                 $buscar = $request->string('buscar');
                 $query->where(fn ($q) => $q
@@ -39,6 +40,9 @@ class UsuarioController extends Controller
             'usuarioEditado' => new User,
             'roles' => Role::orderBy('name')->get(),
             'sucursales' => Sucursal::where('activa', true)->orderBy('nombre')->get(),
+            'empresas' => auth()->user()->can('empresas.gestionar')
+                ? Empresa::where('activa', true)->orderBy('razon_social')->get(['id', 'razon_social'])
+                : collect(),
         ]);
     }
 
@@ -50,7 +54,7 @@ class UsuarioController extends Controller
 
         $usuario = User::create([
             ...$datos,
-            'empresa_id' => Empresa::value('id'),
+            'empresa_id' => $this->empresaAsignada($request),
         ]);
 
         $usuario->syncRoles([$request->input('rol')]);
@@ -67,6 +71,9 @@ class UsuarioController extends Controller
             'usuarioEditado' => $usuario,
             'roles' => Role::orderBy('name')->get(),
             'sucursales' => Sucursal::where('activa', true)->orderBy('nombre')->get(),
+            'empresas' => auth()->user()->can('empresas.gestionar')
+                ? Empresa::where('activa', true)->orderBy('razon_social')->get(['id', 'razon_social'])
+                : collect(),
         ]);
     }
 
@@ -83,6 +90,10 @@ class UsuarioController extends Controller
         // Evitar que un admin se desactive a sí mismo
         if ($usuario->id === auth()->id()) {
             $datos['activo'] = true;
+        }
+
+        if ($request->filled('empresa_id')) {
+            $datos['empresa_id'] = $this->empresaAsignada($request);
         }
 
         $usuario->update($datos);
@@ -104,6 +115,21 @@ class UsuarioController extends Controller
 
         return redirect()->route('usuarios.index')
             ->with('ok', "Usuario {$usuario->name} eliminado.");
+    }
+
+    /**
+     * Solo quien gestiona empresas puede asignar usuarios a otra empresa;
+     * el resto crea usuarios dentro de la suya.
+     */
+    private function empresaAsignada(Request $request): int
+    {
+        if (auth()->user()->can('empresas.gestionar') && $request->filled('empresa_id')) {
+            $request->validate(['empresa_id' => [Rule::exists('empresas', 'id')]]);
+
+            return $request->integer('empresa_id');
+        }
+
+        return auth()->user()->empresa_id;
     }
 
     private function validar(Request $request, ?User $usuario = null): array

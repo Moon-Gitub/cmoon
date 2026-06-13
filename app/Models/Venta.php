@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PerteneceAEmpresa;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Venta extends Model
 {
+    use PerteneceAEmpresa;
+
     protected $table = 'ventas';
 
     protected $fillable = [

@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PerteneceAEmpresa;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Proveedor extends Model
 {
+    use PerteneceAEmpresa;
+
     use SoftDeletes;
 
     protected $table = 'proveedores';

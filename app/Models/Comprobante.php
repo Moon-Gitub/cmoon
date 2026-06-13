@@ -23,6 +23,7 @@ class Comprobante extends Model
 
     protected $fillable = [
         'venta_id',
+        'comprobante_asociado_id',
         'emisor_id',
         'punto_venta_id',
         'user_id',
@@ -38,6 +39,8 @@ class Comprobante extends Model
         'no_gravado',
         'total',
         'detalle_iva',
+        'detalle_items',
+        'concepto',
         'cae',
         'cae_vencimiento',
         'estado',
@@ -55,6 +58,7 @@ class Comprobante extends Model
             'no_gravado' => 'decimal:2',
             'total' => 'decimal:2',
             'detalle_iva' => 'array',
+            'detalle_items' => 'array',
             'respuesta_afip' => 'array',
             'cae_vencimiento' => 'date',
             'fecha_emision' => 'date',
@@ -64,6 +68,31 @@ class Comprobante extends Model
     public function venta(): BelongsTo
     {
         return $this->belongsTo(Venta::class);
+    }
+
+    public function comprobanteAsociado(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'comprobante_asociado_id');
+    }
+
+    public function esNota(): bool
+    {
+        return in_array($this->tipo_comprobante, [2, 3, 7, 8, 12, 13], true);
+    }
+
+    /** Ítems a mostrar en la impresión: de la venta o los libres */
+    public function items(): array
+    {
+        if ($this->venta) {
+            return $this->venta->items->map(fn ($i) => [
+                'descripcion' => $i->descripcion,
+                'cantidad' => (float) $i->cantidad,
+                'precio_unitario' => (float) $i->precio_unitario,
+                'total' => (float) $i->total,
+            ])->all();
+        }
+
+        return $this->detalle_items ?? [];
     }
 
     public function emisor(): BelongsTo

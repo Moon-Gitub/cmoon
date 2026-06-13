@@ -24,7 +24,7 @@ class MedioPagoController extends Controller
 
         MedioPago::create([
             ...$this->validar($request),
-            'empresa_id' => Empresa::value('id'),
+            'empresa_id' => auth()->user()->empresa_id,
         ]);
 
         return back()->with('ok', 'Medio de pago creado.');
@@ -54,7 +54,7 @@ class MedioPagoController extends Controller
             'nombre' => [
                 'required', 'string', 'max:100',
                 Rule::unique('medios_pago', 'nombre')
-                    ->where('empresa_id', Empresa::value('id'))
+                    ->where('empresa_id', auth()->user()->empresa_id)
                     ->ignore($medio),
             ],
             'tipo' => ['required', 'in:efectivo,tarjeta_debito,tarjeta_credito,transferencia,qr,cheque,cuenta_corriente,otro'],

@@ -66,7 +66,7 @@ class VentaController extends Controller
     {
         return view('ventas.ticket', [
             'venta' => $venta->load(['items', 'pagos.medioPago', 'cliente', 'vendedor', 'sucursal']),
-            'empresa' => Empresa::first(),
+            'empresa' => auth()->user()->empresa,
         ]);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PerteneceAEmpresa;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,6 +10,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Producto extends Model
 {
+    use PerteneceAEmpresa;
+
     use SoftDeletes;
 
     protected $table = 'productos';
@@ -21,6 +24,7 @@ class Producto extends Model
         'descripcion',
         'unidad',
         'pesable',
+        'es_combo',
         'precio_compra',
         'precio_venta',
         'alicuota_iva',
@@ -33,6 +37,7 @@ class Producto extends Model
     {
         return [
             'pesable' => 'boolean',
+            'es_combo' => 'boolean',
             'activo' => 'boolean',
             'precio_compra' => 'decimal:2',
             'precio_venta' => 'decimal:2',
@@ -44,6 +49,11 @@ class Producto extends Model
     public function categoria(): BelongsTo
     {
         return $this->belongsTo(Categoria::class);
+    }
+
+    public function componentes(): HasMany
+    {
+        return $this->hasMany(ComboComponente::class, 'combo_id');
     }
 
     public function stocks(): HasMany

@@ -279,6 +279,7 @@
                 online: navigator.onLine, pendientes: [], sincronizando: false,
                 sucursalId: {{ $sucursal?->id ?? 'null' }},
                 cajaSesionId: {{ $sesionAbierta?->id ?? 'null' }},
+                presupuestoId: {{ $presupuesto?->id ?? 'null' }},
 
                 async init() {
                     window.addEventListener('keydown', (e) => {
@@ -307,6 +308,12 @@
                         const cache = localStorage.getItem('pos_catalogo');
                         if (cache) Object.assign(this, JSON.parse(cache));
                     }
+
+                    @if ($presupuesto)
+                        // Carrito precargado desde el presupuesto #{{ $presupuesto->numero }}
+                        this.carrito = @json($presupuestoItems);
+                        this.clienteId = '{{ $presupuesto->cliente_id ?? '' }}';
+                    @endif
                 },
 
                 guardarPendientes() {
@@ -376,6 +383,28 @@
                 agregarPorEnter() {
                     const q = this.busqueda.trim();
                     if (! q) return;
+
+                    // Código de balanza EAN-13 (prefijo 2): 2 + PLU(5) + peso en gramos(5) + verificador
+                    if (/^2\d{12}$/.test(q)) {
+                        const plu = q.slice(1, 6);
+                        const gramos = parseInt(q.slice(6, 11), 10);
+                        const producto = this.productos.find(p =>
+                            p.pesable && (p.codigo === plu || p.codigo === String(parseInt(plu, 10))));
+                        if (producto && gramos > 0) {
+                            this.carrito.push({
+                                producto_id: producto.id,
+                                codigo: q,
+                                nombre: producto.nombre,
+                                cantidad: gramos / 1000,
+                                precio: this.precioDe(producto),
+                                iva: producto.iva,
+                            });
+                            this.busqueda = '';
+                            this.sugerencias = [];
+                            return;
+                        }
+                    }
+
                     const exacto = this.productos.find(p => p.codigo.toLowerCase() === q.toLowerCase());
                     if (exacto) { this.agregar(exacto); return; }
                     if (this.sugerencias.length) this.agregar(this.sugerencias[this.seleccion]);
@@ -433,6 +462,7 @@
 
                     const payload = {
                         uuid: crypto.randomUUID(),
+                        presupuesto_id: this.presupuestoId,
                         sucursal_id: this.sucursalId,
                         caja_sesion_id: this.cajaSesionId,
                         cliente_id: this.clienteId || null,
@@ -474,6 +504,7 @@
                     this.carrito = [];
                     this.descuento = 0;
                     this.clienteId = '';
+                    this.presupuestoId = null;
                 },
 
                 imprimirTicket() {

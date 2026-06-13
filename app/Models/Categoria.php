@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PerteneceAEmpresa;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Categoria extends Model
 {
+    use PerteneceAEmpresa;
+
     protected $table = 'categorias';
 
     protected $fillable = ['empresa_id', 'nombre', 'activa'];

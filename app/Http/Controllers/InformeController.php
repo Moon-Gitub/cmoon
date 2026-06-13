@@ -54,6 +54,33 @@ class InformeController extends Controller
         return view('informes.ventas', compact('desde', 'hasta', 'totales', 'porDia', 'porMedio', 'topProductos', 'porVendedor'));
     }
 
+    public function stock(Request $request): View
+    {
+        $productos = \App\Models\Producto::with(['stocks.sucursal', 'categoria'])
+            ->where('activo', true)
+            ->where('es_combo', false)
+            ->when($request->input('filtro') === 'bajo', function ($q) {
+                $q->whereRaw('(select coalesce(sum(cantidad), 0) from stocks where stocks.producto_id = productos.id) <= productos.stock_minimo');
+            })
+            ->orderBy('nombre')
+            ->paginate(50)
+            ->withQueryString();
+
+        $valorizado = DB::table('stocks')
+            ->join('productos', 'productos.id', '=', 'stocks.producto_id')
+            ->whereNull('productos.deleted_at')
+            ->where('productos.activo', true)
+            ->selectRaw('SUM(stocks.cantidad * productos.precio_compra) as costo, SUM(stocks.cantidad * productos.precio_venta) as venta')
+            ->first();
+
+        return view('informes.stock', [
+            'productos' => $productos,
+            'valorCosto' => (float) ($valorizado->costo ?? 0),
+            'valorVenta' => (float) ($valorizado->venta ?? 0),
+            'sucursales' => \App\Models\Sucursal::where('activa', true)->get(),
+        ]);
+    }
+
     public function libroIva(Request $request): View|StreamedResponse
     {
         $desde = $request->date('desde') ?? now()->startOfMonth();

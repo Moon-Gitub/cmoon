@@ -35,7 +35,7 @@ class VentaService
         }
 
         return DB::transaction(function () use ($datos, $userId) {
-            $empresaId = Empresa::value('id');
+            $empresaId = auth()->user()->empresa_id;
 
             // Ítems: el total se calcula siempre del lado del servidor
             $items = [];
@@ -122,7 +122,7 @@ class VentaService
                 ]);
 
                 if ($item['producto']) {
-                    $this->stockService->mover(
+                    $this->moverStockVenta(
                         $item['producto'],
                         (int) $datos['sucursal_id'],
                         -$item['cantidad'],
@@ -161,6 +161,40 @@ class VentaService
     }
 
     /**
+     * Mueve stock por venta/anulación. Si el producto es un combo,
+     * el movimiento se aplica sobre sus componentes.
+     */
+    private function moverStockVenta(
+        \App\Models\Producto $producto,
+        int $sucursalId,
+        float $cantidad,
+        string $tipo,
+        string $observacion,
+        Venta $venta,
+        int $userId,
+    ): void {
+        if ($producto->es_combo) {
+            foreach ($producto->componentes()->with('componente')->get() as $componente) {
+                if ($componente->componente) {
+                    $this->stockService->mover(
+                        $componente->componente,
+                        $sucursalId,
+                        $cantidad * (float) $componente->cantidad,
+                        $tipo,
+                        "{$observacion} (combo {$producto->nombre})",
+                        $venta,
+                        $userId,
+                    );
+                }
+            }
+
+            return;
+        }
+
+        $this->stockService->mover($producto, $sucursalId, $cantidad, $tipo, $observacion, $venta, $userId);
+    }
+
+    /**
      * Anula una venta: repone stock y revierte la cta. cte. si corresponde.
      */
     public function anular(Venta $venta, string $motivo, int $userId): Venta
@@ -172,7 +206,7 @@ class VentaService
         return DB::transaction(function () use ($venta, $motivo, $userId) {
             foreach ($venta->items as $item) {
                 if ($item->producto_id && $item->producto) {
-                    $this->stockService->mover(
+                    $this->moverStockVenta(
                         $item->producto,
                         $venta->sucursal_id,
                         (float) $item->cantidad,

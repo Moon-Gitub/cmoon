@@ -33,6 +33,12 @@
             </select>
         </div>
         <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Filtrar</button>
+        @can('facturacion.emitir')
+            <a href="{{ route('facturacion.manual') }}"
+               class="ml-auto rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                + Factura manual
+            </a>
+        @endcan
     </form>
 
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -75,7 +81,13 @@
                         <td class="px-4 py-3 text-right">
                             @if ($c->estado === 'autorizado')
                                 <a href="{{ route('facturacion.show', $c) }}" target="_blank"
-                                   class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Ver factura</a>
+                                   class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Ver</a>
+                                @if (! $c->esNota())
+                                    @can('facturacion.emitir')
+                                        <a href="{{ route('facturacion.nota', $c) }}"
+                                           class="ml-2 text-sm font-medium text-amber-600 hover:text-amber-800">NC/ND</a>
+                                    @endcan
+                                @endif
                             @elseif (in_array($c->estado, ['error', 'rechazado']))
                                 @can('facturacion.emitir')
                                     <form method="POST" action="{{ route('facturacion.reintentar', $c) }}" class="inline">

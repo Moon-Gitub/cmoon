@@ -31,7 +31,7 @@ class SucursalController extends Controller
 
         $datos = $this->validar($request);
 
-        Sucursal::create([...$datos, 'empresa_id' => Empresa::value('id')]);
+        Sucursal::create([...$datos, 'empresa_id' => auth()->user()->empresa_id]);
 
         return redirect()->route('sucursales.index')->with('ok', 'Sucursal creada.');
     }
@@ -71,7 +71,7 @@ class SucursalController extends Controller
             'nombre' => [
                 'required', 'string', 'max:100',
                 Rule::unique('sucursales', 'nombre')
-                    ->where('empresa_id', Empresa::value('id'))
+                    ->where('empresa_id', auth()->user()->empresa_id)
                     ->ignore($sucursal),
             ],
             'codigo' => ['nullable', 'string', 'max:10'],

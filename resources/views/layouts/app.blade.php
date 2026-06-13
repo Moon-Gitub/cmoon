@@ -6,6 +6,20 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('titulo', 'Panel') · {{ config('app.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @php($empresaActual = auth()->user()->empresa)
+    @php($colorAccento = $empresaActual?->color_primario ?? '#4f46e5')
+    @php($colorOscuro = \App\Support\Color::oscurecer($colorAccento, 0.15))
+    <style>
+        /* Personalización visual por empresa: pisa el color de acento de la UI */
+        :root { --accent: {{ $colorAccento }}; --accent-dark: {{ $colorOscuro }}; }
+        .bg-indigo-600, .bg-indigo-500 { background-color: var(--accent) !important; }
+        .hover\:bg-indigo-700:hover { background-color: var(--accent-dark) !important; }
+        .text-indigo-600, .text-indigo-700 { color: var(--accent) !important; }
+        .hover\:text-indigo-800:hover { color: var(--accent-dark) !important; }
+        .border-indigo-500, .focus\:border-indigo-500:focus { border-color: var(--accent) !important; }
+        .bg-indigo-100 { background-color: color-mix(in srgb, var(--accent) 12%, white) !important; }
+        .bg-indigo-50 { background-color: color-mix(in srgb, var(--accent) 6%, white) !important; }
+    </style>
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased">
 <div class="flex min-h-screen">
@@ -13,10 +27,17 @@
     {{-- Sidebar --}}
     <aside class="hidden w-64 shrink-0 flex-col bg-slate-900 text-slate-200 md:flex">
         <div class="flex h-16 items-center gap-2 border-b border-slate-800 px-5">
-            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500 font-bold text-white">C</div>
+            @if ($empresaActual?->logo_path)
+                <img src="{{ asset('storage/'.$empresaActual->logo_path) }}" alt="Logo"
+                     class="h-9 w-9 rounded-lg bg-white object-contain p-0.5">
+            @else
+                <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500 font-bold text-white">
+                    {{ strtoupper(substr($empresaActual?->nombre_fantasia ?? $empresaActual?->razon_social ?? 'C', 0, 1)) }}
+                </div>
+            @endif
             <div>
-                <p class="text-sm font-semibold leading-tight text-white">CMoon POS</p>
-                <p class="text-xs text-slate-400">{{ auth()->user()->empresa?->nombre_fantasia ?? 'Sistema de ventas' }}</p>
+                <p class="text-sm font-semibold leading-tight text-white">{{ $empresaActual?->nombre_fantasia ?? 'CMoon POS' }}</p>
+                <p class="text-xs text-slate-400">{{ $empresaActual?->razon_social ?? 'Sistema de ventas' }}</p>
             </div>
         </div>
 
@@ -55,9 +76,25 @@
                 </a>
             @endcan
 
-            @canany(['clientes.ver', 'proveedores.ver'])
+            @can('presupuestos.ver')
+                <a href="{{ route('presupuestos.index') }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('presupuestos.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+                    Presupuestos
+                </a>
+            @endcan
+
+            @canany(['clientes.ver', 'proveedores.ver', 'compras.ver'])
                 <p class="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Comercial</p>
             @endcanany
+
+            @can('compras.ver')
+                <a href="{{ route('compras.index') }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('compras.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg>
+                    Compras
+                </a>
+            @endcan
 
             @can('clientes.ver')
                 <a href="{{ route('clientes.index') }}"
@@ -133,11 +170,27 @@
                 <a href="{{ route('empresa.edit') }}"
                    class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('empresa.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>
-                    Empresa
+                    Mi empresa
                 </a>
             @endcan
 
-            @canany(['facturacion.ver', 'emisores.ver', 'informes.ver'])
+            @can('empresas.gestionar')
+                <a href="{{ route('empresas.index') }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('empresas.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z"/></svg>
+                    Empresas
+                </a>
+            @endcan
+
+            @can('roles.gestionar')
+                <a href="{{ route('roles.index') }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('roles.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"/></svg>
+                    Roles y permisos
+                </a>
+            @endcan
+
+            @canany(['facturacion.ver', 'emisores.ver', 'informes.ver', 'retenciones.ver'])
                 <p class="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Fiscal e informes</p>
             @endcanany
 
@@ -163,10 +216,23 @@
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
                     Informe de ventas
                 </a>
+                <a href="{{ route('informes.stock') }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('informes.stock') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m16.5 0H3.75m16.5 0l-1.5-3.75h-13.5L3.75 7.5m6.75 4.5h3"/></svg>
+                    Informe de stock
+                </a>
                 <a href="{{ route('informes.libro-iva') }}"
                    class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('informes.libro-iva') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
                     Libro IVA
+                </a>
+            @endcan
+
+            @can('retenciones.ver')
+                <a href="{{ route('retenciones.index') }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('retenciones.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0c1.1.128 1.907 1.077 1.907 2.185zM9.75 9h.008v.008H9.75V9zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm4.125 4.5h.008v.008h-.008V13.5zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+                    Retenciones IIBB
                 </a>
             @endcan
         </nav>

@@ -78,6 +78,21 @@
                 </select>
                 @error('sucursal_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
+            @if (($empresas ?? collect())->isNotEmpty())
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Empresa</label>
+                    <select name="empresa_id"
+                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                        @foreach ($empresas as $emp)
+                            <option value="{{ $emp->id }}"
+                                {{ (string) old('empresa_id', $usuarioEditado->empresa_id ?? auth()->user()->empresa_id) === (string) $emp->id ? 'selected' : '' }}>
+                                {{ $emp->razon_social }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-slate-400">El usuario solo verá los datos de esta empresa.</p>
+                </div>
+            @endif
         </div>
 
         <label class="flex items-center gap-2 text-sm text-slate-700">

@@ -25,11 +25,11 @@ class CategoriaController extends Controller
         $datos = $request->validate([
             'nombre' => [
                 'required', 'string', 'max:100',
-                Rule::unique('categorias', 'nombre')->where('empresa_id', Empresa::value('id')),
+                Rule::unique('categorias', 'nombre')->where('empresa_id', auth()->user()->empresa_id),
             ],
         ]);
 
-        Categoria::create([...$datos, 'empresa_id' => Empresa::value('id'), 'activa' => true]);
+        Categoria::create([...$datos, 'empresa_id' => auth()->user()->empresa_id, 'activa' => true]);
 
         return back()->with('ok', 'Categoría creada.');
     }

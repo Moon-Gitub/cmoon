@@ -3,7 +3,7 @@
 @section('titulo', 'Datos de la empresa')
 
 @section('contenido')
-    <form method="POST" action="{{ route('empresa.update') }}"
+    <form method="POST" action="{{ route('empresa.update') }}" enctype="multipart/form-data"
           class="max-w-3xl space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         @csrf @method('PUT')
 
@@ -80,6 +80,32 @@
                 <label class="mb-1 block text-sm font-medium text-slate-700">Provincia</label>
                 <input type="text" name="provincia" value="{{ old('provincia', $empresa->provincia) }}"
                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+            </div>
+        </div>
+
+        <div class="border-t border-slate-100 pt-4">
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Personalización visual</h2>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Color del sistema *</label>
+                    <input type="color" name="color_primario"
+                           value="{{ old('color_primario', $empresa->color_primario ?? '#4f46e5') }}"
+                           class="h-10 w-full cursor-pointer rounded-lg border border-slate-300">
+                    <p class="mt-1 text-xs text-slate-400">Cambia el color de botones, menú y acentos.</p>
+                    @error('color_primario')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Logo</label>
+                    <div class="flex items-center gap-4">
+                        @if ($empresa->logo_path)
+                            <img src="{{ asset('storage/'.$empresa->logo_path) }}" alt="Logo"
+                                 class="h-12 w-12 rounded-lg border border-slate-200 object-contain">
+                        @endif
+                        <input type="file" name="logo" accept="image/*" class="block w-full text-sm">
+                    </div>
+                    <p class="mt-1 text-xs text-slate-400">Se muestra en el menú, tickets y facturas. PNG/JPG, máx. 2 MB.</p>
+                    @error('logo')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
             </div>
         </div>
 

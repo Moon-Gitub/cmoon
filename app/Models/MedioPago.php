@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PerteneceAEmpresa;
 use Illuminate\Database\Eloquent\Model;
 
 class MedioPago extends Model
 {
+    use PerteneceAEmpresa;
+
     protected $table = 'medios_pago';
 
     protected $fillable = ['empresa_id', 'nombre', 'tipo', 'recargo_porcentaje', 'activo'];

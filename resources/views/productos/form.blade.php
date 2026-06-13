@@ -55,12 +55,18 @@
                     @endforeach
                 </select>
             </div>
-            <div class="flex items-end pb-2">
+            <div class="flex items-end gap-4 pb-2">
                 <label class="flex items-center gap-2 text-sm text-slate-700">
                     <input type="checkbox" name="pesable" value="1"
                            {{ old('pesable', $producto->pesable) ? 'checked' : '' }}
                            class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                     Producto de balanza
+                </label>
+                <label class="flex items-center gap-2 text-sm text-slate-700">
+                    <input type="checkbox" name="es_combo" value="1"
+                           {{ old('es_combo', $producto->es_combo) ? 'checked' : '' }}
+                           class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    Combo (producto compuesto)
                 </label>
             </div>
         </div>

@@ -21,10 +21,16 @@
         </form>
 
         @can('productos.crear')
-            <a href="{{ route('productos.create') }}"
-               class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
-                + Nuevo producto
-            </a>
+            <div class="flex gap-2">
+                <a href="{{ route('productos.importar') }}"
+                   class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50">
+                    Importar CSV
+                </a>
+                <a href="{{ route('productos.create') }}"
+                   class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                    + Nuevo producto
+                </a>
+            </div>
         @endcan
     </div>
 
@@ -50,6 +56,7 @@
                         <td class="px-4 py-3 font-medium">
                             {{ $p->nombre }}
                             @if ($p->pesable)<span class="ml-1 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">BALANZA</span>@endif
+                            @if ($p->es_combo)<span class="ml-1 rounded bg-purple-50 px-1.5 py-0.5 text-[10px] font-medium text-purple-700">COMBO</span>@endif
                         </td>
                         <td class="px-4 py-3 text-slate-600">{{ $p->categoria?->nombre ?? '—' }}</td>
                         <td class="px-4 py-3 text-right text-slate-600">$ {{ number_format((float) $p->precio_compra, 2, ',', '.') }}</td>
@@ -62,10 +69,17 @@
                         </td>
                         <td class="px-4 py-3 text-right">
                             <div class="flex items-center justify-end gap-2">
-                                @can('stock.ajustar')
-                                    <a href="{{ route('productos.stock', $p) }}"
-                                       class="rounded-lg border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-100">Stock</a>
-                                @endcan
+                                @if ($p->es_combo)
+                                    @can('productos.editar')
+                                        <a href="{{ route('productos.combo', $p) }}"
+                                           class="rounded-lg border border-purple-200 px-2.5 py-1 text-xs text-purple-700 hover:bg-purple-50">Combo</a>
+                                    @endcan
+                                @else
+                                    @can('stock.ajustar')
+                                        <a href="{{ route('productos.stock', $p) }}"
+                                           class="rounded-lg border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-100">Stock</a>
+                                    @endcan
+                                @endif
                                 @can('productos.editar')
                                     <a href="{{ route('productos.edit', $p) }}"
                                        class="rounded-lg border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-100">Editar</a>

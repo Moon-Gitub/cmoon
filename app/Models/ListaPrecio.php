@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PerteneceAEmpresa;
 use Illuminate\Database\Eloquent\Model;
 
 class ListaPrecio extends Model
 {
+    use PerteneceAEmpresa;
+
     protected $table = 'listas_precio';
 
     protected $fillable = ['empresa_id', 'nombre', 'porcentaje', 'activa'];

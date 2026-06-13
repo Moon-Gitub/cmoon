@@ -45,7 +45,7 @@ class ClienteController extends Controller
 
         $cliente = Cliente::create([
             ...$this->validar($request),
-            'empresa_id' => Empresa::value('id'),
+            'empresa_id' => auth()->user()->empresa_id,
         ]);
 
         return redirect()->route('clientes.index')->with('ok', "Cliente {$cliente->nombre} creado.");

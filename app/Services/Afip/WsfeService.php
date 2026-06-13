@@ -86,6 +86,20 @@ class WsfeService
         // Condición IVA del receptor (obligatorio desde RG 5616)
         $detalle['CondicionIVAReceptorId'] = $this->condicionIvaReceptor($comprobante);
 
+        // Notas de crédito/débito: referencia al comprobante original
+        if ($comprobante->comprobante_asociado_id && $comprobante->comprobanteAsociado) {
+            $original = $comprobante->comprobanteAsociado;
+            $detalle['CbtesAsoc'] = [
+                'CbteAsoc' => [[
+                    'Tipo' => $original->tipo_comprobante,
+                    'PtoVta' => $original->puntoVenta->numero,
+                    'Nro' => (int) $original->numero,
+                    'Cuit' => preg_replace('/\D/', '', $emisor->cuit),
+                    'CbteFch' => $original->fecha_emision->format('Ymd'),
+                ]],
+            ];
+        }
+
         // Desglose de IVA solo para A y B
         if (! $esC && $comprobante->detalle_iva) {
             $detalle['Iva'] = [

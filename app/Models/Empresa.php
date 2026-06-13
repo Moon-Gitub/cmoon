@@ -23,6 +23,7 @@ class Empresa extends Model
         'telefono',
         'email',
         'logo_path',
+        'color_primario',
         'activa',
     ];
 

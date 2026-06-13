@@ -24,7 +24,7 @@ class ListaPrecioController extends Controller
 
         $datos = $this->validar($request);
 
-        ListaPrecio::create([...$datos, 'empresa_id' => Empresa::value('id')]);
+        ListaPrecio::create([...$datos, 'empresa_id' => auth()->user()->empresa_id]);
 
         return back()->with('ok', 'Lista de precios creada.');
     }
@@ -53,7 +53,7 @@ class ListaPrecioController extends Controller
             'nombre' => [
                 'required', 'string', 'max:100',
                 Rule::unique('listas_precio', 'nombre')
-                    ->where('empresa_id', Empresa::value('id'))
+                    ->where('empresa_id', auth()->user()->empresa_id)
                     ->ignore($lista),
             ],
             'porcentaje' => ['required', 'numeric', 'between:-99,500'],

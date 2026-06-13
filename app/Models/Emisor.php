@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\PerteneceAEmpresa;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Emisor extends Model
 {
+    use PerteneceAEmpresa;
+
     protected $table = 'emisores';
 
     protected $fillable = [

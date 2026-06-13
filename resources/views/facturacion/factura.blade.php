@@ -53,6 +53,16 @@
         </div>
     </div>
 
+    @if ($comprobante->comprobante_asociado_id && $comprobante->comprobanteAsociado)
+        <div class="bloque" style="background: #f5f5f5;">
+            <p><strong>Comprobante asociado:</strong>
+                {{ $comprobante->comprobanteAsociado->tipoNombre() }} {{ $comprobante->comprobanteAsociado->numeroFormateado() }}
+                del {{ $comprobante->comprobanteAsociado->fecha_emision->format('d/m/Y') }}
+                @if ($comprobante->concepto) · {{ $comprobante->concepto }} @endif
+            </p>
+        </div>
+    @endif
+
     <div class="bloque">
         <p><strong>Señor/es:</strong> {{ $comprobante->receptor_nombre }}</p>
         <p><strong>{{ $comprobante->doc_tipo === 80 ? 'CUIT' : ($comprobante->doc_tipo === 96 ? 'DNI' : 'Doc.') }}:</strong>
@@ -71,12 +81,12 @@
             </tr>
         </thead>
         <tbody>
-            @foreach ($comprobante->venta?->items ?? [] as $item)
+            @foreach ($comprobante->items() as $item)
                 <tr>
-                    <td>{{ $item->descripcion }}</td>
-                    <td class="num">{{ rtrim(rtrim(number_format((float) $item->cantidad, 3, ',', '.'), '0'), ',') }}</td>
-                    <td class="num">{{ number_format((float) $item->precio_unitario, 2, ',', '.') }}</td>
-                    <td class="num">{{ number_format((float) $item->total, 2, ',', '.') }}</td>
+                    <td>{{ $item['descripcion'] }}</td>
+                    <td class="num">{{ rtrim(rtrim(number_format((float) $item['cantidad'], 3, ',', '.'), '0'), ',') }}</td>
+                    <td class="num">{{ number_format((float) $item['precio_unitario'], 2, ',', '.') }}</td>
+                    <td class="num">{{ number_format((float) $item['total'], 2, ',', '.') }}</td>
                 </tr>
             @endforeach
         </tbody>

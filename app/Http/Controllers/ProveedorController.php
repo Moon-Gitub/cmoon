@@ -39,7 +39,7 @@ class ProveedorController extends Controller
 
         $proveedor = Proveedor::create([
             ...$this->validar($request),
-            'empresa_id' => Empresa::value('id'),
+            'empresa_id' => auth()->user()->empresa_id,
         ]);
 
         return redirect()->route('proveedores.index')
