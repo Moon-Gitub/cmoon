@@ -6,7 +6,10 @@ use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\CuentaCorrienteController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EmisorController;
 use App\Http\Controllers\EmpresaController;
+use App\Http\Controllers\FacturacionController;
+use App\Http\Controllers\InformeController;
 use App\Http\Controllers\ListaPrecioController;
 use App\Http\Controllers\MedioPagoController;
 use App\Http\Controllers\PerfilController;
@@ -104,5 +107,27 @@ Route::middleware('auth')->group(function () {
         Route::resource('medios-pago', MedioPagoController::class)
             ->only(['index', 'store', 'update', 'destroy'])
             ->parameters(['medios-pago' => 'medioPago']);
+    });
+
+    Route::middleware('permission:facturacion.ver')->group(function () {
+        Route::get('/facturacion', [FacturacionController::class, 'index'])->name('facturacion.index');
+        Route::get('/facturacion/{comprobante}', [FacturacionController::class, 'show'])
+            ->whereNumber('comprobante')->name('facturacion.show');
+        Route::post('/ventas/{venta}/facturar', [FacturacionController::class, 'facturar'])->name('ventas.facturar');
+        Route::post('/facturacion/{comprobante}/reintentar', [FacturacionController::class, 'reintentar'])->name('facturacion.reintentar');
+    });
+
+    Route::middleware('permission:emisores.ver')->group(function () {
+        Route::get('/emisores', [EmisorController::class, 'index'])->name('emisores.index');
+        Route::post('/emisores', [EmisorController::class, 'store'])->name('emisores.store');
+        Route::put('/emisores/{emisor}', [EmisorController::class, 'update'])->name('emisores.update');
+        Route::post('/emisores/{emisor}/certificado', [EmisorController::class, 'certificado'])->name('emisores.certificado');
+        Route::post('/emisores/{emisor}/puntos-venta', [EmisorController::class, 'puntoVenta'])->name('emisores.punto-venta');
+        Route::delete('/emisores/{emisor}/puntos-venta/{puntoVenta}', [EmisorController::class, 'eliminarPuntoVenta'])->name('emisores.punto-venta.eliminar');
+    });
+
+    Route::middleware('permission:informes.ver')->group(function () {
+        Route::get('/informes/ventas', [InformeController::class, 'ventas'])->name('informes.ventas');
+        Route::get('/informes/libro-iva', [InformeController::class, 'libroIva'])->name('informes.libro-iva');
     });
 });

@@ -20,6 +20,13 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
+
+        // El POS sincroniza ventas encoladas offline: el token CSRF de la página
+        // puede haber rotado para entonces. La ruta sigue exigiendo sesión
+        // autenticada y la cookie SameSite=Lax bloquea POST de otros sitios.
+        $middleware->validateCsrfTokens(except: [
+            'pos/ventas',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

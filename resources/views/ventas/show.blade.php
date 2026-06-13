@@ -94,6 +94,50 @@
                 Ver ticket
             </a>
 
+            @if ($comprobante)
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm">
+                    <p class="font-semibold text-emerald-800">Facturada electrónicamente</p>
+                    <p class="mt-1 text-emerald-700">{{ $comprobante->tipoNombre() }} {{ $comprobante->numeroFormateado() }}</p>
+                    @if ($comprobante->cae)
+                        <p class="text-xs text-emerald-600">CAE: {{ $comprobante->cae }}</p>
+                        <a href="{{ route('facturacion.show', $comprobante) }}" target="_blank"
+                           class="mt-2 block rounded-lg bg-emerald-600 py-2 text-center font-semibold text-white hover:bg-emerald-700">
+                            Ver factura
+                        </a>
+                    @endif
+                </div>
+            @elseif ($venta->estado === 'completada' && $emisores->isNotEmpty())
+                @can('facturacion.emitir')
+                    <form method="POST" action="{{ route('ventas.facturar', $venta) }}"
+                          class="space-y-2 rounded-xl border border-indigo-200 bg-indigo-50 p-4"
+                          x-data="{ emisorId: '{{ $emisores->first()->id }}' }">
+                        @csrf
+                        <p class="text-sm font-semibold text-indigo-800">Facturar electrónicamente (AFIP)</p>
+                        <select name="emisor_id" x-model="emisorId"
+                                class="w-full rounded-lg border border-indigo-200 px-3 py-2 text-sm">
+                            @foreach ($emisores as $emisor)
+                                <option value="{{ $emisor->id }}">{{ $emisor->razon_social }} ({{ $emisor->cuit }})</option>
+                            @endforeach
+                        </select>
+                        @foreach ($emisores as $emisor)
+                            <select name="punto_venta_id" x-show="emisorId == '{{ $emisor->id }}'"
+                                    :disabled="emisorId != '{{ $emisor->id }}'"
+                                    class="w-full rounded-lg border border-indigo-200 px-3 py-2 text-sm">
+                                @forelse ($emisor->puntosVenta->where('activo', true) as $pv)
+                                    <option value="{{ $pv->id }}">PV {{ str_pad($pv->numero, 4, '0', STR_PAD_LEFT) }} {{ $pv->descripcion }}</option>
+                                @empty
+                                    <option value="">Sin puntos de venta</option>
+                                @endforelse
+                            </select>
+                        @endforeach
+                        @error('venta')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+                        <button class="w-full rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                            Solicitar CAE
+                        </button>
+                    </form>
+                @endcan
+            @endif
+
             @if ($venta->estado === 'completada')
                 @can('ventas.anular')
                     <form method="POST" action="{{ route('ventas.anular', $venta) }}"

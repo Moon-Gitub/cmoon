@@ -34,7 +34,7 @@ FROM serversideup/php:8.4-fpm-nginx AS app
 
 # Extensiones extra que el POS va a necesitar (imagenes, locales, PDFs)
 USER root
-RUN install-php-extensions intl gd exif bcmath
+RUN install-php-extensions intl gd exif bcmath soap
 
 ENV PHP_OPCACHE_ENABLE=1 \
     AUTORUN_ENABLED=true \

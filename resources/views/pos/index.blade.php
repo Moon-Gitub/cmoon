@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="/manifest.webmanifest">
     <title>Punto de venta — CMoon POS</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -23,6 +25,15 @@
                 <span class="rounded-full bg-slate-700 px-2.5 py-0.5 text-xs">{{ $sucursal?->nombre ?? 'Sin sucursal' }}</span>
             </div>
             <div class="flex items-center gap-3 text-xs">
+                <span x-show="online" class="flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-2.5 py-1 text-emerald-300">
+                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span> En línea
+                </span>
+                <span x-show="! online" class="flex items-center gap-1.5 rounded-full bg-red-500/20 px-2.5 py-1 text-red-300">
+                    <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400"></span> Sin conexión
+                </span>
+                <span x-show="pendientes.length" x-cloak
+                      class="flex items-center gap-1.5 rounded-full bg-amber-500/20 px-2.5 py-1 text-amber-300"
+                      x-text="pendientes.length + (pendientes.length === 1 ? ' venta por sincronizar' : ' ventas por sincronizar')"></span>
                 @if ($sesionAbierta)
                     <span class="flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-2.5 py-1 text-emerald-300">
                         <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
@@ -233,13 +244,19 @@
     <div x-show="ventaOk" x-transition.opacity
          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
         <div class="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl">
-            <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-                <svg class="h-9 w-9 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
+                 :class="ventaOk?.offline ? 'bg-amber-100' : 'bg-emerald-100'">
+                <svg x-show="! ventaOk?.offline" class="h-9 w-9 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                <svg x-show="ventaOk?.offline" class="h-9 w-9 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008zM21.75 12a9.75 9.75 0 11-19.5 0 9.75 9.75 0 0119.5 0z"/></svg>
             </div>
-            <h2 class="text-xl font-bold">Venta registrada</h2>
-            <p class="mt-1 text-slate-500">Comprobante <span class="font-semibold" x-text="'#' + (ventaOk?.numero ?? '')"></span> · <span x-text="fmt(ventaOk?.total ?? 0)"></span></p>
+            <h2 class="text-xl font-bold" x-text="ventaOk?.offline ? 'Venta guardada sin conexión' : 'Venta registrada'"></h2>
+            <p class="mt-1 text-slate-500" x-show="! ventaOk?.offline">Comprobante <span class="font-semibold" x-text="'#' + (ventaOk?.numero ?? '')"></span> · <span x-text="fmt(ventaOk?.total ?? 0)"></span></p>
+            <p class="mt-1 text-sm text-amber-600" x-show="ventaOk?.offline">
+                Total <span class="font-semibold" x-text="fmt(ventaOk?.total ?? 0)"></span>.
+                Se va a sincronizar sola cuando vuelva internet.
+            </p>
             <div class="mt-6 flex gap-3">
-                <button type="button" @click="imprimirTicket()"
+                <button type="button" @click="imprimirTicket()" x-show="! ventaOk?.offline"
                         class="flex-1 rounded-xl border border-slate-300 py-2.5 text-sm font-medium hover:bg-slate-50">
                     Imprimir ticket
                 </button>
@@ -259,6 +276,7 @@
                 clienteId: '', descuento: 0,
                 modalPago: false, pagos: [], recibido: 0, errorPago: '',
                 procesando: false, ventaOk: null,
+                online: navigator.onLine, pendientes: [], sincronizando: false,
                 sucursalId: {{ $sucursal?->id ?? 'null' }},
                 cajaSesionId: {{ $sesionAbierta?->id ?? 'null' }},
 
@@ -268,6 +286,17 @@
                         if (e.key === 'Enter' && this.modalPago && ! this.procesando) { e.preventDefault(); this.confirmar(); }
                         if (e.key === 'Escape' && this.ventaOk) { this.ventaOk = null; this.$refs.buscador.focus(); }
                     });
+
+                    // Modo offline: service worker + cola de ventas pendientes
+                    if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.register('/sw.js').catch(() => {});
+                    }
+                    this.pendientes = JSON.parse(localStorage.getItem('pos_pendientes') ?? '[]');
+                    window.addEventListener('online', () => { this.online = true; this.sincronizar(); });
+                    window.addEventListener('offline', () => { this.online = false; });
+                    setInterval(() => this.sincronizar(), 30000);
+                    this.sincronizar();
+
                     try {
                         const res = await fetch('{{ route('pos.catalogo') }}', { headers: { 'Accept': 'application/json' } });
                         const data = await res.json();
@@ -277,6 +306,44 @@
                         // Sin conexión: usar el último catálogo conocido
                         const cache = localStorage.getItem('pos_catalogo');
                         if (cache) Object.assign(this, JSON.parse(cache));
+                    }
+                },
+
+                guardarPendientes() {
+                    localStorage.setItem('pos_pendientes', JSON.stringify(this.pendientes));
+                },
+
+                async enviarVenta(payload) {
+                    const res = await fetch('{{ route('pos.guardar') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                        },
+                        body: JSON.stringify(payload),
+                    });
+                    return res;
+                },
+
+                async sincronizar() {
+                    if (this.sincronizando || ! navigator.onLine || ! this.pendientes.length) return;
+                    this.sincronizando = true;
+                    try {
+                        const restantes = [];
+                        for (const payload of this.pendientes) {
+                            try {
+                                const res = await this.enviarVenta({ ...payload, origen: 'offline' });
+                                // 422 = inválida (no se reintenta); otros errores se reintentan
+                                if (! res.ok && res.status !== 422) restantes.push(payload);
+                            } catch {
+                                restantes.push(payload);
+                            }
+                        }
+                        this.pendientes = restantes;
+                        this.guardarPendientes();
+                    } finally {
+                        this.sincronizando = false;
                     }
                 },
 
@@ -363,45 +430,50 @@
                     }
                     this.procesando = true;
                     this.errorPago = '';
+
+                    const payload = {
+                        uuid: crypto.randomUUID(),
+                        sucursal_id: this.sucursalId,
+                        caja_sesion_id: this.cajaSesionId,
+                        cliente_id: this.clienteId || null,
+                        descuento: this.descuento || 0,
+                        fecha: new Date().toISOString(),
+                        origen: 'pos',
+                        items: this.carrito.map(i => ({
+                            producto_id: i.producto_id,
+                            descripcion: i.nombre,
+                            cantidad: i.cantidad,
+                            precio_unitario: i.precio,
+                            alicuota_iva: i.iva,
+                        })),
+                        pagos: this.pagos.filter(p => p.importe > 0),
+                    };
+
                     try {
-                        const res = await fetch('{{ route('pos.guardar') }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-                            },
-                            body: JSON.stringify({
-                                uuid: crypto.randomUUID(),
-                                sucursal_id: this.sucursalId,
-                                caja_sesion_id: this.cajaSesionId,
-                                cliente_id: this.clienteId || null,
-                                descuento: this.descuento || 0,
-                                items: this.carrito.map(i => ({
-                                    producto_id: i.producto_id,
-                                    descripcion: i.nombre,
-                                    cantidad: i.cantidad,
-                                    precio_unitario: i.precio,
-                                    alicuota_iva: i.iva,
-                                })),
-                                pagos: this.pagos.filter(p => p.importe > 0),
-                            }),
-                        });
+                        const res = await this.enviarVenta(payload);
                         const data = await res.json();
                         if (! res.ok) {
                             this.errorPago = data.message ?? 'Error al guardar la venta.';
                             return;
                         }
                         this.ventaOk = data;
-                        this.modalPago = false;
-                        this.carrito = [];
-                        this.descuento = 0;
-                        this.clienteId = '';
+                        this.finalizarVenta();
                     } catch {
-                        this.errorPago = 'Sin conexión con el servidor. La venta no se guardó.';
+                        // Sin conexión: la venta queda en cola y se sincroniza sola
+                        this.pendientes.push(payload);
+                        this.guardarPendientes();
+                        this.ventaOk = { offline: true, total: this.total() };
+                        this.finalizarVenta();
                     } finally {
                         this.procesando = false;
                     }
+                },
+
+                finalizarVenta() {
+                    this.modalPago = false;
+                    this.carrito = [];
+                    this.descuento = 0;
+                    this.clienteId = '';
                 },
 
                 imprimirTicket() {

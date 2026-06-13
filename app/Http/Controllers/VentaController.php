@@ -39,6 +39,13 @@ class VentaController extends Controller
     {
         return view('ventas.show', [
             'venta' => $venta->load(['items.producto', 'pagos.medioPago', 'cliente', 'vendedor', 'sucursal', 'anuladaPor']),
+            'comprobante' => \App\Models\Comprobante::with('puntoVenta')
+                ->where('venta_id', $venta->id)
+                ->whereIn('estado', ['autorizado', 'pendiente'])
+                ->first(),
+            'emisores' => auth()->user()->can('facturacion.emitir')
+                ? \App\Models\Emisor::with('puntosVenta')->where('activo', true)->get()
+                : collect(),
         ]);
     }
 
