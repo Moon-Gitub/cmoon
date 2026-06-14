@@ -146,6 +146,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/emisores/{emisor}/certificado', [EmisorController::class, 'certificado'])->name('emisores.certificado');
         Route::post('/emisores/{emisor}/puntos-venta', [EmisorController::class, 'puntoVenta'])->name('emisores.punto-venta');
         Route::delete('/emisores/{emisor}/puntos-venta/{puntoVenta}', [EmisorController::class, 'eliminarPuntoVenta'])->name('emisores.punto-venta.eliminar');
+        Route::delete('/emisores/{emisor}', [EmisorController::class, 'destroy'])->name('emisores.destroy');
     });
 
     Route::middleware('permission:informes.ver')->group(function () {

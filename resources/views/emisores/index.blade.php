@@ -78,7 +78,7 @@
                             {{ $emisor->condicion_iva === 'MONOTRIBUTO' ? 'Monotributo (Factura C)' : 'Resp. Inscripto (Factura A/B)' }}
                         </p>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         @if ($emisor->esProduccion())
                             <span class="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">Producción</span>
                         @else
@@ -89,6 +89,16 @@
                         @else
                             <span class="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-600">Sin certificado</span>
                         @endif
+                        @can('emisores.gestionar')
+                            <form method="POST" action="{{ route('emisores.destroy', $emisor) }}"
+                                  onsubmit="return confirm('¿Eliminar el emisor {{ $emisor->razon_social }}? Se borrarán sus puntos de venta.')">
+                                @csrf @method('DELETE')
+                                <button type="submit"
+                                        class="rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-600 hover:bg-red-100">
+                                    Eliminar emisor
+                                </button>
+                            </form>
+                        @endcan
                     </div>
                 </div>
 
