@@ -90,9 +90,18 @@ class WsaaService
 
         $resultado = $cliente->loginCms(['in0' => $cms]);
 
+        $this->asegurarDirectorioTa();
         Storage::put($this->rutaTa($emisor), $resultado->loginCmsReturn);
 
         return simplexml_load_string($resultado->loginCmsReturn);
+    }
+
+    /** Crea storage/app/private/afip/ta si no existe (cache de tickets WSAA). */
+    private function asegurarDirectorioTa(): void
+    {
+        if (! Storage::directoryExists('afip/ta')) {
+            Storage::makeDirectory('afip/ta');
+        }
     }
 
     private function crearTra(): string
@@ -106,8 +115,16 @@ class WsaaService
         $tra->header->addChild('expirationTime', date('c', time() + 600));
         $tra->addChild('service', self::SERVICIO);
 
-        $rutaTra = Storage::path('afip/ta/tra-'.uniqid().'.xml');
-        $tra->asXML($rutaTra);
+        // Archivo temporal: el TRA se borra después de firmarlo
+        $rutaTra = tempnam(sys_get_temp_dir(), 'afip-tra-');
+        if ($rutaTra === false) {
+            throw new RuntimeException('No se pudo crear el archivo temporal para autenticar con AFIP.');
+        }
+
+        if ($tra->asXML($rutaTra) === false) {
+            @unlink($rutaTra);
+            throw new RuntimeException('No se pudo generar el TRA para autenticar con AFIP.');
+        }
 
         return $rutaTra;
     }
