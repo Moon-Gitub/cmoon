@@ -247,7 +247,7 @@
     {{-- Aviso de venta confirmada --}}
     <div x-show="ventaOk" x-transition.opacity
          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-        <div class="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-2xl">
+        <div class="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-2xl">
             <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
                  :class="ventaOk?.offline ? 'bg-amber-100' : 'bg-emerald-100'">
                 <svg x-show="! ventaOk?.offline" class="h-9 w-9 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
@@ -282,6 +282,24 @@
             </div>
             <p class="mt-3 text-xs text-red-600" x-show="errorFactura" x-text="errorFactura"></p>
             <p class="mt-2 text-xs text-emerald-700" x-show="ventaOk?.facturada" x-text="ventaOk?.factura_msg"></p>
+
+            <div x-show="puedeFacturar && emisores.length && ! ventaOk?.offline && ! ventaOk?.facturada"
+                 class="mt-4 space-y-2 border-t border-slate-100 pt-4 text-left">
+                <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Facturar como</p>
+                <select x-model.number="emisorId" @change="onEmisorChange()"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <template x-for="e in emisores" :key="e.id">
+                        <option :value="e.id" x-text="e.nombre + ' · ' + e.cuit"></option>
+                    </template>
+                </select>
+                <select x-model.number="puntoVentaId"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <template x-for="pv in (emisorSeleccionado()?.puntos_venta ?? [])" :key="pv.id">
+                        <option :value="pv.id"
+                                x-text="'PV ' + String(pv.numero).padStart(4, '0') + (pv.descripcion ? ' — ' + pv.descripcion : '')"></option>
+                    </template>
+                </select>
+            </div>
         </div>
     </div>
 
@@ -487,6 +505,15 @@
 
                 medioPorId(id) {
                     return this.medios.find(m => Number(m.id) === Number(id));
+                },
+
+                emisorSeleccionado() {
+                    return this.emisores.find(e => Number(e.id) === Number(this.emisorId));
+                },
+
+                onEmisorChange() {
+                    const e = this.emisorSeleccionado();
+                    this.puntoVentaId = e?.puntos_venta?.[0]?.id ?? null;
                 },
 
                 medioEfectivo() {

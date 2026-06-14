@@ -17,6 +17,7 @@ class VentaController extends Controller
         $hasta = $request->date('hasta')?->endOfDay() ?? now()->endOfDay();
 
         $ventas = Venta::with(['cliente', 'vendedor', 'pagos.medioPago'])
+            ->withExists(['comprobantes as facturada' => fn ($q) => $q->whereIn('estado', ['autorizado', 'pendiente'])])
             ->whereBetween('fecha', [$desde, $hasta])
             ->when($request->input('estado'), fn ($q, $estado) => $q->where('estado', $estado))
             ->orderByDesc('fecha')
@@ -27,11 +28,19 @@ class VentaController extends Controller
             ->whereBetween('fecha', [$desde, $hasta])
             ->sum('total');
 
+        $emisores = auth()->user()->can('facturacion.emitir')
+            ? \App\Models\Emisor::with(['puntosVenta' => fn ($q) => $q->where('activo', true)])
+                ->where('activo', true)
+                ->orderBy('razon_social')
+                ->get()
+            : collect();
+
         return view('ventas.index', [
             'ventas' => $ventas,
             'totalPeriodo' => $totalPeriodo,
             'desde' => $desde,
             'hasta' => $hasta,
+            'emisores' => $emisores,
         ]);
     }
 

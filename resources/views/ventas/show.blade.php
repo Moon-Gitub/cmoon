@@ -110,26 +110,21 @@
                 @can('facturacion.emitir')
                     <form method="POST" action="{{ route('ventas.facturar', $venta) }}"
                           class="space-y-2 rounded-xl border border-indigo-200 bg-indigo-50 p-4"
-                          x-data="{ emisorId: '{{ $emisores->first()->id }}' }">
+                          x-data="{
+                              emisorId: '{{ $emisores->first()->id }}',
+                              puntoVentaId: '{{ $emisores->first()->puntosVenta->where('activo', true)->first()?->id }}',
+                              emisoresMeta: @js($emisores->map(fn ($e) => [
+                                  'id' => $e->id,
+                                  'puntos' => $e->puntosVenta->where('activo', true)->map(fn ($pv) => ['id' => $pv->id])->values(),
+                              ])),
+                              onEmisorChange() {
+                                  const e = this.emisoresMeta.find(x => Number(x.id) === Number(this.emisorId));
+                                  this.puntoVentaId = e?.puntos?.[0]?.id ?? '';
+                              },
+                          }">
                         @csrf
                         <p class="text-sm font-semibold text-indigo-800">Facturar electrónicamente (AFIP)</p>
-                        <select name="emisor_id" x-model="emisorId"
-                                class="w-full rounded-lg border border-indigo-200 px-3 py-2 text-sm">
-                            @foreach ($emisores as $emisor)
-                                <option value="{{ $emisor->id }}">{{ $emisor->razon_social }} ({{ $emisor->cuit }})</option>
-                            @endforeach
-                        </select>
-                        @foreach ($emisores as $emisor)
-                            <select name="punto_venta_id" x-show="emisorId == '{{ $emisor->id }}'"
-                                    :disabled="emisorId != '{{ $emisor->id }}'"
-                                    class="w-full rounded-lg border border-indigo-200 px-3 py-2 text-sm">
-                                @forelse ($emisor->puntosVenta->where('activo', true) as $pv)
-                                    <option value="{{ $pv->id }}">PV {{ str_pad($pv->numero, 4, '0', STR_PAD_LEFT) }} {{ $pv->descripcion }}</option>
-                                @empty
-                                    <option value="">Sin puntos de venta</option>
-                                @endforelse
-                            </select>
-                        @endforeach
+                        @include('facturacion.partials.selector-emisor', ['emisores' => $emisores])
                         @error('venta')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                         <button class="w-full rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
                             Solicitar CAE

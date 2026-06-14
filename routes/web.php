@@ -136,6 +136,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/facturacion/{comprobante}/nota', [FacturacionController::class, 'notaStore'])
             ->whereNumber('comprobante')->name('facturacion.nota.store');
         Route::post('/ventas/{venta}/facturar', [FacturacionController::class, 'facturar'])->name('ventas.facturar');
+        Route::post('/facturacion/facturar-lote', [FacturacionController::class, 'facturarLote'])->name('facturacion.facturar-lote');
         Route::post('/facturacion/{comprobante}/reintentar', [FacturacionController::class, 'reintentar'])->name('facturacion.reintentar');
     });
 

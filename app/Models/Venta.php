@@ -75,6 +75,18 @@ class Venta extends Model
         return $this->belongsTo(CajaSesion::class);
     }
 
+    public function comprobantes(): HasMany
+    {
+        return $this->hasMany(Comprobante::class);
+    }
+
+    public function yaFacturada(): bool
+    {
+        return $this->comprobantes()
+            ->whereIn('estado', ['autorizado', 'pendiente'])
+            ->exists();
+    }
+
     public function anuladaPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'anulada_por');

@@ -39,15 +39,16 @@ class FacturacionController extends Controller
     {
         abort_unless(auth()->user()->can('facturacion.emitir'), 403);
 
+        if ($venta->estado !== 'completada' || $venta->yaFacturada()) {
+            return back()->with('error', 'Esta venta no se puede facturar.');
+        }
+
         $datos = $request->validate([
             'emisor_id' => ['required', 'exists:emisores,id'],
             'punto_venta_id' => ['required', 'exists:puntos_venta,id'],
         ]);
 
-        $emisor = Emisor::findOrFail($datos['emisor_id']);
-        $puntoVenta = PuntoVenta::where('emisor_id', $emisor->id)
-            ->where('activo', true)
-            ->findOrFail($datos['punto_venta_id']);
+        [$emisor, $puntoVenta] = $this->resolverEmisorPuntoVenta($datos['emisor_id'], $datos['punto_venta_id']);
 
         $comprobante = $servicio->facturarVenta($venta, $emisor, $puntoVenta, auth()->id());
 
@@ -56,6 +57,70 @@ class FacturacionController extends Controller
                 ->with('ok', "Comprobante {$comprobante->numeroFormateado()} autorizado. CAE: {$comprobante->cae}"),
             default => back()->with('error', "AFIP no autorizó el comprobante: {$comprobante->mensaje_afip}"),
         };
+    }
+
+    public function facturarLote(Request $request, FacturacionService $servicio): RedirectResponse
+    {
+        abort_unless(auth()->user()->can('facturacion.emitir'), 403);
+
+        $datos = $request->validate([
+            'venta_ids' => ['required', 'array', 'min:1'],
+            'venta_ids.*' => ['required', 'integer', 'exists:ventas,id'],
+            'emisor_id' => ['required', 'exists:emisores,id'],
+            'punto_venta_id' => ['required', 'exists:puntos_venta,id'],
+        ]);
+
+        [$emisor, $puntoVenta] = $this->resolverEmisorPuntoVenta($datos['emisor_id'], $datos['punto_venta_id']);
+
+        $aprobadas = [];
+        $errores = [];
+
+        foreach (array_unique($datos['venta_ids']) as $ventaId) {
+            $venta = Venta::find($ventaId);
+
+            if (! $venta || $venta->estado !== 'completada') {
+                $errores[] = "Venta #{$ventaId} no válida o no completada.";
+
+                continue;
+            }
+
+            if ($venta->yaFacturada()) {
+                $errores[] = "Venta #{$venta->numero} ya está facturada.";
+
+                continue;
+            }
+
+            try {
+                $comprobante = $servicio->facturarVenta($venta, $emisor, $puntoVenta, auth()->id());
+
+                if ($comprobante->estado === 'autorizado') {
+                    $aprobadas[] = $venta->numero;
+                } else {
+                    $errores[] = "Venta #{$venta->numero}: ".($comprobante->mensaje_afip ?: 'AFIP no autorizó.');
+                }
+            } catch (\Throwable $e) {
+                $errores[] = "Venta #{$venta->numero}: {$e->getMessage()}";
+            }
+        }
+
+        if ($aprobadas === [] && $errores !== []) {
+            return back()->with('error', implode(' ', array_slice($errores, 0, 5)));
+        }
+
+        $mensaje = count($aprobadas).' venta(s) facturada(s): #'.implode(', #', $aprobadas).'.';
+        if ($errores !== []) {
+            $mensaje .= ' Errores: '.implode(' ', array_slice($errores, 0, 3));
+        }
+
+        return back()->with($errores === [] ? 'ok' : 'error', $mensaje);
+    }
+
+    private function resolverEmisorPuntoVenta(int $emisorId, int $puntoVentaId): array
+    {
+        $emisor = Emisor::where('activo', true)->findOrFail($emisorId);
+        $puntoVenta = $emisor->puntosVenta()->where('activo', true)->findOrFail($puntoVentaId);
+
+        return [$emisor, $puntoVenta];
     }
 
     public function reintentar(Comprobante $comprobante, FacturacionService $servicio): RedirectResponse
