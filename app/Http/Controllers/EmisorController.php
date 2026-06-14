@@ -7,6 +7,7 @@ use App\Models\Emisor;
 use App\Models\PuntoVenta;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -84,10 +85,12 @@ class EmisorController extends Controller
     {
         abort_unless(auth()->user()->can('emisores.gestionar'), 403);
 
-        if ($puntoVenta->comprobantes()->exists()) {
-            return back()->with('error', 'No se puede eliminar: tiene comprobantes emitidos.');
+        if ($puntoVenta->comprobantes()->where('estado', 'autorizado')->exists()
+            && $emisor->esProduccion()) {
+            return back()->with('error', 'No se puede eliminar: tiene comprobantes autorizados ante AFIP.');
         }
 
+        $puntoVenta->comprobantes()->delete();
         $puntoVenta->delete();
 
         return back()->with('ok', 'Punto de venta eliminado.');
@@ -97,22 +100,37 @@ class EmisorController extends Controller
     {
         abort_unless(auth()->user()->can('emisores.gestionar'), 403);
 
-        if ($emisor->comprobantes()->exists()) {
-            return back()->with('error', 'No se puede eliminar: este emisor tiene comprobantes emitidos.');
-        }
+        $esHomologacion = ! $emisor->esProduccion();
 
-        if ($emisor->certificado_path) {
-            Storage::delete($emisor->certificado_path);
+        if (! $esHomologacion && $emisor->comprobantes()->where('estado', 'autorizado')->exists()) {
+            return back()->with('error', 'No se puede eliminar: tiene comprobantes autorizados ante AFIP. Solo se pueden borrar emisores de producción sin facturas válidas.');
         }
-        if ($emisor->clave_privada_path) {
-            Storage::delete($emisor->clave_privada_path);
-        }
-        Storage::delete("afip/ta/ta-{$emisor->id}-{$emisor->entorno}.xml");
 
         $nombre = $emisor->razon_social;
-        $emisor->delete();
+        $comprobantesBorrados = $emisor->comprobantes()->count();
 
-        return back()->with('ok', "Emisor {$nombre} eliminado.");
+        DB::transaction(function () use ($emisor) {
+            $emisor->comprobantes()->delete();
+
+            if ($emisor->certificado_path) {
+                Storage::delete($emisor->certificado_path);
+            }
+            if ($emisor->clave_privada_path) {
+                Storage::delete($emisor->clave_privada_path);
+            }
+            Storage::delete("afip/ta/ta-{$emisor->id}-{$emisor->entorno}.xml");
+
+            $emisor->delete();
+        });
+
+        $mensaje = "Emisor {$nombre} eliminado.";
+        if ($comprobantesBorrados > 0) {
+            $mensaje .= $esHomologacion
+                ? " Se quitaron {$comprobantesBorrados} comprobante(s) de homologación."
+                : " También se quitaron {$comprobantesBorrados} comprobante(s) no autorizados.";
+        }
+
+        return back()->with('ok', $mensaje);
     }
 
     private function validar(Request $request, ?Emisor $emisor = null): array
