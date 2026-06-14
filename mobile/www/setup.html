@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0f172a">
+    <title>Activar CMoon POS</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="setup-body">
+    <div class="setup-card">
+        <h1>CMoon POS — Activación</h1>
+        <p class="muted">Vincule este dispositivo con su servidor Moon. Necesita internet solo para activar y renovar la licencia.</p>
+
+        <form id="form">
+            <label>Servidor Moon (URL)
+                <input type="url" name="server_url" required placeholder="https://cmoon.aiporvos.com">
+            </label>
+            <label>Usuario POS
+                <input type="text" name="usuario" required autocomplete="username" placeholder="admin">
+            </label>
+            <label>Contraseña
+                <input type="password" name="password" required autocomplete="current-password">
+            </label>
+            <label>ID cliente Moon (cobros)
+                <input type="number" name="moon_client_id" required min="1" placeholder="14">
+            </label>
+            <label>Nombre de esta caja
+                <input type="text" name="device_name" value="Caja móvil">
+            </label>
+            <p id="error" class="error" hidden></p>
+            <button type="submit" id="btn">Activar y entrar al POS</button>
+        </form>
+    </div>
+    <script src="js/license.js"></script>
+    <script src="js/bridge.js"></script>
+    <script>
+        if (window.cmoon && window.cmoon.isActivated) {
+            window.cmoon.isActivated().then(ok => { if (ok) window.location.replace('pos.html'); });
+        }
+        const form = document.getElementById('form');
+        const error = document.getElementById('error');
+        const btn = document.getElementById('btn');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            error.hidden = true;
+            btn.disabled = true;
+            btn.textContent = 'Activando…';
+            try {
+                await window.cmoon.activate(Object.fromEntries(new FormData(form)));
+                window.location.href = 'pos.html';
+            } catch (err) {
+                error.textContent = err.message || 'Error de activación';
+                error.hidden = false;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Activar y entrar al POS';
+            }
+        });
+    </script>
+</body>
+</html>

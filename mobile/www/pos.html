@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <title>CMoon POS</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header class="topbar">
+        <div>
+            <strong id="empresa">CMoon POS</strong>
+            <span id="sucursal" class="badge"></span>
+        </div>
+        <div class="status-row">
+            <span id="online" class="pill off">Sin conexión</span>
+            <span id="license-msg" class="pill warn" hidden></span>
+            <span id="pending" class="pill warn" hidden></span>
+            <button type="button" id="btn-sync" class="btn-sm">Sync</button>
+        </div>
+    </header>
+
+    <div id="scan-overlay" class="scan-overlay" hidden>
+        <p>Apunte la cámara al código de barras</p>
+        <button type="button" id="btn-overlay-stop" class="btn-sm">Terminar escaneo</button>
+    </div>
+
+    <div id="blocked" class="blocked" hidden>
+        <h2>Sistema suspendido</h2>
+        <p id="blocked-msg"></p>
+        <button type="button" id="btn-retry-license">Reintentar conexión</button>
+    </div>
+
+    <main id="pos" class="pos-layout">
+        <section class="panel search-panel">
+            <div class="scan-actions">
+                <button type="button" id="btn-escanear" class="btn-scan">📷 Escanear (cámara)</button>
+                <button type="button" id="btn-escanear-uno" class="btn-secondary">1 código</button>
+                <button type="button" id="btn-teclado" class="btn-secondary" hidden>Teclado</button>
+            </div>
+            <input type="text" id="buscar" class="search" inputmode="search" autocomplete="off"
+                   placeholder="Código, cantidad*código o buscar…" autofocus>
+            <p class="hint">Cámara: <strong>Escanear</strong> (varios) o <strong>1 código</strong>. Lector USB/BT: enfocá este campo y escaneá.</p>
+            <div id="sugerencias" class="suggestions"></div>
+            <div id="scan-toast" class="scan-toast" hidden></div>
+        </section>
+        <section class="panel cart-panel">
+            <h2>Carrito <span id="cart-count" class="badge">0</span></h2>
+            <div id="carrito" class="cart-items"></div>
+            <div class="totals">
+                <div class="total-line"><span>Total</span><strong id="total">$ 0,00</strong></div>
+            </div>
+            <div class="actions">
+                <button type="button" id="btn-vaciar" class="btn-secondary">Vaciar</button>
+                <button type="button" id="btn-cobrar" class="btn-primary" disabled>Cobrar</button>
+            </div>
+        </section>
+    </main>
+
+    <dialog id="modal-pago">
+        <form method="dialog" id="form-pago">
+            <h3>Cobro</h3>
+            <p>Total: <strong id="pago-total"></strong></p>
+            <label>Medio de pago
+                <select id="medio"></select>
+            </label>
+            <label>Importe<input type="number" id="importe" step="0.01" min="0"></label>
+            <p id="pago-error" class="error" hidden></p>
+            <div class="dialog-actions">
+                <button type="button" id="cancel-pago">Cancelar</button>
+                <button type="submit" id="confirm-pago">Confirmar venta</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="modal-ok">
+        <h3 id="ok-title">Venta registrada</h3>
+        <p id="ok-msg"></p>
+        <button type="button" id="ok-close">Continuar</button>
+    </dialog>
+
+    <script src="js/license.js"></script>
+    <script src="js/bridge.js"></script>
+    <script src="js/scanner.js"></script>
+    <script src="js/pos.js"></script>
+</body>
+</html>

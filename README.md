@@ -2,74 +2,98 @@
 
 Migración del POS Moon a **Laravel 13**, dockerizado y listo para desplegar en un VPS con **Dokploy**.
 
+**Repositorio:** [github.com/Moon-Gitub/cmoon](https://github.com/Moon-Gitub/cmoon)
+
+---
+
+## Documentación completa
+
+Toda la guía de instalación, VPS, credenciales, accesos y apps cliente está en:
+
+### **[docs/README.md](./docs/README.md)**
+
+| Tema | Archivo |
+|------|---------|
+| Arquitectura | [docs/01-arquitectura.md](./docs/01-arquitectura.md) |
+| Desarrollo local | [docs/02-desarrollo-local.md](./docs/02-desarrollo-local.md) |
+| **VPS / Dokploy** | [docs/03-vps-dokploy.md](./docs/03-vps-dokploy.md) |
+| Variables `.env` | [docs/04-variables-entorno.md](./docs/04-variables-entorno.md) |
+| **MySQL, Redis, Laravel** | [docs/05-accesos-herramientas.md](./docs/05-accesos-herramientas.md) |
+| **Plantilla credenciales** | [docs/06-credenciales-plantilla.md](./docs/06-credenciales-plantilla.md) |
+| Productos ejemplo | [docs/07-seeders-datos-ejemplo.md](./docs/07-seeders-datos-ejemplo.md) |
+| POS web / PWA | [docs/08-pos-web-pwa.md](./docs/08-pos-web-pwa.md) |
+| App Electron | [docs/09-app-escritorio-electron.md](./docs/09-app-escritorio-electron.md) |
+| App Android | [docs/10-app-android.md](./docs/10-app-android.md) |
+| API offline | [docs/11-api-desktop.md](./docs/11-api-desktop.md) |
+| Mantenimiento | [docs/12-mantenimiento.md](./docs/12-mantenimiento.md) |
+
+**Credenciales reales:** copiar plantilla → `CREDENCIALES.local.md` (no se sube a Git).
+
+---
+
 ## Stack
 
 | Componente | Tecnología |
-|------------|-----------|
+|------------|------------|
 | Backend | Laravel 13 (PHP 8.4) |
-| Servidor web | nginx + PHP-FPM en un solo contenedor ([serversideup/php](https://serversideup.net/open-source/docker-php/)) |
-| Base de datos | MySQL 8.4 LTS (compatible con los dumps del POS actual) |
-| Cache / sesiones / colas | Redis 7 |
-| Assets | Vite (se compilan en el build de la imagen) |
+| Web | nginx + PHP-FPM |
+| Base de datos | MySQL 8.4 |
+| Cache / colas | Redis 7 |
+| POS offline | Electron (`desktop/`) + Android (`mobile/`) |
+| Deploy | Docker Compose + Dokploy |
 
-El `docker-compose.yml` levanta 5 servicios: `app` (web), `queue` (worker de colas), `scheduler` (tareas programadas), `mysql` y `redis`.
+Servicios: `app`, `queue`, `scheduler`, `mysql`, `redis`.
 
-## Desarrollo local
+---
+
+## Inicio rápido (local)
 
 ```bash
-cp .env.example .env        # ya existe uno configurado en este repo local
+cp .env.example .env
+docker network create dokploy-network 2>/dev/null || true
 docker compose up -d --build
 ```
 
-La app queda en [http://localhost:8080](http://localhost:8080). Las migraciones corren solas al iniciar (`AUTORUN_ENABLED=true`).
-
-Comandos útiles:
+→ **http://localhost:8080** — usuario `admin`, clave en `ADMIN_PASSWORD` del `.env`
 
 ```bash
-docker compose exec app php artisan migrate      # migraciones a mano
-docker compose exec app php artisan tinker       # consola
-docker compose logs -f app                       # logs
+docker compose exec app php artisan db:seed --class=ProductosEjemploSeeder --force
 ```
 
-## Deploy en Dokploy
+---
 
-1. Subir este repo a GitHub.
-2. En Dokploy crear un servicio **Compose**:
-   - Provider: GitHub, rama `main`
-   - Compose Path: `./docker-compose.yml`
-   - Trigger: On Push (autodeploy)
-3. En la pestaña **Environment** cargar como mínimo:
+## Producción (referencia)
 
-```env
-APP_KEY=base64:...        # generar con: echo "base64:$(openssl rand -base64 32)"
-APP_URL=https://pos.tudominio.com
-DB_PASSWORD=<password fuerte>
-DB_ROOT_PASSWORD=<password fuerte>
-REDIS_PASSWORD=<password fuerte>
+| Recurso | URL |
+|---------|-----|
+| Panel | https://cmoon.aiporvos.com |
+| POS web | https://cmoon.aiporvos.com/pos |
+| API desktop | https://cmoon.aiporvos.com/api/desktop |
+
+Deploy: ver [docs/03-vps-dokploy.md](./docs/03-vps-dokploy.md).
+
+---
+
+## Estructura
+
+```
+cmoon/
+├── app/           Laravel
+├── desktop/       Electron (PC offline)
+├── mobile/        Android (APK)
+├── docs/          Documentación
+├── docker-compose.yml
+└── .env.example
 ```
 
-4. En la pestaña **Domains** apuntar el dominio al servicio `app`, puerto interno `8080`.
-   - Si se usa dominio por Dokploy/Traefik, se puede quitar el bloque `ports` del servicio `app` para no ocupar el puerto del host.
-5. Deploy.
+---
 
-MySQL y Redis no exponen puertos al host: solo son accesibles dentro de la red del compose.
+## Fases del proyecto
 
-## Importar datos del POS actual
-
-La base es MySQL, igual que el sistema viejo, así que un dump se importa directo:
-
-```bash
-docker compose exec -T mysql mysql -u root -p"$DB_ROOT_PASSWORD" cmoon < dump-pos.sql
-```
-
-## Estructura del proyecto de migración
-
-Plan por fases (ver análisis en el repo del POS actual):
-
-1. **Fase 1** — Auth, usuarios, permisos por pantalla, empresa
-2. **Fase 2** — Productos, categorías, combos, listas de precio
-3. **Fase 3** — Ventas, caja, presupuestos, clientes y ctas. ctes.
-4. **Fase 4** — Compras, proveedores, retenciones IIBB, informes
-5. **Fase 5** — API para POS offline
-6. **Fase 6** — Facturación AFIP, libro IVA, PDFs
-7. **Fase 7** — Mercado Pago y cobro Moon
+1. Auth, usuarios, permisos, empresa  
+2. Productos, categorías, listas  
+3. Ventas, caja, clientes  
+4. Compras, retenciones, informes  
+5. POS offline + API desktop  
+6. Facturación AFIP  
+7. Apps Electron y Android  

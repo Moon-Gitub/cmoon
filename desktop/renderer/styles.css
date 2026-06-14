@@ -16,7 +16,7 @@ button { cursor: pointer; border: none; border-radius: .5rem; padding: .65rem 1r
 .pill.warn { background: #78350f; color: #fcd34d; }
 .pill.off { background: #7f1d1d; color: #fca5a5; }
 .btn-sm { background: #4f46e5; color: #fff; font-size: .75rem; padding: .35rem .65rem; }
-.blocked { position: fixed; inset: 0; background: rgba(15,23,42,.95); color: #fff; z-index: 50; display: grid; place-content: center; text-align: center; padding: 2rem; }
+.blocked:not([hidden]) { position: fixed; inset: 0; background: rgba(15,23,42,.95); color: #fff; z-index: 50; display: grid; place-content: center; text-align: center; padding: 2rem; }
 .pos-grid { display: grid; grid-template-columns: 1fr 380px; gap: 1rem; padding: 1rem; height: calc(100vh - 52px); }
 .panel { background: #fff; border-radius: .75rem; border: 1px solid #e2e8f0; padding: 1rem; overflow: auto; }
 .search { width: 100%; padding: .75rem 1rem; font-size: 1.1rem; border: 2px solid #4f46e5; border-radius: .5rem; }

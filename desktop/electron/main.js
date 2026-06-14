@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { initDb, getConfig, saveConfig, getCatalog, saveCatalog, getPendingSales, addPendingSale, removePendingSales, saveLicense, getLicense } = require('./db');
 const { verifyLicense, canSellNow } = require('./license');
-const { activate, refreshLicense, pullCatalog, pushSales, isOnline } = require('./sync');
+const { activate, refreshLicense, pullCatalog, pushSales, isOnline, isNetworkError } = require('./sync');
 
 let mainWindow = null;
 
@@ -116,11 +116,15 @@ ipcMain.handle('sales:submit', async (_, venta) => {
     }
 
     if (isOnline()) {
-        const result = await pushSales(config, [venta]);
-        if (result.license) saveLicense(result.license);
-        const r = result.resultados?.[0];
-        if (! r?.ok) throw new Error(r?.error || 'No se pudo registrar la venta');
-        return { online: true, numero: r.numero, id: r.id };
+        try {
+            const result = await pushSales(config, [venta]);
+            if (result.license) saveLicense(result.license);
+            const r = result.resultados?.[0];
+            if (! r?.ok) throw new Error(r?.error || 'No se pudo registrar la venta');
+            return { online: true, numero: r.numero, id: r.id };
+        } catch (err) {
+            if (! isNetworkError(err)) throw err;
+        }
     }
 
     addPendingSale(venta);

@@ -1,0 +1,11 @@
+{
+  "appId": "com.moon.cmoon.mobile",
+  "appName": "CMoon POS",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

@@ -56,4 +56,19 @@ async function pushSales(config, ventas) {
     return request(config, '/sync/ventas', { method: 'POST', body: { ventas } });
 }
 
-module.exports = { isOnline, activate, refreshLicense, pullCatalog, pushSales };
+function isNetworkError(err) {
+    const msg = String(err?.message || err || '').toLowerCase();
+    const cause = String(err?.cause?.code || err?.cause?.message || '').toLowerCase();
+
+    return msg.includes('fetch failed')
+        || msg.includes('network')
+        || msg.includes('econnrefused')
+        || msg.includes('enotfound')
+        || msg.includes('etimedout')
+        || msg.includes('timeout')
+        || cause.includes('econnrefused')
+        || cause.includes('enotfound')
+        || cause.includes('etimedout');
+}
+
+module.exports = { isOnline, isNetworkError, activate, refreshLicense, pullCatalog, pushSales };

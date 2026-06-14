@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMoon POS</title>
+</head>
+<body>
+    <p>Cargando…</p>
+    <script src="js/license.js"></script>
+    <script src="js/bridge.js"></script>
+    <script>
+        window.cmoon.isActivated().then(ok => {
+            window.location.replace(ok ? 'pos.html' : 'setup.html');
+        });
+    </script>
+</body>
+</html>

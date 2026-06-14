@@ -1,0 +1,15 @@
+# Copiá este archivo a la raíz como CREDENCIALES.local.md
+# Ese archivo NO se sube a Git (.gitignore)
+
+Ver plantilla completa en: docs/06-credenciales-plantilla.md
+
+Comando:
+  cp docs/06-credenciales-plantilla.md CREDENCIALES.local.md
+
+Completar con contraseñas reales de:
+- Dokploy
+- APP_KEY, DB_*, REDIS_*
+- ADMIN_PASSWORD
+- MOON_DB_*
+- DESKTOP_LICENSE_SECRET
+- AFIP / SSH / DNS

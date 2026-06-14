@@ -6,8 +6,9 @@
   "author": "Moon Desarrollos",
   "license": "UNLICENSED",
   "scripts": {
-    "start": "electron .",
-    "dev": "electron . --dev",
+    "start": "electron . --no-sandbox",
+    "dev": "electron . --dev --no-sandbox",
+    "postinstall": "electron-rebuild -f -w better-sqlite3",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
   },
@@ -21,7 +22,8 @@
   },
   "devDependencies": {
     "electron": "^33.2.0",
-    "electron-builder": "^25.1.8"
+    "electron-builder": "^25.1.8",
+    "electron-rebuild": "^3.2.9"
   },
   "dependencies": {
     "better-sqlite3": "^11.7.0",

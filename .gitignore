@@ -26,3 +26,14 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 docker-compose.override.yml
+
+# Credenciales locales (no subir a Git)
+CREDENCIALES.local.md
+
+# Apps cliente — dependencias y builds
+/desktop/node_modules
+/desktop/dist
+/mobile/node_modules
+/mobile/android/app/build
+/mobile/android/.gradle
+/mobile/dist

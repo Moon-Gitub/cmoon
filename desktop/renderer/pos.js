@@ -21,15 +21,13 @@
         bindEvents();
         setInterval(tick, 30000);
         window.addEventListener('online', tick);
-        window.addEventListener('offline', updateOnlinePill);
-        updateOnlinePill();
+        window.addEventListener('offline', () => updateOnlinePill(false));
         tick();
     }
 
     async function refreshLicenseUi() {
         const st = await window.cmoon.licenseStatus();
         state.canSell = st.can_sell;
-        updateOnlinePill();
 
         if (! st.can_sell) {
             $('blocked').hidden = false;
@@ -50,21 +48,23 @@
         }
     }
 
-    function updateOnlinePill() {
-        const online = navigator.onLine;
-        $('online').textContent = online ? 'En línea' : 'Sin conexión';
-        $('online').className = 'pill ' + (online ? 'ok' : 'off');
+    function updateOnlinePill(serverOk) {
+        $('online').textContent = serverOk ? 'En línea' : 'Sin conexión';
+        $('online').className = 'pill ' + (serverOk ? 'ok' : 'off');
     }
 
     async function tick() {
+        let serverOk = false;
         try {
             if (navigator.onLine) {
-                await window.cmoon.refreshLicense().catch(() => {});
+                await window.cmoon.refreshLicense();
                 await window.cmoon.syncSales().catch(() => {});
                 await window.cmoon.syncCatalog().catch(() => {});
                 state.catalog = await window.cmoon.getCatalog();
+                serverOk = true;
             }
-        } catch { /* offline */ }
+        } catch { /* sin servidor */ }
+        updateOnlinePill(serverOk);
         await refreshLicenseUi();
         const n = await window.cmoon.pendingCount();
         $('pending').hidden = n === 0;
