@@ -91,7 +91,7 @@
                         @endif
                         @can('emisores.gestionar')
                             <form method="POST" action="{{ route('emisores.destroy', $emisor) }}"
-                                  onsubmit="return confirm('¿Eliminar el emisor {{ $emisor->razon_social }}? Se borrarán sus puntos de venta y comprobantes no autorizados (error/rechazo). No se puede si tiene facturas con CAE.')">
+                                  onsubmit="return confirm('¿Eliminar el emisor {{ $emisor->razon_social }}?\n\nSe borrarán todos sus puntos de venta y comprobantes (incluidos los autorizados). Esta acción no se puede deshacer.')">
                                 @csrf @method('DELETE')
                                 <button type="submit"
                                         class="rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-600 hover:bg-red-100">

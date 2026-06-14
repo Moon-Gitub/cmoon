@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Empresa;
+use App\Models\Comprobante;
 use App\Models\Emisor;
 use App\Models\PuntoVenta;
 use Illuminate\Http\RedirectResponse;
@@ -85,12 +86,7 @@ class EmisorController extends Controller
     {
         abort_unless(auth()->user()->can('emisores.gestionar'), 403);
 
-        if ($puntoVenta->comprobantes()->where('estado', 'autorizado')->exists()
-            && $emisor->esProduccion()) {
-            return back()->with('error', 'No se puede eliminar: tiene comprobantes autorizados ante AFIP.');
-        }
-
-        $puntoVenta->comprobantes()->delete();
+        $this->eliminarComprobantes($puntoVenta->comprobantes());
         $puntoVenta->delete();
 
         return back()->with('ok', 'Punto de venta eliminado.');
@@ -100,17 +96,11 @@ class EmisorController extends Controller
     {
         abort_unless(auth()->user()->can('emisores.gestionar'), 403);
 
-        $esHomologacion = ! $emisor->esProduccion();
-
-        if (! $esHomologacion && $emisor->comprobantes()->where('estado', 'autorizado')->exists()) {
-            return back()->with('error', 'No se puede eliminar: tiene comprobantes autorizados ante AFIP. Solo se pueden borrar emisores de producción sin facturas válidas.');
-        }
-
         $nombre = $emisor->razon_social;
         $comprobantesBorrados = $emisor->comprobantes()->count();
 
         DB::transaction(function () use ($emisor) {
-            $emisor->comprobantes()->delete();
+            $this->eliminarComprobantes($emisor->comprobantes());
 
             if ($emisor->certificado_path) {
                 Storage::delete($emisor->certificado_path);
@@ -125,12 +115,24 @@ class EmisorController extends Controller
 
         $mensaje = "Emisor {$nombre} eliminado.";
         if ($comprobantesBorrados > 0) {
-            $mensaje .= $esHomologacion
-                ? " Se quitaron {$comprobantesBorrados} comprobante(s) de homologación."
-                : " También se quitaron {$comprobantesBorrados} comprobante(s) no autorizados.";
+            $mensaje .= " Se quitaron {$comprobantesBorrados} comprobante(s) asociado(s).";
         }
 
         return back()->with('ok', $mensaje);
+    }
+
+    /**
+     * Borra comprobantes respetando FK de notas de crédito/débito → comprobante original.
+     */
+    private function eliminarComprobantes($query): void
+    {
+        $ids = (clone $query)->pluck('id');
+        if ($ids->isEmpty()) {
+            return;
+        }
+
+        Comprobante::whereIn('comprobante_asociado_id', $ids)->delete();
+        $query->delete();
     }
 
     private function validar(Request $request, ?Emisor $emisor = null): array
