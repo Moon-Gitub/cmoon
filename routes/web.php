@@ -96,6 +96,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/pos', [PosController::class, 'index'])->name('pos');
         Route::get('/pos/catalogo', [PosController::class, 'catalogo'])->name('pos.catalogo');
         Route::post('/pos/ventas', [PosController::class, 'guardar'])->name('pos.guardar');
+        Route::post('/pos/ventas/{venta}/facturar', [PosController::class, 'facturar'])
+            ->middleware('permission:facturacion.emitir')
+            ->name('pos.facturar');
+        Route::post('/pos/qr/crear', [PosController::class, 'crearQrMercadoPago'])->name('pos.qr.crear');
+        Route::get('/pos/qr/estado', [PosController::class, 'consultarQrMercadoPago'])->name('pos.qr.estado');
     });
 
     Route::middleware('permission:ventas.ver')->group(function () {
@@ -147,6 +152,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/informes/ventas', [InformeController::class, 'ventas'])->name('informes.ventas');
         Route::get('/informes/stock', [InformeController::class, 'stock'])->name('informes.stock');
         Route::get('/informes/libro-iva', [InformeController::class, 'libroIva'])->name('informes.libro-iva');
+        Route::get('/informes/cuentas-corrientes', [InformeController::class, 'cuentasCorrientes'])->name('informes.cuentas-corrientes');
+        Route::get('/informes/cajas', [InformeController::class, 'cajas'])->name('informes.cajas');
     });
 
     Route::middleware('permission:empresas.gestionar')->group(function () {

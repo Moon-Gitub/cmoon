@@ -19,6 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        \Carbon\Carbon::setLocale(config('app.locale', 'es'));
+        date_default_timezone_set(config('app.timezone'));
     }
 }

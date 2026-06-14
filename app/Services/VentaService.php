@@ -78,10 +78,10 @@ class VentaService
                 : null;
 
             // Pago en cta. cte. exige cliente identificado
-            $mediosCtaCte = MedioPago::where('tipo', 'cuenta_corriente')->pluck('id')->all();
             $importeCtaCte = 0.0;
             foreach ($datos['pagos'] as $pago) {
-                if (in_array((int) $pago['medio_pago_id'], $mediosCtaCte, true)) {
+                $medio = MedioPago::find($pago['medio_pago_id']);
+                if ($medio?->esCuentaCorriente()) {
                     $importeCtaCte += (float) $pago['importe'];
                 }
             }

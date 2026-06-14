@@ -126,7 +126,11 @@ class ProductoController extends Controller
 
     private function validar(Request $request, ?Producto $producto = null): array
     {
-        return $request->validate([
+        $request->merge([
+            'categoria_id' => $request->input('categoria_id') ?: null,
+        ]);
+
+        $datos = $request->validate([
             'codigo' => [
                 'required', 'string', 'max:50',
                 Rule::unique('productos', 'codigo')
@@ -136,15 +140,15 @@ class ProductoController extends Controller
             ],
             'nombre' => ['required', 'string', 'max:255'],
             'descripcion' => ['nullable', 'string'],
-            'categoria_id' => ['nullable', Rule::exists('categorias', 'id')],
+            'categoria_id' => [
+                'nullable',
+                Rule::exists('categorias', 'id')->where('empresa_id', auth()->user()->empresa_id),
+            ],
             'unidad' => ['required', 'in:UN,KG,LT,MT'],
-            'pesable' => ['boolean'],
-            'es_combo' => ['boolean'],
             'precio_compra' => ['required', 'numeric', 'min:0'],
             'precio_venta' => ['required', 'numeric', 'min:0'],
-            'alicuota_iva' => ['required', 'in:0,10.5,21,27'],
+            'alicuota_iva' => ['required', 'numeric', Rule::in([0, 10.5, 21, 27])],
             'stock_minimo' => ['nullable', 'numeric', 'min:0'],
-            'activo' => ['boolean'],
         ], [], [
             'codigo' => 'código',
             'categoria_id' => 'categoría',
@@ -152,11 +156,15 @@ class ProductoController extends Controller
             'precio_venta' => 'precio de venta',
             'alicuota_iva' => 'alícuota de IVA',
             'stock_minimo' => 'stock mínimo',
-        ]) + [
+        ]);
+
+        return [
+            ...$datos,
             'pesable' => $request->boolean('pesable'),
             'es_combo' => $request->boolean('es_combo'),
             'activo' => $request->boolean('activo'),
-            'stock_minimo' => $request->input('stock_minimo') ?: 0,
+            'stock_minimo' => isset($datos['stock_minimo']) ? (float) $datos['stock_minimo'] : 0,
+            'alicuota_iva' => (float) $datos['alicuota_iva'],
         ];
     }
 

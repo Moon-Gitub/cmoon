@@ -46,6 +46,7 @@ class FacturacionController extends Controller
 
         $emisor = Emisor::findOrFail($datos['emisor_id']);
         $puntoVenta = PuntoVenta::where('emisor_id', $emisor->id)
+            ->where('activo', true)
             ->findOrFail($datos['punto_venta_id']);
 
         $comprobante = $servicio->facturarVenta($venta, $emisor, $puntoVenta, auth()->id());

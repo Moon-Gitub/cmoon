@@ -9,22 +9,22 @@
     <title>Punto de venta — CMoon POS</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="h-screen overflow-hidden bg-slate-100 text-slate-900"
+<body class="min-h-screen overflow-x-hidden bg-slate-100 text-slate-900 lg:h-screen lg:overflow-hidden"
       x-data="posApp()" x-init="init()" x-cloak>
 
-    <div class="flex h-full flex-col">
+    <div class="flex min-h-screen flex-col lg:h-full">
 
         {{-- Barra superior --}}
-        <header class="flex items-center justify-between border-b border-slate-200 bg-slate-900 px-4 py-2 text-white">
-            <div class="flex items-center gap-4">
-                <a href="{{ route('dashboard') }}" class="flex items-center gap-2 text-sm text-slate-300 hover:text-white">
+        <header class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-900 px-3 py-2 text-white sm:px-4">
+            <div class="flex min-w-0 items-center gap-2 sm:gap-4">
+                <a href="{{ route('dashboard') }}" class="flex shrink-0 items-center gap-2 text-sm text-slate-300 hover:text-white">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
-                    Volver
+                    <span class="hidden sm:inline">Volver</span>
                 </a>
-                <h1 class="text-base font-bold tracking-tight">Punto de venta</h1>
-                <span class="rounded-full bg-slate-700 px-2.5 py-0.5 text-xs">{{ $sucursal?->nombre ?? 'Sin sucursal' }}</span>
+                <h1 class="truncate text-sm font-bold tracking-tight sm:text-base">Punto de venta</h1>
+                <span class="hidden rounded-full bg-slate-700 px-2.5 py-0.5 text-xs sm:inline">{{ $sucursal?->nombre ?? 'Sin sucursal' }}</span>
             </div>
-            <div class="flex items-center gap-3 text-xs">
+            <div class="flex flex-wrap items-center justify-end gap-2 text-xs">
                 <span x-show="online" class="flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-2.5 py-1 text-emerald-300">
                     <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span> En línea
                 </span>
@@ -49,10 +49,10 @@
             </div>
         </header>
 
-        <div class="flex min-h-0 flex-1">
+        <div class="flex min-h-0 flex-1 flex-col lg:flex-row">
 
             {{-- Columna izquierda: búsqueda + carrito --}}
-            <main class="flex min-w-0 flex-1 flex-col p-4">
+            <main class="flex min-h-0 min-w-0 flex-1 flex-col p-3 sm:p-4">
                 <div class="relative">
                     <input type="text" x-ref="buscador" x-model="busqueda"
                            @input="filtrar()" @keydown.enter.prevent="agregarPorEnter()"
@@ -78,8 +78,8 @@
                     </div>
                 </div>
 
-                <div class="mt-4 min-h-0 flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <table class="w-full text-sm">
+                <div class="mt-3 min-h-0 flex-1 overflow-x-auto overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm sm:mt-4">
+                    <table class="min-w-[640px] w-full text-sm">
                         <thead class="sticky top-0 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                             <tr>
                                 <th class="px-4 py-3">Producto</th>
@@ -131,10 +131,10 @@
             </main>
 
             {{-- Columna derecha: cliente + totales + cobrar --}}
-            <aside class="flex w-80 flex-col gap-3 border-l border-slate-200 bg-white p-4">
+            <aside class="flex w-full shrink-0 flex-col gap-3 border-t border-slate-200 bg-white p-3 sm:p-4 lg:w-80 lg:border-l lg:border-t-0">
                 <div>
                     <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Cliente</label>
-                    <select x-model="clienteId"
+                    <select x-model="clienteId" @change="errorPago = ''"
                             class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
                         <option value="">Consumidor final</option>
                         <template x-for="c in clientes" :key="c.id">
@@ -185,7 +185,7 @@
             <div class="space-y-2">
                 <template x-for="(pago, idx) in pagos" :key="idx">
                     <div class="flex items-center gap-2">
-                        <select x-model.number="pago.medio_pago_id"
+                        <select x-model.number="pago.medio_pago_id" @change="onCambioMedio(idx)"
                                 class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
                             <template x-for="m in medios" :key="m.id">
                                 <option :value="m.id" x-text="m.nombre + (m.recargo ? ' (' + (m.recargo > 0 ? '+' : '') + m.recargo + '%)' : '')"></option>
@@ -199,10 +199,14 @@
                 </template>
             </div>
 
-            <button type="button" @click="pagos.push({ medio_pago_id: medios[0]?.id, importe: Math.max(0, redondear(total() - sumaPagos())) })"
+            <button type="button" @click="agregarMedioPago()"
                     class="mt-2 text-sm text-indigo-600 hover:text-indigo-800">
                 + Agregar otro medio de pago
             </button>
+
+            <p class="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800" x-show="requiereCliente()" x-cloak>
+                Seleccioná un cliente en el panel lateral para vender en cuenta corriente.
+            </p>
 
             <div class="mt-4 space-y-1 rounded-xl bg-slate-50 p-3 text-sm">
                 <div class="flex justify-between">
@@ -255,14 +259,47 @@
                 Total <span class="font-semibold" x-text="fmt(ventaOk?.total ?? 0)"></span>.
                 Se va a sincronizar sola cuando vuelva internet.
             </p>
-            <div class="mt-6 flex gap-3">
-                <button type="button" @click="imprimirTicket()" x-show="! ventaOk?.offline"
+            <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+                <button type="button" @click="imprimirTicket()" x-show="! ventaOk?.offline && ! ventaOk?.factura_url"
                         class="flex-1 rounded-xl border border-slate-300 py-2.5 text-sm font-medium hover:bg-slate-50">
                     Imprimir ticket
                 </button>
+                <button type="button" @click="facturarVenta()"
+                        x-show="puedeFacturar && emisores.length && ! ventaOk?.offline && ! ventaOk?.facturada"
+                        :disabled="facturando"
+                        class="flex-1 rounded-xl border border-indigo-300 bg-indigo-50 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50">
+                    <span x-show="! facturando">Facturar (AFIP)</span>
+                    <span x-show="facturando">Autorizando…</span>
+                </button>
+                <a x-show="ventaOk?.factura_url" :href="ventaOk?.factura_url" target="_blank"
+                   class="flex-1 rounded-xl border border-emerald-300 bg-emerald-50 py-2.5 text-center text-sm font-semibold text-emerald-700 hover:bg-emerald-100">
+                    Ver factura
+                </a>
                 <button type="button" @click="ventaOk = null; $refs.buscador.focus()"
                         class="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">
                     Nueva venta (Esc)
+                </button>
+            </div>
+            <p class="mt-3 text-xs text-red-600" x-show="errorFactura" x-text="errorFactura"></p>
+            <p class="mt-2 text-xs text-emerald-700" x-show="ventaOk?.facturada" x-text="ventaOk?.factura_msg"></p>
+        </div>
+    </div>
+
+    {{-- Modal cobro QR Mercado Pago --}}
+    <div x-show="modalQr" x-transition.opacity
+         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <h2 class="text-lg font-bold">Pagá con Mercado Pago</h2>
+            <p class="mt-1 text-sm text-slate-500">Escaneá el QR con la app de Mercado Pago</p>
+            <p class="mt-2 text-2xl font-bold text-indigo-600" x-text="fmt(qrTotal)"></p>
+            <div class="mx-auto mt-4 flex max-h-64 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white p-3"
+                 x-html="qrSvg"></div>
+            <p class="mt-3 text-sm text-slate-600" x-show="qrEsperando">Esperando confirmación del pago…</p>
+            <p class="mt-3 text-sm text-red-600" x-show="errorQr" x-text="errorQr"></p>
+            <div class="mt-4 flex gap-3">
+                <button type="button" @click="cancelarQr()"
+                        class="flex-1 rounded-xl border border-slate-300 py-2.5 text-sm font-medium hover:bg-slate-50">
+                    Cancelar
                 </button>
             </div>
         </div>
@@ -271,11 +308,15 @@
     <script>
         function posApp() {
             return {
-                productos: [], clientes: [], listas: [], medios: [],
+                productos: [], clientes: [], listas: [], medios: [], emisores: [],
+                mercadopagoQr: false, puedeFacturar: @json($puedeFacturar ?? false),
+                emisorId: null, puntoVentaId: null,
                 carrito: [], busqueda: '', sugerencias: [], seleccion: 0,
                 clienteId: '', descuento: 0,
                 modalPago: false, pagos: [], recibido: 0, errorPago: '',
-                procesando: false, ventaOk: null,
+                modalQr: false, qrSvg: '', qrReferencia: '', qrTotal: 0, qrEsperando: false,
+                qrPollTimer: null, errorQr: '',
+                procesando: false, ventaOk: null, facturando: false, errorFactura: '',
                 online: navigator.onLine, pendientes: [], sincronizando: false,
                 sucursalId: {{ $sucursal?->id ?? 'null' }},
                 cajaSesionId: {{ $sesionAbierta?->id ?? 'null' }},
@@ -302,6 +343,10 @@
                         const res = await fetch('{{ route('pos.catalogo') }}', { headers: { 'Accept': 'application/json' } });
                         const data = await res.json();
                         Object.assign(this, data);
+                        if (this.emisores?.length) {
+                            this.emisorId = this.emisores[0].id;
+                            this.puntoVentaId = this.emisores[0].puntos_venta?.[0]?.id ?? null;
+                        }
                         localStorage.setItem('pos_catalogo', JSON.stringify(data));
                     } catch {
                         // Sin conexión: usar el último catálogo conocido
@@ -440,8 +485,53 @@
                 sumaPagos() { return this.redondear(this.pagos.reduce((s, p) => s + (p.importe || 0), 0)); },
                 fmt(n) { return '$ ' + (n ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
 
+                medioPorId(id) {
+                    return this.medios.find(m => Number(m.id) === Number(id));
+                },
+
+                medioEfectivo() {
+                    return this.medios.find(m => m.tipo === 'efectivo') ?? this.medios[0];
+                },
+
+                requiereCliente() {
+                    return this.pagos.some(p => this.medioPorId(p.medio_pago_id)?.tipo === 'cuenta_corriente') && ! this.clienteId;
+                },
+
+                usaQrMercadoPago() {
+                    return this.pagos.some(p => this.medioPorId(p.medio_pago_id)?.tipo === 'qr');
+                },
+
+                importeQr() {
+                    return this.redondear(this.pagos
+                        .filter(p => this.medioPorId(p.medio_pago_id)?.tipo === 'qr')
+                        .reduce((s, p) => s + (p.importe || 0), 0));
+                },
+
+                onCambioMedio(idx) {
+                    this.errorPago = '';
+                    const medio = this.medioPorId(this.pagos[idx].medio_pago_id);
+                    if (medio?.tipo === 'cuenta_corriente' && ! this.clienteId) {
+                        this.errorPago = 'Seleccioná un cliente para vender en cuenta corriente.';
+                    }
+                },
+
+                agregarMedioPago() {
+                    const efectivo = this.medioEfectivo();
+                    this.pagos.push({
+                        medio_pago_id: efectivo?.id ?? this.medios[0]?.id,
+                        importe: Math.max(0, this.redondear(this.total() - this.sumaPagos())),
+                    });
+                },
+
+                parsearError(res, data) {
+                    if (data?.errors) {
+                        return Object.values(data.errors).flat().join(' ');
+                    }
+                    return data?.message ?? 'Error al guardar la venta.';
+                },
+
                 abrirPago() {
-                    const efectivo = this.medios.find(m => m.tipo === 'efectivo');
+                    const efectivo = this.medioEfectivo();
                     this.pagos = [{ medio_pago_id: efectivo?.id ?? this.medios[0]?.id, importe: this.total() }];
                     this.recibido = 0;
                     this.errorPago = '';
@@ -453,19 +543,28 @@
                 },
 
                 async confirmar() {
+                    if (this.requiereCliente()) {
+                        this.errorPago = 'Para cuenta corriente tenés que seleccionar un cliente.';
+                        return;
+                    }
                     if (this.redondear(this.sumaPagos() - this.total()) !== 0) {
                         this.errorPago = 'La suma de los pagos tiene que coincidir con el total.';
                         return;
                     }
-                    this.procesando = true;
-                    this.errorPago = '';
+                    if (this.usaQrMercadoPago()) {
+                        await this.iniciarCobroQr();
+                        return;
+                    }
+                    await this.registrarVenta();
+                },
 
-                    const payload = {
+                armarPayload() {
+                    return {
                         uuid: crypto.randomUUID(),
                         presupuesto_id: this.presupuestoId,
                         sucursal_id: this.sucursalId,
                         caja_sesion_id: this.cajaSesionId,
-                        cliente_id: this.clienteId || null,
+                        cliente_id: this.clienteId ? Number(this.clienteId) : null,
                         descuento: this.descuento || 0,
                         fecha: new Date().toISOString(),
                         origen: 'pos',
@@ -478,24 +577,142 @@
                         })),
                         pagos: this.pagos.filter(p => p.importe > 0),
                     };
+                },
+
+                async registrarVenta() {
+                    this.procesando = true;
+                    this.errorPago = '';
+                    const payload = this.armarPayload();
 
                     try {
                         const res = await this.enviarVenta(payload);
                         const data = await res.json();
                         if (! res.ok) {
-                            this.errorPago = data.message ?? 'Error al guardar la venta.';
+                            this.errorPago = this.parsearError(res, data);
                             return;
                         }
                         this.ventaOk = data;
                         this.finalizarVenta();
                     } catch {
-                        // Sin conexión: la venta queda en cola y se sincroniza sola
                         this.pendientes.push(payload);
                         this.guardarPendientes();
                         this.ventaOk = { offline: true, total: this.total() };
                         this.finalizarVenta();
                     } finally {
                         this.procesando = false;
+                    }
+                },
+
+                async iniciarCobroQr() {
+                    if (! this.mercadopagoQr) {
+                        this.errorPago = 'Mercado Pago QR no está configurado en el servidor.';
+                        return;
+                    }
+                    this.procesando = true;
+                    this.errorPago = '';
+                    this.errorQr = '';
+                    const referencia = crypto.randomUUID();
+                    const totalQr = this.importeQr() || this.total();
+
+                    try {
+                        const res = await fetch('{{ route('pos.qr.crear') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                            },
+                            body: JSON.stringify({
+                                total: totalQr,
+                                titulo: 'Venta POS CMoon',
+                                referencia,
+                            }),
+                        });
+                        const data = await res.json();
+                        if (! res.ok) {
+                            this.errorPago = data.message ?? 'No se pudo generar el QR.';
+                            return;
+                        }
+                        this.qrReferencia = data.referencia;
+                        this.qrTotal = totalQr;
+                        this.qrSvg = data.qr_svg ?? '';
+                        this.modalPago = false;
+                        this.modalQr = true;
+                        this.qrEsperando = true;
+                        this.esperarPagoQr();
+                    } catch {
+                        this.errorPago = 'Error de conexión al generar el QR.';
+                    } finally {
+                        this.procesando = false;
+                    }
+                },
+
+                esperarPagoQr() {
+                    clearInterval(this.qrPollTimer);
+                    let intentos = 0;
+                    this.qrPollTimer = setInterval(async () => {
+                        intentos++;
+                        try {
+                            const res = await fetch(`{{ route('pos.qr.estado') }}?referencia=${encodeURIComponent(this.qrReferencia)}`, {
+                                headers: { 'Accept': 'application/json' },
+                            });
+                            const data = await res.json();
+                            if (data.aprobado) {
+                                clearInterval(this.qrPollTimer);
+                                this.modalQr = false;
+                                this.qrEsperando = false;
+                                await this.registrarVenta();
+                            } else if (intentos > 120) {
+                                this.errorQr = 'Tiempo de espera agotado. Cancelá e intentá de nuevo.';
+                                this.qrEsperando = false;
+                                clearInterval(this.qrPollTimer);
+                            }
+                        } catch {
+                            // reintenta en el próximo ciclo
+                        }
+                    }, 3000);
+                },
+
+                cancelarQr() {
+                    clearInterval(this.qrPollTimer);
+                    this.modalQr = false;
+                    this.qrEsperando = false;
+                    this.errorQr = '';
+                    this.modalPago = true;
+                },
+
+                async facturarVenta() {
+                    if (! this.ventaOk?.id || ! this.emisorId || ! this.puntoVentaId) {
+                        this.errorFactura = 'No hay emisor o punto de venta configurado.';
+                        return;
+                    }
+                    this.facturando = true;
+                    this.errorFactura = '';
+                    try {
+                        const res = await fetch(`{{ url('/pos/ventas') }}/${this.ventaOk.id}/facturar`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                            },
+                            body: JSON.stringify({
+                                emisor_id: this.emisorId,
+                                punto_venta_id: this.puntoVentaId,
+                            }),
+                        });
+                        const data = await res.json();
+                        if (data.estado === 'autorizado') {
+                            this.ventaOk.facturada = true;
+                            this.ventaOk.factura_url = data.factura_url;
+                            this.ventaOk.factura_msg = `${data.tipo} ${data.numero} · CAE ${data.cae}`;
+                        } else {
+                            this.errorFactura = data.mensaje ?? 'AFIP no autorizó el comprobante.';
+                        }
+                    } catch {
+                        this.errorFactura = 'Error al conectar con el servidor de facturación.';
+                    } finally {
+                        this.facturando = false;
                     }
                 },
 

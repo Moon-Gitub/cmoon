@@ -102,13 +102,19 @@ class WsfeService
 
         // Desglose de IVA solo para A y B
         if (! $esC && $comprobante->detalle_iva) {
-            $detalle['Iva'] = [
-                'AlicIva' => collect($comprobante->detalle_iva)->map(fn ($fila) => [
-                    'Id' => self::ALICUOTAS[number_format((float) $fila['alicuota'], 2, '.', '')] ?? 5,
+            $alicuotas = collect($comprobante->detalle_iva)->map(function ($fila) {
+                $codigo = $this->codigoAlicuota((float) $fila['alicuota']);
+
+                return [
+                    'Id' => $codigo,
                     'BaseImp' => round((float) $fila['neto'], 2),
                     'Importe' => round((float) $fila['iva'], 2),
-                ])->values()->all(),
-            ];
+                ];
+            })->values()->all();
+
+            if ($alicuotas !== []) {
+                $detalle['Iva'] = ['AlicIva' => $alicuotas];
+            }
         }
 
         $respuesta = $cliente->FECAESolicitar([
@@ -180,6 +186,15 @@ class WsfeService
             'MONOTRIBUTO' => 6,
             default => 5, // Consumidor final
         };
+    }
+
+    private function codigoAlicuota(float $alicuota): int
+    {
+        $normalizada = number_format($alicuota, 2, '.', '');
+
+        return self::ALICUOTAS[$normalizada]
+            ?? self::ALICUOTAS[number_format($alicuota, 1, '.', '')]
+            ?? 5;
     }
 
     private function cliente(Emisor $emisor): SoapClient

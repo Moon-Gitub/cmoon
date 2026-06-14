@@ -106,6 +106,49 @@ class InformeController extends Controller
         return view('informes.libro-iva', compact('comprobantes', 'totales', 'desde', 'hasta'));
     }
 
+    public function cuentasCorrientes(Request $request): View
+    {
+        $clientes = \App\Models\Cliente::where('activo', true)
+            ->withSum('movimientosCuenta as saldo', 'importe')
+            ->when($request->input('filtro') === 'con_saldo', fn ($q) => $q->having('saldo', '>', 0))
+            ->when($request->input('filtro') === 'a_favor', fn ($q) => $q->having('saldo', '<', 0))
+            ->orderByDesc('saldo')
+            ->paginate(50)
+            ->withQueryString();
+
+        $morphCliente = (new \App\Models\Cliente)->getMorphClass();
+        $totales = [
+            'saldo_neto' => (float) \App\Models\MovimientoCuenta::where('titular_type', $morphCliente)->sum('importe'),
+            'clientes_listados' => $clientes->total(),
+        ];
+
+        return view('informes.cuentas-corrientes', compact('clientes', 'totales'));
+    }
+
+    public function cajas(Request $request): View
+    {
+        $desde = $request->date('desde') ?? now()->startOfMonth();
+        $hasta = $request->date('hasta')?->endOfDay() ?? now()->endOfDay();
+
+        $sesiones = \App\Models\CajaSesion::with(['caja', 'usuario'])
+            ->whereBetween('abierta_at', [$desde, $hasta])
+            ->withCount(['ventas as ventas_count' => fn ($q) => $q->where('estado', 'completada')])
+            ->withSum(['ventas as ventas_total' => fn ($q) => $q->where('estado', 'completada')], 'total')
+            ->orderByDesc('abierta_at')
+            ->paginate(25)
+            ->withQueryString();
+
+        $totales = [
+            'sesiones' => $sesiones->total(),
+            'ventas' => (float) \App\Models\Venta::where('estado', 'completada')
+                ->whereBetween('fecha', [$desde, $hasta])
+                ->whereNotNull('caja_sesion_id')
+                ->sum('total'),
+        ];
+
+        return view('informes.cajas', compact('sesiones', 'totales', 'desde', 'hasta'));
+    }
+
     private function libroIvaCsv($comprobantes, string $desde, string $hasta): StreamedResponse
     {
         return response()->streamDownload(function () use ($comprobantes) {

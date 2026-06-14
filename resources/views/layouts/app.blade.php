@@ -21,10 +21,10 @@
         .bg-indigo-50 { background-color: color-mix(in srgb, var(--accent) 6%, white) !important; }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased">
+<body class="bg-slate-100 text-slate-800 antialiased" x-data="{ menuAbierto: false }">
 <div class="flex min-h-screen">
 
-    {{-- Sidebar --}}
+    {{-- Sidebar escritorio --}}
     <aside class="hidden w-64 shrink-0 flex-col bg-slate-900 text-slate-200 md:flex">
         <div class="flex h-16 items-center gap-2 border-b border-slate-800 px-5">
             @if ($empresaActual?->logo_path)
@@ -226,6 +226,16 @@
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
                     Libro IVA
                 </a>
+                <a href="{{ route('informes.cuentas-corrientes') }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('informes.cuentas-corrientes') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
+                    Cuentas corrientes
+                </a>
+                <a href="{{ route('informes.cajas') }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('informes.cajas') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3"/></svg>
+                    Cajas
+                </a>
             @endcan
 
             @can('retenciones.ver')
@@ -244,8 +254,14 @@
 
     {{-- Contenido --}}
     <div class="flex min-w-0 flex-1 flex-col">
-        <header class="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 md:px-6">
-            <h1 class="text-lg font-semibold">@yield('titulo', 'Panel')</h1>
+        <header class="flex h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 md:px-6">
+            <div class="flex min-w-0 items-center gap-3">
+                <button type="button" @click="menuAbierto = true"
+                        class="rounded-lg p-2 text-slate-600 hover:bg-slate-100 md:hidden" aria-label="Abrir menú">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+                </button>
+                <h1 class="truncate text-base font-semibold md:text-lg">@yield('titulo', 'Panel')</h1>
+            </div>
 
             <details class="relative">
                 <summary class="flex cursor-pointer list-none items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-100">
@@ -272,7 +288,7 @@
             </details>
         </header>
 
-        <main class="flex-1 p-4 md:p-6">
+        <main class="flex-1 overflow-x-hidden p-4 md:p-6">
             @if (session('ok'))
                 <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                     {{ session('ok') }}
@@ -284,9 +300,38 @@
                 </div>
             @endif
 
-            @yield('contenido')
+            <div class="mx-auto max-w-7xl">
+                @yield('contenido')
+            </div>
         </main>
     </div>
+
+    {{-- Menú móvil --}}
+    <div x-show="menuAbierto" x-cloak class="fixed inset-0 z-40 md:hidden" x-transition.opacity>
+        <div class="absolute inset-0 bg-slate-900/50" @click="menuAbierto = false"></div>
+        <aside class="absolute left-0 top-0 flex h-full w-72 max-w-[85vw] flex-col bg-slate-900 text-slate-200 shadow-xl">
+            <div class="flex h-16 items-center justify-between border-b border-slate-800 px-4">
+                <p class="text-sm font-semibold text-white">{{ $empresaActual?->nombre_fantasia ?? 'CMoon POS' }}</p>
+                <button type="button" @click="menuAbierto = false" class="rounded-lg p-2 hover:bg-slate-800" aria-label="Cerrar menú">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4 text-sm">
+                <a href="{{ route('dashboard') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Inicio</a>
+                @can('pos.vender')<a href="{{ route('pos') }}" class="block rounded-lg px-3 py-2 text-emerald-300 hover:bg-slate-800">Punto de venta</a>@endcan
+                @can('ventas.ver')<a href="{{ route('ventas.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Ventas</a>@endcan
+                @can('productos.ver')<a href="{{ route('productos.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Productos</a>@endcan
+                @can('clientes.ver')<a href="{{ route('clientes.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Clientes</a>@endcan
+                @can('facturacion.ver')<a href="{{ route('facturacion.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Comprobantes</a>@endcan
+                @can('informes.ver')
+                    <a href="{{ route('informes.ventas') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Informe ventas</a>
+                    <a href="{{ route('informes.cuentas-corrientes') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Cuentas corrientes</a>
+                    <a href="{{ route('informes.cajas') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Informe cajas</a>
+                @endcan
+            </nav>
+        </aside>
+    </div>
 </div>
+<style>[x-cloak]{display:none!important}</style>
 </body>
 </html>

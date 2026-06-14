@@ -18,8 +18,14 @@ class FacturacionService
 
     public function facturarVenta(Venta $venta, Emisor $emisor, PuntoVenta $puntoVenta, int $userId): Comprobante
     {
+        $venta->loadMissing(['items', 'cliente']);
+
         if ($venta->estado !== 'completada') {
             throw ValidationException::withMessages(['venta' => 'Solo se pueden facturar ventas completadas.']);
+        }
+
+        if ($venta->items->isEmpty()) {
+            throw ValidationException::withMessages(['venta' => 'La venta no tiene ítems para facturar.']);
         }
 
         $yaFacturada = Comprobante::where('venta_id', $venta->id)
@@ -216,6 +222,12 @@ class FacturacionService
             $detalleIva[] = ['alicuota' => (float) $alicuota, 'neto' => $neto, 'iva' => $iva];
             $netoTotal += $neto;
             $ivaTotal += $iva;
+        }
+
+        if ($detalleIva === [] && $total > 0) {
+            $detalleIva[] = ['alicuota' => 21.0, 'neto' => round($total / 1.21, 2), 'iva' => round($total - ($total / 1.21), 2)];
+            $netoTotal = $detalleIva[0]['neto'];
+            $ivaTotal = $detalleIva[0]['iva'];
         }
 
         $diferencia = round($total - ($netoTotal + $ivaTotal), 2);
