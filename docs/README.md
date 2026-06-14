@@ -12,6 +12,7 @@
 | [06-credenciales-plantilla.md](./06-credenciales-plantilla.md) | **Plantilla** para anotar usuarios y claves (copiar a archivo local) |
 | [07-seeders-datos-ejemplo.md](./07-seeders-datos-ejemplo.md) | Usuario admin, 20 productos, roles |
 | [08-pos-web-pwa.md](./08-pos-web-pwa.md) | POS en navegador (`/pos`) |
+| [13-frontend.md](./13-frontend.md) | **Frontend web:** Vite, Tailwind, Alpine, Blade, POS |
 | [09-app-escritorio-electron.md](./09-app-escritorio-electron.md) | Caja offline Linux/Windows |
 | [10-app-android.md](./10-app-android.md) | APK móvil, cámara, lector |
 | [11-api-desktop.md](./11-api-desktop.md) | API `/api/desktop/*` y licencias Moon |

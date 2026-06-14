@@ -5,6 +5,7 @@
 | Capa | Tecnología |
 |------|------------|
 | Backend | Laravel 13, PHP 8.4 |
+| **Frontend web** | Blade + Tailwind CSS 4 + Alpine.js + Vite 8 |
 | Web server | nginx + PHP-FPM ([serversideup/php](https://serversideup.net/open-source/docker-php/)) |
 | Base de datos | MySQL 8.4 |
 | Cache / sesiones / colas | Redis 7 |
@@ -37,8 +38,11 @@ cmoon/
 ├── desktop/             # App Electron (caja offline PC)
 ├── mobile/              # App Android Capacitor
 ├── docs/                # Esta documentación
-├── public/              # Web root, PWA (sw.js, manifest)
-├── resources/views/     # Vistas Blade + POS
+├── resources/
+│   ├── views/         # Blade (panel + POS)
+│   ├── css/app.css    # Tailwind
+│   └── js/app.js      # Alpine.js
+├── public/            # sw.js, manifest PWA, build/ (Vite)
 ├── routes/              # web.php, api.php
 ├── docker-compose.yml
 ├── Dockerfile

@@ -22,6 +22,7 @@ Toda la guía de instalación, VPS, credenciales, accesos y apps cliente está e
 | **Plantilla credenciales** | [docs/06-credenciales-plantilla.md](./docs/06-credenciales-plantilla.md) |
 | Productos ejemplo | [docs/07-seeders-datos-ejemplo.md](./docs/07-seeders-datos-ejemplo.md) |
 | POS web / PWA | [docs/08-pos-web-pwa.md](./docs/08-pos-web-pwa.md) |
+| **Frontend (Vite, Tailwind, Alpine)** | [docs/13-frontend.md](./docs/13-frontend.md) |
 | App Electron | [docs/09-app-escritorio-electron.md](./docs/09-app-escritorio-electron.md) |
 | App Android | [docs/10-app-android.md](./docs/10-app-android.md) |
 | API offline | [docs/11-api-desktop.md](./docs/11-api-desktop.md) |
