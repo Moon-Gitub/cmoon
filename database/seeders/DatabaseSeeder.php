@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolesYPermisosSeeder::class,
             DatosInicialesSeeder::class,
+            ProductosEjemploSeeder::class,
         ]);
     }
 }
