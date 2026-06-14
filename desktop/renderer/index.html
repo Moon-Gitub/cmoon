@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMoon POS</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="topbar">
+        <div>
+            <strong id="empresa">CMoon POS</strong>
+            <span id="sucursal" class="badge"></span>
+        </div>
+        <div class="status-row">
+            <span id="online" class="pill ok">En línea</span>
+            <span id="license-msg" class="pill warn" hidden></span>
+            <span id="pending" class="pill warn" hidden></span>
+            <button type="button" id="btn-sync" class="btn-sm">Sincronizar</button>
+        </div>
+    </header>
+
+    <div id="blocked" class="blocked" hidden>
+        <h2>Sistema suspendido</h2>
+        <p id="blocked-msg"></p>
+        <button type="button" id="btn-retry-license">Reintentar conexión</button>
+    </div>
+
+    <main id="pos" class="pos-grid">
+        <section class="panel">
+            <input type="text" id="buscar" class="search" placeholder="Buscar producto o escanear código…" autofocus>
+            <div id="sugerencias" class="suggestions"></div>
+        </section>
+        <section class="panel cart-panel">
+            <h2>Carrito</h2>
+            <div id="carrito" class="cart-items"></div>
+            <div class="totals">
+                <div class="total-line"><span>Total</span><strong id="total">$ 0,00</strong></div>
+            </div>
+            <div class="actions">
+                <button type="button" id="btn-vaciar" class="btn-secondary">Vaciar</button>
+                <button type="button" id="btn-cobrar" class="btn-primary" disabled>Cobrar (F12)</button>
+            </div>
+        </section>
+    </main>
+
+    <dialog id="modal-pago">
+        <form method="dialog" id="form-pago">
+            <h3>Cobro</h3>
+            <p>Total: <strong id="pago-total"></strong></p>
+            <label>Medio de pago
+                <select id="medio"></select>
+            </label>
+            <label>Importe<input type="number" id="importe" step="0.01" min="0"></label>
+            <p id="pago-error" class="error" hidden></p>
+            <div class="dialog-actions">
+                <button type="button" id="cancel-pago">Cancelar</button>
+                <button type="submit" id="confirm-pago">Confirmar venta</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="modal-ok">
+        <h3 id="ok-title">Venta registrada</h3>
+        <p id="ok-msg"></p>
+        <button type="button" id="ok-close">Continuar</button>
+    </dialog>
+
+    <script src="pos.js"></script>
+</body>
+</html>

@@ -64,6 +64,19 @@ return [
             ]) : [],
         ],
 
+        'moon_cobro' => [
+            'driver' => 'mysql',
+            'host' => env('MOON_DB_HOST', '127.0.0.1'),
+            'port' => env('MOON_DB_PORT', '3306'),
+            'database' => env('MOON_DB_DATABASE', ''),
+            'username' => env('MOON_DB_USERNAME', ''),
+            'password' => env('MOON_DB_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'strict' => true,
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),
