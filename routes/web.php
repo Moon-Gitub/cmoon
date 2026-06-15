@@ -185,6 +185,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/presupuestos', [PresupuestoController::class, 'store'])->name('presupuestos.store');
         Route::get('/presupuestos/{presupuesto}', [PresupuestoController::class, 'show'])->whereNumber('presupuesto')->name('presupuestos.show');
         Route::post('/presupuestos/{presupuesto}/anular', [PresupuestoController::class, 'anular'])->name('presupuestos.anular');
+        Route::post('/presupuestos/{presupuesto}/aprobar', [PresupuestoController::class, 'aprobar'])->name('presupuestos.aprobar');
+        Route::post('/presupuestos/{presupuesto}/rechazar', [PresupuestoController::class, 'rechazar'])->name('presupuestos.rechazar');
     });
 
     Route::middleware('permission:retenciones.ver')->group(function () {

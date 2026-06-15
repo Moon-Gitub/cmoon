@@ -61,7 +61,7 @@
         try {
             if (navigator.onLine) {
                 await window.cmoon.refreshLicense();
-                await window.cmoon.syncSales().catch(() => {});
+                await window.cmoon.syncAll().catch(() => {});
                 await window.cmoon.syncCatalog().catch(() => {});
                 state.catalog = await window.cmoon.getCatalog();
                 serverOk = true;
@@ -287,6 +287,7 @@
         $('btn-vaciar').addEventListener('click', () => { state.carrito = []; renderCarrito(); });
         $('btn-cobrar').addEventListener('click', abrirPago);
         $('btn-sync').addEventListener('click', tick);
+        $('btn-home').addEventListener('click', () => window.cmoon.openHome());
         $('btn-retry-license').addEventListener('click', tick);
         $('btn-escanear').addEventListener('click', iniciarEscaneo);
         $('btn-escanear-uno').addEventListener('click', escanearUnCodigo);

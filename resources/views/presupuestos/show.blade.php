@@ -40,13 +40,7 @@
                 <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Datos</h2>
                 <dl class="space-y-2 text-sm">
                     <div class="flex justify-between"><dt class="text-slate-500">Estado</dt>
-                        <dd>
-                            @switch($presupuesto->estado)
-                                @case('pendiente')<span class="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Pendiente</span>@break
-                                @case('convertido')<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Convertido</span>@break
-                                @default<span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">Anulado</span>
-                            @endswitch
-                        </dd>
+                        <dd>@include('presupuestos.partials.estado-badge', ['presupuesto' => $presupuesto])</dd>
                     </div>
                     <div class="flex justify-between"><dt class="text-slate-500">Fecha</dt><dd class="font-medium">{{ $presupuesto->fecha->format('d/m/Y') }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">Cliente</dt><dd class="font-medium">{{ $presupuesto->cliente?->nombre ?? 'Consumidor final' }}</dd></div>
@@ -60,11 +54,30 @@
                     @endif
                 </dl>
                 @if ($presupuesto->observaciones)
-                    <p class="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-600">{{ $presupuesto->observaciones }}</p>
+                    <p class="mt-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-600 whitespace-pre-line">{{ $presupuesto->observaciones }}</p>
                 @endif
             </div>
 
-            @if ($presupuesto->estado === 'pendiente')
+            @if ($presupuesto->estado === 'pendiente_aprobacion')
+                @can('presupuestos.aprobar')
+                    <form method="POST" action="{{ route('presupuestos.aprobar', $presupuesto) }}">
+                        @csrf
+                        <button class="w-full rounded-xl bg-emerald-600 py-3 text-center text-sm font-bold text-white hover:bg-emerald-700">
+                            Aprobar pedido
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ route('presupuestos.rechazar', $presupuesto) }}" class="space-y-2">
+                        @csrf
+                        <textarea name="motivo" rows="2" placeholder="Motivo del rechazo (opcional)"
+                                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea>
+                        <button class="w-full rounded-xl border border-red-200 bg-red-50 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-100">
+                            Rechazar pedido
+                        </button>
+                    </form>
+                @endcan
+            @endif
+
+            @if (in_array($presupuesto->estado, ['pendiente', 'aprobado']))
                 @can('pos.vender')
                     <a href="{{ route('pos', ['presupuesto' => $presupuesto->id]) }}"
                        class="block w-full rounded-xl bg-indigo-600 py-3 text-center text-sm font-bold text-white hover:bg-indigo-700">

@@ -7,11 +7,13 @@ use App\Models\Cliente;
 use App\Models\DesktopInstallation;
 use App\Models\ListaPrecio;
 use App\Models\MedioPago;
+use App\Models\Presupuesto;
 use App\Models\Producto;
 use App\Models\Sucursal;
 use App\Models\User;
 use App\Models\Venta;
 use App\Services\Desktop\DesktopLicenseService;
+use App\Services\PresupuestoService;
 use App\Services\VentaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +25,7 @@ class DesktopApiController extends Controller
     public function __construct(
         private DesktopLicenseService $licencias,
         private VentaService $ventas,
+        private PresupuestoService $presupuestos,
     ) {}
 
     /**
@@ -46,8 +49,11 @@ class DesktopApiController extends Controller
             throw ValidationException::withMessages(['usuario' => 'Credenciales inválidas.']);
         }
 
-        if (! $user->can('pos.vender')) {
-            throw ValidationException::withMessages(['usuario' => 'Este usuario no puede operar el POS.']);
+        $canSell = $user->can('pos.vender');
+        $canPedidos = $user->can('presupuestos.crear_movil');
+
+        if (! $canSell && ! $canPedidos) {
+            throw ValidationException::withMessages(['usuario' => 'Este usuario no puede operar la app móvil.']);
         }
 
         $user->load('empresa');
@@ -58,6 +64,7 @@ class DesktopApiController extends Controller
             ['device_id' => $datos['device_id']],
             [
                 'empresa_id' => $user->empresa_id,
+                'user_id' => $user->id,
                 'moon_client_id' => $datos['moon_client_id'],
                 'device_name' => $datos['device_name'],
                 'token_hash' => $this->licencias->hashToken($tokenPlano),
@@ -80,6 +87,10 @@ class DesktopApiController extends Controller
             ],
             'sucursal_id' => $user->sucursal_id ?? Sucursal::where('empresa_id', $user->empresa_id)->where('activa', true)->value('id'),
             'usuario' => $user->only(['id', 'name', 'usuario']),
+            'capabilities' => [
+                'can_sell' => $canSell,
+                'can_pedidos' => $canPedidos,
+            ],
             ...$licencia,
             'catalog' => $this->armarCatalogo(),
         ]);
@@ -108,6 +119,8 @@ class DesktopApiController extends Controller
     /** Sincronizar ventas hechas offline en la caja. */
     public function syncVentas(Request $request): JsonResponse
     {
+        abort_unless(auth()->user()?->can('pos.vender'), 403);
+
         /** @var DesktopInstallation $instalacion */
         $instalacion = $request->attributes->get('desktop_installation');
         $deviceToken = $request->attributes->get('desktop_token');
@@ -140,6 +153,76 @@ class DesktopApiController extends Controller
                 $resultados[] = ['uuid' => $ventaDatos['uuid'], 'ok' => true, 'id' => $venta->id, 'numero' => $venta->numero];
             } catch (\Throwable $e) {
                 $resultados[] = ['uuid' => $ventaDatos['uuid'], 'ok' => false, 'error' => $e->getMessage()];
+            }
+        }
+
+        $instalacion->update(['last_sync_at' => now()]);
+
+        return response()->json([
+            'resultados' => $resultados,
+            'license' => $this->licencias->emitir($instalacion, $deviceToken)['license'],
+        ]);
+    }
+
+    /** Sincronizar pedidos del preventista (presupuestos pendientes de aprobación). */
+    public function syncPedidos(Request $request): JsonResponse
+    {
+        abort_unless(auth()->user()?->can('presupuestos.crear_movil'), 403);
+
+        /** @var DesktopInstallation $instalacion */
+        $instalacion = $request->attributes->get('desktop_installation');
+        $deviceToken = $request->attributes->get('desktop_token');
+
+        $datos = $request->validate([
+            'pedidos' => ['required', 'array'],
+            'pedidos.*.uuid' => ['required', 'uuid'],
+            'pedidos.*.cliente_id' => ['required', 'integer', 'exists:clientes,id'],
+            'pedidos.*.items' => ['required', 'array', 'min:1'],
+            'pedidos.*.items.*.producto_id' => ['nullable', 'integer', 'exists:productos,id'],
+            'pedidos.*.items.*.descripcion' => ['required', 'string', 'max:255'],
+            'pedidos.*.items.*.cantidad' => ['required', 'numeric', 'gt:0'],
+            'pedidos.*.items.*.precio_unitario' => ['required', 'numeric', 'min:0'],
+            'pedidos.*.observaciones' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $resultados = [];
+
+        foreach ($datos['pedidos'] as $pedidoDatos) {
+            $existente = Presupuesto::where('uuid', $pedidoDatos['uuid'])->first();
+            if ($existente) {
+                $resultados[] = [
+                    'uuid' => $pedidoDatos['uuid'],
+                    'ok' => true,
+                    'id' => $existente->id,
+                    'numero' => $existente->numero,
+                    'estado' => $existente->estado,
+                ];
+
+                continue;
+            }
+
+            try {
+                $presupuesto = $this->presupuestos->crear(
+                    $instalacion->empresa_id,
+                    auth()->id(),
+                    $pedidoDatos['items'],
+                    (int) $pedidoDatos['cliente_id'],
+                    $pedidoDatos['observaciones'] ?? null,
+                    null,
+                    'pendiente_aprobacion',
+                    'movil',
+                    $pedidoDatos['uuid'],
+                );
+
+                $resultados[] = [
+                    'uuid' => $pedidoDatos['uuid'],
+                    'ok' => true,
+                    'id' => $presupuesto->id,
+                    'numero' => $presupuesto->numero,
+                    'estado' => $presupuesto->estado,
+                ];
+            } catch (\Throwable $e) {
+                $resultados[] = ['uuid' => $pedidoDatos['uuid'], 'ok' => false, 'error' => $e->getMessage()];
             }
         }
 

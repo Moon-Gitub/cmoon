@@ -59,3 +59,18 @@ dialog { border: none; border-radius: .75rem; padding: 1.25rem; width: min(360px
     .pos-layout { flex-direction: row; align-items: stretch; }
     .search-panel, .cart-panel { flex: 1; min-height: calc(100vh - 100px); }
 }
+.home-card { width: min(440px, 100%); }
+.home-actions { display: grid; gap: .75rem; margin: 1.25rem 0; }
+.home-btn { display: block; padding: 1rem 1.1rem; border-radius: .75rem; text-decoration: none; color: inherit; border: 2px solid #e2e8f0; background: #f8fafc; }
+.home-btn-pos { border-color: #4f46e5; background: #eef2ff; }
+.home-btn-pedido { border-color: #059669; background: #ecfdf5; }
+.home-btn-title { display: block; font-weight: 700; font-size: 1.05rem; }
+.home-btn-desc { display: block; font-size: .8rem; color: #64748b; margin-top: .2rem; }
+.home-footer { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; }
+.btn-setup-link { font-size: .75rem; padding: .35rem .55rem; margin-left: auto; }
+.btn-link { background: transparent; color: #93c5fd; font-size: .75rem; padding: 0 .35rem 0 0; font-weight: 600; }
+.field-label { display: block; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #64748b; margin-bottom: .35rem; }
+.client-select { width: 100%; margin-bottom: .5rem; border: 1px solid #cbd5e1; border-radius: .5rem; font-size: .9rem; }
+.obs-input { width: 100%; margin: .5rem 0; padding: .55rem .65rem; border: 1px solid #cbd5e1; border-radius: .5rem; font-size: .9rem; resize: vertical; }
+.btn-pedido { background: #059669; }
+.btn-pedido:disabled { opacity: .5; }

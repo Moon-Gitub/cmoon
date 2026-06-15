@@ -38,7 +38,7 @@ class PosController extends Controller
         $presupuestoItems = [];
         if ($request->filled('presupuesto')) {
             $presupuesto = \App\Models\Presupuesto::with('items.producto')
-                ->where('estado', 'pendiente')
+                ->whereIn('estado', ['pendiente', 'aprobado'])
                 ->find($request->integer('presupuesto'));
 
             $presupuestoItems = $presupuesto?->items->map(fn ($i) => [
@@ -142,7 +142,7 @@ class PosController extends Controller
 
         if (! empty($datos['presupuesto_id'])) {
             \App\Models\Presupuesto::where('id', $datos['presupuesto_id'])
-                ->where('estado', 'pendiente')
+                ->whereIn('estado', ['pendiente', 'aprobado'])
                 ->update(['estado' => 'convertido', 'venta_id' => $venta->id]);
         }
 

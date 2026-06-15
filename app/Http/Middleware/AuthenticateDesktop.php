@@ -35,10 +35,11 @@ class AuthenticateDesktop
         $request->attributes->set('desktop_installation', $instalacion);
         $request->attributes->set('desktop_token', $token);
 
-        // Usuario técnico de la empresa para operaciones de sync (scope global)
-        $userId = \App\Models\User::where('empresa_id', $instalacion->empresa_id)
-            ->whereHas('roles', fn ($q) => $q->where('name', 'Administrador'))
-            ->value('id')
+        // Usuario que activó el dispositivo (preventista/vendedor) o fallback admin
+        $userId = $instalacion->user_id
+            ?? \App\Models\User::where('empresa_id', $instalacion->empresa_id)
+                ->whereHas('roles', fn ($q) => $q->where('name', 'Administrador'))
+                ->value('id')
             ?? \App\Models\User::where('empresa_id', $instalacion->empresa_id)->value('id');
 
         if ($userId) {

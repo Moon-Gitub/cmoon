@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Cliente;
-use App\Models\Empresa;
 use App\Models\Presupuesto;
 use App\Models\PresupuestoItem;
 use App\Models\Producto;
+use App\Services\PresupuestoService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class PresupuestoController extends Controller
 {
+    public function __construct(private PresupuestoService $presupuestos) {}
+
     public function index(Request $request): View
     {
         $presupuestos = Presupuesto::with(['cliente', 'usuario'])
@@ -22,13 +22,15 @@ class PresupuestoController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        return view('presupuestos.index', compact('presupuestos'));
+        $pendientesAprobacion = Presupuesto::where('estado', 'pendiente_aprobacion')->count();
+
+        return view('presupuestos.index', compact('presupuestos', 'pendientesAprobacion'));
     }
 
     public function create(): View
     {
         return view('presupuestos.create', [
-            'clientes' => Cliente::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
+            'clientes' => \App\Models\Cliente::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
             'productos' => Producto::where('activo', true)->orderBy('nombre')
                 ->get(['id', 'codigo', 'nombre', 'precio_venta']),
         ]);
@@ -49,43 +51,16 @@ class PresupuestoController extends Controller
             'items.*.precio_unitario' => ['required', 'numeric', 'min:0'],
         ]);
 
-        $presupuesto = DB::transaction(function () use ($datos) {
-            $empresaId = auth()->user()->empresa_id;
-            $numero = (int) Presupuesto::where('empresa_id', $empresaId)->lockForUpdate()->max('numero') + 1;
-
-            $total = 0.0;
-            $items = [];
-            foreach ($datos['items'] as $item) {
-                $producto = isset($item['producto_id']) ? Producto::find($item['producto_id']) : null;
-                $totalItem = round((float) $item['cantidad'] * (float) $item['precio_unitario'], 2);
-                $total += $totalItem;
-                $items[] = [...$item, 'producto' => $producto, 'total' => $totalItem];
-            }
-
-            $presupuesto = Presupuesto::create([
-                'empresa_id' => $empresaId,
-                'cliente_id' => $datos['cliente_id'] ?? null,
-                'user_id' => auth()->id(),
-                'numero' => $numero,
-                'total' => round($total, 2),
-                'valido_hasta' => $datos['valido_hasta'] ?? null,
-                'observaciones' => $datos['observaciones'] ?? null,
-                'fecha' => now()->toDateString(),
-            ]);
-
-            foreach ($items as $item) {
-                PresupuestoItem::create([
-                    'presupuesto_id' => $presupuesto->id,
-                    'producto_id' => $item['producto']?->id,
-                    'descripcion' => $item['descripcion'] ?? $item['producto']?->nombre ?? 'Ítem',
-                    'cantidad' => $item['cantidad'],
-                    'precio_unitario' => $item['precio_unitario'],
-                    'total' => $item['total'],
-                ]);
-            }
-
-            return $presupuesto;
-        });
+        $presupuesto = $this->presupuestos->crear(
+            auth()->user()->empresa_id,
+            auth()->id(),
+            $datos['items'],
+            $datos['cliente_id'] ?? null,
+            $datos['observaciones'] ?? null,
+            $datos['valido_hasta'] ?? null,
+            'pendiente',
+            'web',
+        );
 
         return redirect()->route('presupuestos.show', $presupuesto)
             ->with('ok', "Presupuesto #{$presupuesto->numero} creado.");
@@ -97,6 +72,28 @@ class PresupuestoController extends Controller
             'presupuesto' => $presupuesto->load(['items.producto', 'cliente', 'usuario', 'venta']),
             'empresa' => auth()->user()->empresa,
         ]);
+    }
+
+    public function aprobar(Presupuesto $presupuesto): RedirectResponse
+    {
+        abort_unless(auth()->user()->can('presupuestos.aprobar'), 403);
+
+        $this->presupuestos->aprobar($presupuesto);
+
+        return back()->with('ok', "Pedido #{$presupuesto->numero} aprobado. Ya puede convertirse en venta.");
+    }
+
+    public function rechazar(Request $request, Presupuesto $presupuesto): RedirectResponse
+    {
+        abort_unless(auth()->user()->can('presupuestos.aprobar'), 403);
+
+        $datos = $request->validate([
+            'motivo' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $this->presupuestos->rechazar($presupuesto, $datos['motivo'] ?? null);
+
+        return back()->with('ok', "Pedido #{$presupuesto->numero} rechazado.");
     }
 
     public function anular(Presupuesto $presupuesto): RedirectResponse

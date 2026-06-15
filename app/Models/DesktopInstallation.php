@@ -9,6 +9,7 @@ class DesktopInstallation extends Model
 {
     protected $fillable = [
         'empresa_id',
+        'user_id',
         'moon_client_id',
         'device_id',
         'device_name',
@@ -30,5 +31,10 @@ class DesktopInstallation extends Model
     public function empresa(): BelongsTo
     {
         return $this->belongsTo(Empresa::class);
+    }
+
+    public function usuario(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

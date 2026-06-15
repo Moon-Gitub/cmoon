@@ -12,5 +12,6 @@ Route::prefix('desktop')->group(function () {
         Route::get('/catalog', [DesktopApiController::class, 'catalog']);
         Route::get('/status', [DesktopApiController::class, 'estado']);
         Route::post('/sync/ventas', [DesktopApiController::class, 'syncVentas']);
+        Route::post('/sync/pedidos', [DesktopApiController::class, 'syncPedidos']);
     });
 });

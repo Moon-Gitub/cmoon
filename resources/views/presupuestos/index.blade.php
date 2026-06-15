@@ -3,12 +3,26 @@
 @section('titulo', 'Presupuestos')
 
 @section('contenido')
+    @if ($pendientesAprobacion > 0)
+        <div class="mb-4 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+            Hay <strong>{{ $pendientesAprobacion }}</strong> pedido(s) del móvil esperando aprobación.
+            <a href="{{ route('presupuestos.index', ['estado' => 'pendiente_aprobacion']) }}" class="font-semibold underline">Ver pendientes</a>
+        </div>
+    @endif
+
     <form method="GET" class="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div>
             <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</label>
             <select name="estado" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <option value="">Todos</option>
-                @foreach (['pendiente' => 'Pendiente', 'convertido' => 'Convertido', 'anulado' => 'Anulado'] as $valor => $nombre)
+                @foreach ([
+                    'pendiente_aprobacion' => 'Pendiente aprobación',
+                    'aprobado' => 'Aprobado',
+                    'pendiente' => 'Pendiente',
+                    'convertido' => 'Convertido',
+                    'rechazado' => 'Rechazado',
+                    'anulado' => 'Anulado',
+                ] as $valor => $nombre)
                     <option value="{{ $valor }}" {{ request('estado') === $valor ? 'selected' : '' }}>{{ $nombre }}</option>
                 @endforeach
             </select>
@@ -29,8 +43,8 @@
                     <th class="px-4 py-3">#</th>
                     <th class="px-4 py-3">Fecha</th>
                     <th class="px-4 py-3">Cliente</th>
+                    <th class="px-4 py-3">Vendedor</th>
                     <th class="px-4 py-3 text-right">Total</th>
-                    <th class="px-4 py-3">Válido hasta</th>
                     <th class="px-4 py-3">Estado</th>
                 </tr>
             </thead>
@@ -40,19 +54,10 @@
                         <td class="px-4 py-3 font-mono text-xs text-indigo-600">#{{ str_pad($presupuesto->numero, 6, '0', STR_PAD_LEFT) }}</td>
                         <td class="px-4 py-3">{{ $presupuesto->fecha->format('d/m/Y') }}</td>
                         <td class="px-4 py-3 font-medium">{{ $presupuesto->cliente?->nombre ?? 'Consumidor final' }}</td>
+                        <td class="px-4 py-3 text-slate-600">{{ $presupuesto->usuario->name }}</td>
                         <td class="px-4 py-3 text-right font-semibold">$ {{ number_format((float) $presupuesto->total, 2, ',', '.') }}</td>
-                        <td class="px-4 py-3">{{ $presupuesto->valido_hasta?->format('d/m/Y') ?? '—' }}</td>
                         <td class="px-4 py-3">
-                            @switch($presupuesto->estado)
-                                @case('pendiente')
-                                    <span class="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Pendiente</span>
-                                    @break
-                                @case('convertido')
-                                    <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Convertido</span>
-                                    @break
-                                @default
-                                    <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">Anulado</span>
-                            @endswitch
+                            @include('presupuestos.partials.estado-badge', ['presupuesto' => $presupuesto])
                         </td>
                     </tr>
                 @empty

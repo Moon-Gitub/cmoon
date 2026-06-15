@@ -14,12 +14,14 @@ class Presupuesto extends Model
     protected $table = 'presupuestos';
 
     protected $fillable = [
+        'uuid',
         'empresa_id',
         'cliente_id',
         'user_id',
         'venta_id',
         'numero',
         'estado',
+        'origen',
         'total',
         'valido_hasta',
         'observaciones',

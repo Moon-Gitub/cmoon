@@ -3,6 +3,7 @@ const LS = {
     catalog: 'cmoon_catalog',
     license: 'cmoon_license',
     pending: 'cmoon_pending_sales',
+    pendingPedidos: 'cmoon_pending_pedidos',
 };
 
 function readJson(key, fallback = null) {
@@ -94,6 +95,21 @@ function removePendingSales(uuids) {
     writeJson(LS.pending, getPendingSales().filter(v => ! set.has(v.uuid)));
 }
 
+function getPendingPedidos() {
+    return readJson(LS.pendingPedidos, []);
+}
+
+function addPendingPedido(pedido) {
+    const list = getPendingPedidos();
+    list.push(pedido);
+    writeJson(LS.pendingPedidos, list);
+}
+
+function removePendingPedidos(uuids) {
+    const set = new Set(uuids);
+    writeJson(LS.pendingPedidos, getPendingPedidos().filter(p => ! set.has(p.uuid)));
+}
+
 async function activate(datos) {
     const deviceId = datos.device_id || crypto.randomUUID();
     return request({ server_url: datos.server_url }, '/activate', {
@@ -119,6 +135,10 @@ async function pullCatalog(config) {
 
 async function pushSales(config, ventas) {
     return request(config, '/sync/ventas', { method: 'POST', body: { ventas } });
+}
+
+async function pushPedidos(config, pedidos) {
+    return request(config, '/sync/pedidos', { method: 'POST', body: { pedidos } });
 }
 
 function isActivated() {
@@ -147,6 +167,8 @@ window.cmoon = {
             sucursal_id: result.sucursal_id,
             empresa_nombre: result.empresa?.nombre,
             usuario: result.usuario?.name,
+            can_sell: result.capabilities?.can_sell ?? true,
+            can_pedidos: result.capabilities?.can_pedidos ?? false,
         });
         return result;
     },
@@ -156,7 +178,8 @@ window.cmoon = {
         const payload = window.cmoonLicense.verifyLicense(getLicense(), config?.device_token);
         return Promise.resolve({
             online: navigator.onLine,
-            can_sell: window.cmoonLicense.canSellNow(payload),
+            can_sell: window.cmoonLicense.canSellNow(payload) && (config?.can_sell !== false),
+            can_pedidos: config?.can_pedidos === true,
             payload,
             message: payload?.message ?? null,
             blocked: payload?.blocked ?? false,
@@ -184,13 +207,16 @@ window.cmoon = {
         return catalog;
     },
 
-    pendingCount: () => Promise.resolve(getPendingSales().length),
+    pendingCount: () => Promise.resolve(getPendingSales().length + getPendingPedidos().length),
 
     async submitSale(venta) {
         const config = getConfig();
         const payload = window.cmoonLicense.verifyLicense(getLicense(), config?.device_token);
         if (! window.cmoonLicense.canSellNow(payload)) {
             throw new Error(payload?.message || 'Licencia suspendida.');
+        }
+        if (config?.can_sell === false) {
+            throw new Error('Este usuario no puede registrar ventas.');
         }
 
         if (navigator.onLine) {
@@ -209,6 +235,28 @@ window.cmoon = {
         return { online: false, pendientes: getPendingSales().length };
     },
 
+    async submitPedido(pedido) {
+        const config = getConfig();
+        if (! config?.can_pedidos) {
+            throw new Error('Este usuario no puede tomar pedidos.');
+        }
+
+        if (navigator.onLine) {
+            try {
+                const result = await pushPedidos(config, [pedido]);
+                if (result.license) saveLicense(result.license);
+                const r = result.resultados?.[0];
+                if (! r?.ok) throw new Error(r?.error || 'No se pudo enviar el pedido');
+                return { online: true, numero: r.numero, id: r.id, estado: r.estado };
+            } catch (err) {
+                if (! isNetworkError(err)) throw err;
+            }
+        }
+
+        addPendingPedido(pedido);
+        return { online: false, pendientes: getPendingPedidos().length };
+    },
+
     async syncSales() {
         const config = getConfig();
         const pendientes = getPendingSales();
@@ -223,6 +271,28 @@ window.cmoon = {
         return { sincronizadas: okUuids.length, pendientes: getPendingSales().length, resultados: result.resultados };
     },
 
+    async syncPedidos() {
+        const config = getConfig();
+        const pendientes = getPendingPedidos();
+        if (! pendientes.length) return { sincronizados: 0 };
+        if (! navigator.onLine) throw new Error('Sin conexión para sincronizar.');
+
+        const result = await pushPedidos(config, pendientes);
+        const okUuids = result.resultados.filter(r => r.ok).map(r => r.uuid);
+        removePendingPedidos(okUuids);
+        if (result.license) saveLicense(result.license);
+
+        return { sincronizados: okUuids.length, pendientes: getPendingPedidos().length, resultados: result.resultados };
+    },
+
+    async syncAll() {
+        const ventas = await window.cmoon.syncSales().catch(() => ({ sincronizadas: 0 }));
+        const pedidos = await window.cmoon.syncPedidos().catch(() => ({ sincronizados: 0 }));
+        return { ventas, pedidos };
+    },
+
+    openHome: () => { window.location.href = 'home.html'; },
     openPos: () => { window.location.href = 'pos.html'; },
+    openPedido: () => { window.location.href = 'pedido.html'; },
     openSetup: () => { window.location.href = 'setup.html'; },
 };
