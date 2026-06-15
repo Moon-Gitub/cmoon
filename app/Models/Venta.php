@@ -91,4 +91,9 @@ class Venta extends Model
     {
         return $this->belongsTo(User::class, 'anulada_por');
     }
+
+    public function entregas(): HasMany
+    {
+        return $this->hasMany(Entrega::class);
+    }
 }

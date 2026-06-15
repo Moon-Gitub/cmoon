@@ -13,6 +13,7 @@ use App\Models\Sucursal;
 use App\Models\User;
 use App\Models\Venta;
 use App\Services\Desktop\DesktopLicenseService;
+use App\Services\Mobile\MobileFieldService;
 use App\Services\PresupuestoService;
 use App\Services\VentaService;
 use Illuminate\Http\JsonResponse;
@@ -26,6 +27,7 @@ class DesktopApiController extends Controller
         private DesktopLicenseService $licencias,
         private VentaService $ventas,
         private PresupuestoService $presupuestos,
+        private MobileFieldService $campo,
     ) {}
 
     /**
@@ -49,10 +51,16 @@ class DesktopApiController extends Controller
             throw ValidationException::withMessages(['usuario' => 'Credenciales inválidas.']);
         }
 
-        $canSell = $user->can('pos.vender');
-        $canPedidos = $user->can('presupuestos.crear_movil');
+        $capabilities = [
+            'can_sell' => $user->can('pos.vender'),
+            'can_pedidos' => $user->can('presupuestos.crear_movil'),
+            'can_cobranzas' => $user->can('cobranzas.crear_movil'),
+            'can_rutas' => $user->can('rutas.ver_movil'),
+            'can_entregas' => $user->can('entregas.confirmar_movil'),
+            'can_reportes' => $user->can('reportes.vendedor_movil'),
+        ];
 
-        if (! $canSell && ! $canPedidos) {
+        if (! collect($capabilities)->contains(true)) {
             throw ValidationException::withMessages(['usuario' => 'Este usuario no puede operar la app móvil.']);
         }
 
@@ -87,10 +95,7 @@ class DesktopApiController extends Controller
             ],
             'sucursal_id' => $user->sucursal_id ?? Sucursal::where('empresa_id', $user->empresa_id)->where('activa', true)->value('id'),
             'usuario' => $user->only(['id', 'name', 'usuario']),
-            'capabilities' => [
-                'can_sell' => $canSell,
-                'can_pedidos' => $canPedidos,
-            ],
+            'capabilities' => $capabilities,
             ...$licencia,
             'catalog' => $this->armarCatalogo(),
         ]);
@@ -247,6 +252,13 @@ class DesktopApiController extends Controller
 
     private function armarCatalogo(): array
     {
+        $user = auth()->user();
+        $clientes = $user
+            ? $this->campo->clientesQuery($user)->orderBy('nombre')->get()
+                ->map(fn ($c) => $this->campo->serializarCliente($c))
+            : Cliente::where('activo', true)->orderBy('nombre')
+                ->get(['id', 'nombre', 'documento', 'lista_precio_id']);
+
         return [
             'productos' => Producto::where('activo', true)
                 ->get(['id', 'codigo', 'nombre', 'precio_venta', 'alicuota_iva', 'unidad', 'pesable', 'es_combo'])
@@ -259,8 +271,7 @@ class DesktopApiController extends Controller
                     'unidad' => $p->unidad,
                     'pesable' => (bool) $p->pesable,
                 ]),
-            'clientes' => Cliente::where('activo', true)->orderBy('nombre')
-                ->get(['id', 'nombre', 'documento', 'lista_precio_id']),
+            'clientes' => $clientes,
             'listas' => ListaPrecio::where('activa', true)->get(['id', 'nombre', 'porcentaje'])
                 ->map(fn ($l) => ['id' => $l->id, 'nombre' => $l->nombre, 'porcentaje' => (float) $l->porcentaje]),
             'medios' => MedioPago::where('activo', true)->orderBy('nombre')

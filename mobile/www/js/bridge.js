@@ -4,6 +4,11 @@ const LS = {
     license: 'cmoon_license',
     pending: 'cmoon_pending_sales',
     pendingPedidos: 'cmoon_pending_pedidos',
+    pendingCobranzas: 'cmoon_pending_cobranzas',
+    pendingVisitas: 'cmoon_pending_visitas',
+    pendingEntregas: 'cmoon_pending_entregas',
+    rutasCache: 'cmoon_rutas_cache',
+    entregasCache: 'cmoon_entregas_cache',
 };
 
 function readJson(key, fallback = null) {
@@ -27,138 +32,91 @@ function apiUrl(config, path) {
 function isNetworkError(err) {
     const msg = String(err?.message || err || '').toLowerCase();
     const cause = String(err?.cause?.code || err?.cause?.message || '').toLowerCase();
-    return msg.includes('fetch failed')
-        || msg.includes('network')
-        || msg.includes('failed to fetch')
-        || msg.includes('econnrefused')
-        || msg.includes('enotfound')
-        || msg.includes('etimedout')
-        || cause.includes('econnrefused')
-        || cause.includes('enotfound');
+    return msg.includes('fetch failed') || msg.includes('network') || msg.includes('failed to fetch')
+        || msg.includes('econnrefused') || msg.includes('enotfound') || msg.includes('etimedout')
+        || cause.includes('econnrefused') || cause.includes('enotfound');
 }
 
 async function request(config, path, { method = 'GET', body = null, auth = true } = {}) {
     const headers = { Accept: 'application/json', 'Content-Type': 'application/json' };
-    if (auth && config.device_token) {
-        headers.Authorization = `Bearer ${config.device_token}`;
-    }
-
+    if (auth && config.device_token) headers.Authorization = `Bearer ${config.device_token}`;
     const res = await fetch(apiUrl(config, path), {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
+        method, headers, body: body ? JSON.stringify(body) : undefined,
     });
-
     const data = await res.json().catch(() => ({}));
-    if (! res.ok) {
-        throw new Error(data.message || `Error ${res.status}`);
-    }
+    if (! res.ok) throw new Error(data.message || `Error ${res.status}`);
     return data;
 }
 
-function getConfig() {
-    return readJson(LS.config);
-}
+function getConfig() { return readJson(LS.config); }
+function saveConfig(partial) { writeJson(LS.config, { ...getConfig(), ...partial }); }
+function getCatalog() { return readJson(LS.catalog); }
+function saveCatalog(data) { writeJson(LS.catalog, data); }
+function getLicense() { return localStorage.getItem(LS.license); }
+function saveLicense(token) { localStorage.setItem(LS.license, token); }
 
-function saveConfig(partial) {
-    writeJson(LS.config, { ...getConfig(), ...partial });
-}
-
-function getCatalog() {
-    return readJson(LS.catalog);
-}
-
-function saveCatalog(data) {
-    writeJson(LS.catalog, data);
-}
-
-function getLicense() {
-    return localStorage.getItem(LS.license);
-}
-
-function saveLicense(token) {
-    localStorage.setItem(LS.license, token);
-}
-
-function getPendingSales() {
-    return readJson(LS.pending, []);
-}
-
-function addPendingSale(venta) {
-    const list = getPendingSales();
-    list.push(venta);
-    writeJson(LS.pending, list);
-}
-
-function removePendingSales(uuids) {
-    const set = new Set(uuids);
-    writeJson(LS.pending, getPendingSales().filter(v => ! set.has(v.uuid)));
-}
-
-function getPendingPedidos() {
-    return readJson(LS.pendingPedidos, []);
-}
-
-function addPendingPedido(pedido) {
-    const list = getPendingPedidos();
-    list.push(pedido);
-    writeJson(LS.pendingPedidos, list);
-}
-
-function removePendingPedidos(uuids) {
-    const set = new Set(uuids);
-    writeJson(LS.pendingPedidos, getPendingPedidos().filter(p => ! set.has(p.uuid)));
-}
-
-async function activate(datos) {
-    const deviceId = datos.device_id || crypto.randomUUID();
-    return request({ server_url: datos.server_url }, '/activate', {
-        method: 'POST',
-        auth: false,
-        body: {
-            usuario: datos.usuario,
-            password: datos.password,
-            device_id: deviceId,
-            device_name: datos.device_name || 'Caja móvil',
-            moon_client_id: parseInt(datos.moon_client_id, 10),
+function queue(name) {
+    return {
+        all: () => readJson(name, []),
+        add: item => writeJson(name, [...readJson(name, []), item]),
+        remove: uuids => {
+            const set = new Set(uuids);
+            writeJson(name, readJson(name, []).filter(x => ! set.has(x.uuid)));
         },
-    });
+    };
 }
 
-async function refreshLicense(config) {
-    return request(config, '/license');
+const qSales = () => queue(LS.pending);
+const qPedidos = () => queue(LS.pendingPedidos);
+const qCobranzas = () => queue(LS.pendingCobranzas);
+const qVisitas = () => queue(LS.pendingVisitas);
+const qEntregas = () => queue(LS.pendingEntregas);
+
+async function pushBatch(config, path, key, items) {
+    return request(config, path, { method: 'POST', body: { [key]: items } });
 }
 
-async function pullCatalog(config) {
-    return request(config, '/catalog');
+async function syncQueue(config, list, path, key, removeFn) {
+    if (! list.length) return { ok: 0 };
+    if (! navigator.onLine) throw new Error('Sin conexión');
+    const result = await pushBatch(config, path, key, list);
+    const okUuids = (result.resultados || []).filter(r => r.ok).map(r => r.uuid);
+    removeFn(okUuids);
+    if (result.license) saveLicense(result.license);
+    return { ok: okUuids.length, resultados: result.resultados };
 }
 
-async function pushSales(config, ventas) {
-    return request(config, '/sync/ventas', { method: 'POST', body: { ventas } });
-}
-
-async function pushPedidos(config, pedidos) {
-    return request(config, '/sync/pedidos', { method: 'POST', body: { pedidos } });
-}
-
-function isActivated() {
-    return Boolean(getConfig()?.device_token);
-}
-
-function resetApp() {
-    Object.values(LS).forEach(k => localStorage.removeItem(k));
+async function submitOrQueue(config, onlineFn, queueFn, item) {
+    if (navigator.onLine) {
+        try {
+            const result = await onlineFn();
+            if (result.license) saveLicense(result.license);
+            const r = result.resultados?.[0];
+            if (! r?.ok) throw new Error(r?.error || 'Error al sincronizar');
+            return { online: true, ...r };
+        } catch (err) {
+            if (! isNetworkError(err)) throw err;
+        }
+    }
+    queueFn(item);
+    return { online: false };
 }
 
 window.cmoon = {
     getConfig: () => Promise.resolve(getConfig()),
-    saveConfig: (partial) => { saveConfig(partial); return Promise.resolve(getConfig()); },
-    isActivated: () => Promise.resolve(isActivated()),
-    resetApp: () => { resetApp(); return Promise.resolve(); },
+    saveConfig: (p) => { saveConfig(p); return Promise.resolve(getConfig()); },
+    isActivated: () => Promise.resolve(Boolean(getConfig()?.device_token)),
+    resetApp: () => { Object.values(LS).forEach(k => localStorage.removeItem(k)); return Promise.resolve(); },
 
     async activate(datos) {
-        const result = await activate(datos);
+        const deviceId = datos.device_id || crypto.randomUUID();
+        const result = await request({ server_url: datos.server_url }, '/activate', {
+            method: 'POST', auth: false,
+            body: { ...datos, device_id: deviceId, moon_client_id: parseInt(datos.moon_client_id, 10), device_name: datos.device_name || 'Caja móvil' },
+        });
         if (result.catalog) saveCatalog(result.catalog);
         if (result.license) saveLicense(result.license);
+        const cap = result.capabilities || {};
         saveConfig({
             server_url: datos.server_url,
             device_token: result.device_token,
@@ -167,8 +125,12 @@ window.cmoon = {
             sucursal_id: result.sucursal_id,
             empresa_nombre: result.empresa?.nombre,
             usuario: result.usuario?.name,
-            can_sell: result.capabilities?.can_sell ?? true,
-            can_pedidos: result.capabilities?.can_pedidos ?? false,
+            can_sell: cap.can_sell ?? false,
+            can_pedidos: cap.can_pedidos ?? false,
+            can_cobranzas: cap.can_cobranzas ?? false,
+            can_rutas: cap.can_rutas ?? false,
+            can_entregas: cap.can_entregas ?? false,
+            can_reportes: cap.can_reportes ?? false,
         });
         return result;
     },
@@ -177,118 +139,125 @@ window.cmoon = {
         const config = getConfig();
         const payload = window.cmoonLicense.verifyLicense(getLicense(), config?.device_token);
         return Promise.resolve({
-            online: navigator.onLine,
-            can_sell: window.cmoonLicense.canSellNow(payload) && (config?.can_sell !== false),
+            can_sell: window.cmoonLicense.canSellNow(payload) && config?.can_sell,
             can_pedidos: config?.can_pedidos === true,
-            payload,
-            message: payload?.message ?? null,
-            blocked: payload?.blocked ?? false,
-            valid_until: payload?.valid_until ?? null,
+            can_cobranzas: config?.can_cobranzas === true,
+            can_rutas: config?.can_rutas === true,
+            can_entregas: config?.can_entregas === true,
+            can_reportes: config?.can_reportes === true,
+            payload, message: payload?.message ?? null, blocked: payload?.blocked ?? false,
         });
     },
 
     async refreshLicense() {
         const config = getConfig();
-        const result = await refreshLicense(config);
+        const result = await request(config, '/license');
         if (result.license) saveLicense(result.license);
         return window.cmoonLicense.verifyLicense(result.license, config.device_token);
     },
 
     getCatalog() {
-        const cached = getCatalog();
-        if (cached) return Promise.resolve(cached);
-        return Promise.reject(new Error('No hay catálogo local. Conecte a internet y sincronice.'));
+        const c = getCatalog();
+        if (c) return Promise.resolve(c);
+        return Promise.reject(new Error('No hay catálogo local. Sincronice con internet.'));
     },
 
     async syncCatalog() {
         const config = getConfig();
-        const catalog = await pullCatalog(config);
+        const catalog = await request(config, '/catalog');
         saveCatalog(catalog);
         return catalog;
     },
 
-    pendingCount: () => Promise.resolve(getPendingSales().length + getPendingPedidos().length),
+    pendingCount: () => Promise.resolve(
+        qSales().all().length + qPedidos().all().length + qCobranzas().all().length
+        + qVisitas().all().length + qEntregas().all().length
+    ),
 
     async submitSale(venta) {
         const config = getConfig();
-        const payload = window.cmoonLicense.verifyLicense(getLicense(), config?.device_token);
-        if (! window.cmoonLicense.canSellNow(payload)) {
-            throw new Error(payload?.message || 'Licencia suspendida.');
-        }
-        if (config?.can_sell === false) {
-            throw new Error('Este usuario no puede registrar ventas.');
-        }
-
-        if (navigator.onLine) {
-            try {
-                const result = await pushSales(config, [venta]);
-                if (result.license) saveLicense(result.license);
-                const r = result.resultados?.[0];
-                if (! r?.ok) throw new Error(r?.error || 'No se pudo registrar la venta');
-                return { online: true, numero: r.numero, id: r.id };
-            } catch (err) {
-                if (! isNetworkError(err)) throw err;
-            }
-        }
-
-        addPendingSale(venta);
-        return { online: false, pendientes: getPendingSales().length };
+        const st = await window.cmoon.licenseStatus();
+        if (! st.can_sell) throw new Error(st.message || 'No puede vender.');
+        return submitOrQueue(config,
+            () => pushBatch(config, '/sync/ventas', 'ventas', [venta]),
+            x => qSales().add(x), venta);
     },
 
     async submitPedido(pedido) {
+        if (! getConfig()?.can_pedidos) throw new Error('Sin permiso de pedidos.');
         const config = getConfig();
-        if (! config?.can_pedidos) {
-            throw new Error('Este usuario no puede tomar pedidos.');
-        }
-
-        if (navigator.onLine) {
-            try {
-                const result = await pushPedidos(config, [pedido]);
-                if (result.license) saveLicense(result.license);
-                const r = result.resultados?.[0];
-                if (! r?.ok) throw new Error(r?.error || 'No se pudo enviar el pedido');
-                return { online: true, numero: r.numero, id: r.id, estado: r.estado };
-            } catch (err) {
-                if (! isNetworkError(err)) throw err;
-            }
-        }
-
-        addPendingPedido(pedido);
-        return { online: false, pendientes: getPendingPedidos().length };
+        return submitOrQueue(config,
+            () => pushBatch(config, '/sync/pedidos', 'pedidos', [pedido]),
+            x => qPedidos().add(x), pedido);
     },
 
-    async syncSales() {
+    async submitCobranza(cobranza) {
+        if (! getConfig()?.can_cobranzas) throw new Error('Sin permiso de cobranzas.');
         const config = getConfig();
-        const pendientes = getPendingSales();
-        if (! pendientes.length) return { sincronizadas: 0 };
-        if (! navigator.onLine) throw new Error('Sin conexión para sincronizar.');
-
-        const result = await pushSales(config, pendientes);
-        const okUuids = result.resultados.filter(r => r.ok).map(r => r.uuid);
-        removePendingSales(okUuids);
-        if (result.license) saveLicense(result.license);
-
-        return { sincronizadas: okUuids.length, pendientes: getPendingSales().length, resultados: result.resultados };
+        return submitOrQueue(config,
+            () => pushBatch(config, '/sync/cobranzas', 'cobranzas', [cobranza]),
+            x => qCobranzas().add(x), cobranza);
     },
 
-    async syncPedidos() {
+    async submitVisita(visita) {
+        if (! getConfig()?.can_rutas) throw new Error('Sin permiso de rutas.');
         const config = getConfig();
-        const pendientes = getPendingPedidos();
-        if (! pendientes.length) return { sincronizados: 0 };
-        if (! navigator.onLine) throw new Error('Sin conexión para sincronizar.');
-
-        const result = await pushPedidos(config, pendientes);
-        const okUuids = result.resultados.filter(r => r.ok).map(r => r.uuid);
-        removePendingPedidos(okUuids);
-        if (result.license) saveLicense(result.license);
-
-        return { sincronizados: okUuids.length, pendientes: getPendingPedidos().length, resultados: result.resultados };
+        return submitOrQueue(config,
+            () => pushBatch(config, '/sync/visitas', 'visitas', [visita]),
+            x => qVisitas().add(x), visita);
     },
+
+    async submitEntrega(entrega) {
+        if (! getConfig()?.can_entregas) throw new Error('Sin permiso de entregas.');
+        const config = getConfig();
+        return submitOrQueue(config,
+            () => pushBatch(config, '/sync/entregas', 'entregas', [entrega]),
+            x => qEntregas().add(x), entrega);
+    },
+
+    async syncSales() { return syncQueue(getConfig(), qSales().all(), '/sync/ventas', 'ventas', u => qSales().remove(u)); },
+    async syncPedidos() { return syncQueue(getConfig(), qPedidos().all(), '/sync/pedidos', 'pedidos', u => qPedidos().remove(u)); },
+    async syncCobranzas() { return syncQueue(getConfig(), qCobranzas().all(), '/sync/cobranzas', 'cobranzas', u => qCobranzas().remove(u)); },
+    async syncVisitas() { return syncQueue(getConfig(), qVisitas().all(), '/sync/visitas', 'visitas', u => qVisitas().remove(u)); },
+    async syncEntregas() { return syncQueue(getConfig(), qEntregas().all(), '/sync/entregas', 'entregas', u => qEntregas().remove(u)); },
 
     async syncAll() {
-        const ventas = await window.cmoon.syncSales().catch(() => ({ sincronizadas: 0 }));
-        const pedidos = await window.cmoon.syncPedidos().catch(() => ({ sincronizados: 0 }));
-        return { ventas, pedidos };
+        return {
+            ventas: await window.cmoon.syncSales().catch(() => ({ ok: 0 })),
+            pedidos: await window.cmoon.syncPedidos().catch(() => ({ ok: 0 })),
+            cobranzas: await window.cmoon.syncCobranzas().catch(() => ({ ok: 0 })),
+            visitas: await window.cmoon.syncVisitas().catch(() => ({ ok: 0 })),
+            entregas: await window.cmoon.syncEntregas().catch(() => ({ ok: 0 })),
+        };
+    },
+
+    async fetchRutas() {
+        const config = getConfig();
+        const data = await request(config, '/rutas/mias');
+        writeJson(LS.rutasCache, data);
+        return data;
+    },
+
+    getRutasCache() { return Promise.resolve(readJson(LS.rutasCache, { clientes: [] })); },
+
+    async fetchEntregasPendientes() {
+        const config = getConfig();
+        const data = await request(config, '/entregas/pendientes');
+        writeJson(LS.entregasCache, data);
+        return data;
+    },
+
+    getEntregasCache() { return Promise.resolve(readJson(LS.entregasCache, { items: [] })); },
+
+    async fetchCliente(id) {
+        return request(getConfig(), `/clientes/${id}`);
+    },
+
+    async fetchReporte(desde, hasta) {
+        const q = new URLSearchParams();
+        if (desde) q.set('desde', desde);
+        if (hasta) q.set('hasta', hasta);
+        return request(getConfig(), `/reportes/vendedor?${q}`);
     },
 
     openHome: () => { window.location.href = 'home.html'; },

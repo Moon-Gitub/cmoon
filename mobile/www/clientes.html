@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Clientes · CMoon</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="topbar"><div><button type="button" id="btn-home" class="btn-link">← Inicio</button><strong>Clientes</strong></div><div class="status-row"><span id="online" class="pill off">—</span><span id="pending" class="pill warn" hidden></span><button type="button" id="btn-sync" class="btn-sm">Sync</button></div></header>
+<main class="panel page-panel">
+    <input type="search" id="buscar" class="search" placeholder="Buscar cliente…">
+    <div id="lista" class="list-cards"></div>
+    <div id="detalle" class="detail-card" hidden></div>
+</main>
+<script src="js/license.js"></script><script src="js/bridge.js"></script><script src="js/common.js"></script><script src="js/clientes.js"></script>
+</body></html>

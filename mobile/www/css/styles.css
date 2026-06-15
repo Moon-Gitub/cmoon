@@ -74,3 +74,20 @@ dialog { border: none; border-radius: .75rem; padding: 1.25rem; width: min(360px
 .obs-input { width: 100%; margin: .5rem 0; padding: .55rem .65rem; border: 1px solid #cbd5e1; border-radius: .5rem; font-size: .9rem; resize: vertical; }
 .btn-pedido { background: #059669; }
 .btn-pedido:disabled { opacity: .5; }
+.home-btn-cobranza { border-color: #d97706; background: #fffbeb; }
+.page-panel { margin: .75rem; min-height: calc(100vh - 60px); }
+.list-cards { display: grid; gap: .5rem; margin-top: .75rem; }
+.list-card { display: block; width: 100%; text-align: left; padding: .85rem; border-radius: .75rem; border: 1px solid #e2e8f0; background: #fff; }
+.list-card.static { background: #fff; }
+.list-card.done { border-color: #86efac; background: #f0fdf4; }
+.list-card strong { display: block; }
+.saldo-tag { font-size: .8rem; color: #64748b; }
+.saldo-tag.debe { color: #dc2626; font-weight: 600; }
+.detail-card { margin-top: 1rem; padding: 1rem; border-radius: .75rem; border: 1px solid #c7d2fe; background: #eef2ff; }
+.card-actions { display: flex; gap: .5rem; margin: .75rem 0; }
+.saldo-line { font-weight: 600; margin: .5rem 0 1rem; }
+.stats-grid { display: grid; gap: .75rem; margin-top: 1rem; }
+.stat-card { background: #fff; border: 1px solid #e2e8f0; border-radius: .75rem; padding: 1rem; }
+.stat-card span { font-size: .75rem; text-transform: uppercase; color: #64748b; }
+.stat-card strong { display: block; font-size: 1.5rem; margin-top: .25rem; }
+.firma-canvas { width: 100%; border: 1px dashed #94a3b8; border-radius: .5rem; background: #fff; touch-action: none; }

@@ -11,6 +11,7 @@ class MovimientoCuenta extends Model
     protected $table = 'movimientos_cuenta';
 
     protected $fillable = [
+        'uuid',
         'titular_type',
         'titular_id',
         'tipo',

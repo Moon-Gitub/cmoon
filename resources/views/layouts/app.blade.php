@@ -104,6 +104,14 @@
                 </a>
             @endcan
 
+            @can('rutas.gestionar')
+                <a href="{{ route('rutas.index') }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('rutas.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.25c.375-.187.625-.562.625-.975V8.25c0-.413-.25-.788-.625-.975l-4.875-2.25a1.125 1.125 0 00-1.25 0l-4.875 2.25c-.375.187-.625.562-.625.975v7.013c0 .413.25.788.625.975l4.875 2.25a1.125 1.125 0 001.25 0z"/></svg>
+                    Rutas móvil
+                </a>
+            @endcan
+
             @can('proveedores.ver')
                 <a href="{{ route('proveedores.index') }}"
                    class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('proveedores.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">

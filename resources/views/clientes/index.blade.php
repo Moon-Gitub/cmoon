@@ -48,6 +48,8 @@
                         </td>
                         <td class="px-4 py-3 text-right">
                             <div class="flex items-center justify-end gap-2">
+                                <a href="{{ route('clientes.show', $c) }}"
+                                   class="rounded-lg border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-100">Ver</a>
                                 @can('cuentas.ver')
                                     <a href="{{ route('clientes.cuenta', $c) }}"
                                        class="rounded-lg border border-indigo-200 px-2.5 py-1 text-xs text-indigo-700 hover:bg-indigo-50">Cta. cte.</a>

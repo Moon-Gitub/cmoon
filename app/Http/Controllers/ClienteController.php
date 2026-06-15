@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Cliente;
 use App\Models\Empresa;
 use App\Models\ListaPrecio;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -14,7 +15,7 @@ class ClienteController extends Controller
 {
     public function index(Request $request): View
     {
-        $clientes = Cliente::with('listaPrecio')
+        $clientes = Cliente::with(['listaPrecio', 'vendedor'])
             ->when($request->filled('buscar'), function ($query) use ($request) {
                 $buscar = $request->string('buscar');
                 $query->where(fn ($q) => $q
@@ -36,6 +37,17 @@ class ClienteController extends Controller
         return view('clientes.form', [
             'cliente' => new Cliente(['tipo_documento' => 'DNI', 'condicion_iva' => 'CONSUMIDOR_FINAL']),
             'listas' => ListaPrecio::where('activa', true)->orderBy('nombre')->get(),
+            'vendedores' => $this->vendedores(),
+        ]);
+    }
+
+    public function show(Cliente $cliente): View
+    {
+        return view('clientes.show', [
+            'cliente' => $cliente->load(['listaPrecio', 'vendedor']),
+            'saldo' => $cliente->saldoCuenta(),
+            'ventas' => $cliente->ventas()->where('estado', 'completada')->orderByDesc('fecha')->limit(10)->get(),
+            'presupuestos' => $cliente->presupuestos()->orderByDesc('fecha')->limit(10)->get(),
         ]);
     }
 
@@ -58,6 +70,7 @@ class ClienteController extends Controller
         return view('clientes.form', [
             'cliente' => $cliente,
             'listas' => ListaPrecio::where('activa', true)->orderBy('nombre')->get(),
+            'vendedores' => $this->vendedores(),
         ]);
     }
 
@@ -95,6 +108,7 @@ class ClienteController extends Controller
             'domicilio' => ['nullable', 'string', 'max:255'],
             'localidad' => ['nullable', 'string', 'max:255'],
             'lista_precio_id' => ['nullable', Rule::exists('listas_precio', 'id')],
+            'vendedor_id' => ['nullable', Rule::exists('users', 'id')],
             'limite_credito' => ['nullable', 'numeric', 'min:0'],
             'observaciones' => ['nullable', 'string'],
             'activo' => ['boolean'],
@@ -104,5 +118,13 @@ class ClienteController extends Controller
             'lista_precio_id' => 'lista de precios',
             'limite_credito' => 'límite de crédito',
         ]) + ['activo' => $request->boolean('activo')];
+    }
+
+    private function vendedores()
+    {
+        return User::where('empresa_id', auth()->user()->empresa_id)
+            ->where('activo', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
     }
 }

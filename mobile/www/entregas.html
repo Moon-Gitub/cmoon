@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Entregas · CMoon</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="topbar"><div><button type="button" id="btn-home" class="btn-link">← Inicio</button><strong>Entregas</strong></div><div class="status-row"><span id="online" class="pill off">—</span><button type="button" id="btn-sync" class="btn-sm">Sync</button></div></header>
+<main class="panel page-panel"><div id="lista" class="list-cards"></div>
+<div id="modal" class="detail-card" hidden>
+    <h3 id="m-titulo"></h3>
+    <p id="m-cliente" class="muted"></p>
+    <label class="field-label">Firma del cliente</label>
+    <canvas id="firma" width="300" height="120" class="firma-canvas"></canvas>
+    <button type="button" id="btn-limpiar-firma" class="btn-secondary" style="margin:.5rem 0">Limpiar firma</button>
+    <label class="field-label">Foto (opcional)</label>
+    <input type="file" id="foto" accept="image/*" capture="environment">
+    <textarea id="obs" rows="2" class="obs-input" placeholder="Observaciones…"></textarea>
+    <button type="button" id="btn-confirmar" class="btn-primary btn-pedido" style="width:100%">Confirmar entrega</button>
+    <button type="button" id="btn-cancelar" class="btn-secondary" style="width:100%;margin-top:.5rem">Cancelar</button>
+</div></main>
+<script src="js/license.js"></script><script src="js/bridge.js"></script><script src="js/common.js"></script><script src="js/entregas.js"></script>
+</body></html>

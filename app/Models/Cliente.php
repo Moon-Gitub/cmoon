@@ -27,6 +27,7 @@ class Cliente extends Model
         'domicilio',
         'localidad',
         'lista_precio_id',
+        'vendedor_id',
         'limite_credito',
         'observaciones',
         'activo',
@@ -37,12 +38,29 @@ class Cliente extends Model
         return [
             'limite_credito' => 'decimal:2',
             'activo' => 'boolean',
+            'lat' => 'decimal:7',
+            'lng' => 'decimal:7',
         ];
     }
 
     public function listaPrecio(): BelongsTo
     {
         return $this->belongsTo(ListaPrecio::class);
+    }
+
+    public function vendedor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'vendedor_id');
+    }
+
+    public function ventas(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Venta::class);
+    }
+
+    public function presupuestos(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Presupuesto::class);
     }
 
     public function movimientosCuenta(): MorphMany

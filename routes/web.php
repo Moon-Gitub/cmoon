@@ -21,6 +21,7 @@ use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\PosController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\RetencionController;
+use App\Http\Controllers\RutaController;
 use App\Http\Controllers\SucursalController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\VentaController;
@@ -76,7 +77,14 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('permission:clientes.ver')->group(function () {
-        Route::resource('clientes', ClienteController::class)->except('show');
+        Route::resource('clientes', ClienteController::class);
+    });
+
+    Route::middleware('permission:rutas.gestionar')->group(function () {
+        Route::get('/rutas', [RutaController::class, 'index'])->name('rutas.index');
+        Route::post('/rutas', [RutaController::class, 'store'])->name('rutas.store');
+        Route::put('/rutas/{ruta}', [RutaController::class, 'update'])->name('rutas.update');
+        Route::delete('/rutas/{ruta}', [RutaController::class, 'destroy'])->name('rutas.destroy');
     });
 
     Route::middleware('permission:proveedores.ver')->group(function () {

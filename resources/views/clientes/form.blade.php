@@ -90,6 +90,16 @@
                        value="{{ old('limite_credito', $cliente->limite_credito) }}" placeholder="Sin límite"
                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
             </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-slate-700">Vendedor asignado</label>
+                <select name="vendedor_id"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    <option value="">Sin asignar (todos los vendedores)</option>
+                    @foreach ($vendedores as $v)
+                        <option value="{{ $v->id }}" {{ (string) old('vendedor_id', $cliente->vendedor_id) === (string) $v->id ? 'selected' : '' }}>{{ $v->name }}</option>
+                    @endforeach
+                </select>
+            </div>
             <div class="flex items-end pb-2">
                 <label class="flex items-center gap-2 text-sm text-slate-700">
                     <input type="checkbox" name="activo" value="1"

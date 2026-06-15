@@ -30,6 +30,11 @@
         state.catalog = await window.cmoon.getCatalog();
         renderClientes(clientes());
         bindEvents();
+        const pre = new URLSearchParams(location.search).get('cliente');
+        if (pre) {
+            state.clienteId = pre;
+            $('cliente').value = pre;
+        }
         setInterval(tick, 30000);
         window.addEventListener('online', tick);
         window.addEventListener('offline', () => updateOnlinePill(false));
