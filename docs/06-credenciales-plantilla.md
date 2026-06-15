@@ -32,7 +32,7 @@ cp docs/06-credenciales-plantilla.md CREDENCIALES.local.md
 
 ---
 
-## Aplicación CMoon (producción)
+## Aplicación POSMoon (producción)
 
 | Campo | Valor |
 |-------|-------|
@@ -131,8 +131,8 @@ cp docs/06-credenciales-plantilla.md CREDENCIALES.local.md
 
 | App | Ubicación / notas |
 |-----|-------------------|
-| Electron Linux | `desktop/dist/CMoon POS-1.0.0.AppImage --no-sandbox` |
-| Android APK | `mobile/dist/CMoon-POS-1.0.0-debug.apk` |
+| Electron Linux | `desktop/dist/POSMoon-1.0.0.AppImage --no-sandbox` |
+| Android APK | `mobile/dist/POSMoon-1.0.0-debug.apk` |
 | URL activación apps | https://cmoon.aiporvos.com |
 
 ---

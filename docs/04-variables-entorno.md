@@ -18,7 +18,7 @@ En **Dokploy** no se usa archivo `.env` en disco: cada variable se carga en la p
 
 | Variable | Default | Descripción |
 |----------|---------|-------------|
-| `APP_NAME` | CMoon | Nombre en UI |
+| `APP_NAME` | POSMoon | Nombre en UI |
 | `APP_ENV` | production | `local` en dev |
 | `APP_DEBUG` | false | **Nunca true en producción** |
 | `APP_PORT` | 8080 | Puerto host (compose local) |
@@ -26,7 +26,7 @@ En **Dokploy** no se usa archivo `.env` en disco: cada variable se carga en la p
 | `LOG_CHANNEL` | stderr | Logs visibles en `docker compose logs` |
 | `LOG_LEVEL` | info | debug solo en desarrollo |
 
-## Base de datos CMoon (servicio `mysql`)
+## Base de datos POSMoon (servicio `mysql`)
 
 | Variable | Default | Descripción |
 |----------|---------|-------------|

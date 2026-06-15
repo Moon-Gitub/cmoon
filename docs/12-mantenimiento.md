@@ -39,7 +39,7 @@ docker compose exec -T mysql mysql -u root -p"$DB_ROOT_PASSWORD" cmoon < backup.
 
 | Síntoma | Causa | Solución |
 |---------|-------|----------|
-| 404 en `/api/desktop/activate` | Dominio apunta al POS viejo PHP | Usar URL del CMoon Laravel |
+| 404 en `/api/desktop/activate` | Dominio apunta al POS viejo PHP | Usar URL del POSMoon Laravel |
 | `fetch failed` en desktop | DNS incorrecto o sin internet | URL correcta; ventas se guardan local si falla red |
 | Sistema suspendido | Mora Moon o CSS overlay | `MOON_COBRO_ENABLED=false` o regularizar cobro; actualizar app |
 | Seeder no existe | Código no desplegado | Push + redeploy Dokploy |

@@ -12,15 +12,15 @@ use Illuminate\Console\Command;
 class LegacyImportCommand extends Command
 {
     protected $signature = 'legacy:import
-        {--empresa-id= : ID de la empresa destino en CMoon}
+        {--empresa-id= : ID de la empresa destino en POSMoon}
         {--create-empresa : Crear empresa nueva desde datos legacy}
         {--legacy-empresa-id=1 : ID empresa en BD legacy (casi siempre 1)}
         {--only= : Importadores separados por coma (setup,productos,ventas,...)}
-        {--dry-run : Simular sin escribir en CMoon}
+        {--dry-run : Simular sin escribir en POSMoon}
         {--force : Reimportar aunque exista mapeo}
         {--reset-maps : Borrar mapeos previos de esta empresa antes de importar}';
 
-    protected $description = 'Importar datos desde BD legacy (POS Moon / demonew) hacia CMoon';
+    protected $description = 'Importar datos desde BD legacy (POS Moon / demonew) hacia POSMoon';
 
     public function handle(LegacyImportOrchestrator $orchestrator): int
     {
@@ -64,7 +64,7 @@ class LegacyImportCommand extends Command
             force: (bool) $this->option('force'),
         );
 
-        $this->info('Import legacy → CMoon');
+        $this->info('Import legacy → POSMoon');
         $this->line("  Empresa destino: {$empresaId}");
         $this->line("  Empresa legacy:  {$legacyEmpresaId}");
         $this->line('  Modo: '.($ctx->dryRun ? 'DRY-RUN' : 'ESCRITURA'));

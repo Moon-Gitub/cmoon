@@ -190,7 +190,7 @@ class PosController extends Controller
 
         $orden = $mp->crearOrden(
             (float) $datos['total'],
-            $datos['titulo'] ?? 'Venta CMoon POS',
+            $datos['titulo'] ?? 'Venta POSMoon',
             $datos['referencia'] ?? null,
         );
 

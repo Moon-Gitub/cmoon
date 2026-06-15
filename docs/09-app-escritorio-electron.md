@@ -7,7 +7,7 @@ Caja offline con licencia Moon. Usa API `/api/desktop/*`.
 ## Requisitos
 
 - Node.js 20+
-- Servidor CMoon desplegado
+- Servidor POSMoon desplegado
 
 ## Desarrollo
 
@@ -50,13 +50,13 @@ npm run dist
 
 | SO | Salida |
 |----|--------|
-| Linux | `dist/CMoon POS-1.0.0.AppImage`, `.deb` |
+| Linux | `dist/POSMoon-1.0.0.AppImage`, `.deb` |
 | Windows | `.exe` (compilar en Windows) |
 
 Ejecutar AppImage en Linux:
 
 ```bash
-./CMoon\ POS-1.0.0.AppImage --no-sandbox
+./POSMoon-1.0.0.AppImage --no-sandbox
 ```
 
 ## Lector de códigos

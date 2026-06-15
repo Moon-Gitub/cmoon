@@ -1,6 +1,6 @@
 # Migración desde POS Moon legacy (demonew)
 
-Este documento describe cómo traer **todos los datos de un cliente** desde la base del sistema viejo (demonew / POS Moon PHP) hacia CMoon, **sin afectar el runtime normal** de la aplicación.
+Este documento describe cómo traer **todos los datos de un cliente** desde la base del sistema viejo (demonew / POS Moon PHP) hacia POSMoon, **sin afectar el runtime normal** de la aplicación.
 
 ## Dónde vive el código (aislado)
 
@@ -28,7 +28,7 @@ cmoon/
 | Ejecución | Solo manual: `php artisan legacy:import` |
 | HTTP / API | Nada en `routes/` ni controllers web |
 | BD legacy | Conexión separada `legacy`, solo lectura |
-| BD CMoon | Escribe solo cuando ejecutás el comando |
+| BD POSMoon | Escribe solo cuando ejecutás el comando |
 | Idempotencia | Tabla `legacy_import_maps` (mapeo legacy_id → new_id) |
 | Producción | `LEGACY_IMPORT_ENABLED=false` por defecto |
 | Multi-tenant | Siempre scoped por `--empresa-id` |
@@ -53,9 +53,9 @@ Después de migrar: `LEGACY_IMPORT_ENABLED=false` y quitar credenciales legacy d
 
 ## Preparación
 
-1. **Backup** de la BD CMoon destino.
+1. **Backup** de la BD POSMoon destino.
 2. Restaurar dump del cliente viejo en un MySQL accesible (puede ser temporal en el VPS).
-3. En CMoon: `php artisan migrate` (incluye tabla `legacy_import_maps`).
+3. En POSMoon: `php artisan migrate` (incluye tabla `legacy_import_maps`).
 4. Crear empresa destino:
    - **Opción A:** empresa vacía con seeders mínimos + `--empresa-id=N`
    - **Opción B:** `--create-empresa` (crea `empresas` desde fila `empresa` legacy)
@@ -74,7 +74,7 @@ php artisan legacy:import --empresa-id=2 --dry-run
 php artisan legacy:import --empresa-id=2
 ```
 
-### Cliente nuevo en CMoon (crear empresa)
+### Cliente nuevo en POSMoon (crear empresa)
 
 ```bash
 php artisan legacy:import --create-empresa
@@ -115,7 +115,7 @@ php artisan legacy:import --empresa-id=2 --force --reset-maps
 ## Mapeos importantes
 
 - **Sucursales:** JSON `empresa.almacenes` → `sucursales`; claves `stkProd` (`stock`, `stock2`, …) → stock por sucursal.
-- **Condición IVA:** entero AFIP legacy → enum CMoon (`CondicionIvaMapper`).
+- **Condición IVA:** entero AFIP legacy → enum POSMoon (`CondicionIvaMapper`).
 - **Ventas:** preferencia `productos_venta`; fallback JSON en `ventas.productos`.
 - **Pagos venta:** JSON `metodo_pago` → `venta_pagos`.
 - **CC clientes:** tipo 0 = cargo (+), tipo 1 = pago (−).
@@ -124,8 +124,8 @@ php artisan legacy:import --empresa-id=2 --force --reset-maps
 
 ## Qué no migra (v1)
 
-- Movimientos de caja históricos (`cajas` vieja ≠ modelo CMoon).
-- Permisos por pantalla legacy (`permisos_rol`) → usar roles CMoon.
+- Movimientos de caja históricos (`cajas` vieja ≠ modelo POSMoon).
+- Permisos por pantalla legacy (`permisos_rol`) → usar roles POSMoon.
 - Archivos (logo, certificados AFIP, imágenes producto) → copiar manualmente a `storage/`.
 - Pedidos móvil legacy (`pedidos` tabla vieja).
 

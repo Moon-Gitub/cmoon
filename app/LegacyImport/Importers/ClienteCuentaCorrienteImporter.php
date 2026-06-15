@@ -51,7 +51,7 @@ class ClienteCuentaCorrienteImporter extends AbstractImporter
                     continue;
                 }
 
-                // Legacy: 0=cargo, 1=pago. CMoon: positivo deuda, negativo pago.
+                // Legacy: 0=cargo, 1=pago. POSMoon: positivo deuda, negativo pago.
                 if ($tipoLegacy === 1) {
                     $importe = -abs($importe);
                     $tipo = 'pago';

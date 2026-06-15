@@ -13,7 +13,7 @@
 
     async function init() {
         state.config = await window.cmoon.getConfig();
-        $('empresa').textContent = state.config?.empresa_nombre || 'CMoon POS';
+        $('empresa').textContent = state.config?.empresa_nombre || 'POSMoon';
         $('sucursal').textContent = state.config?.sucursal_id ? `Sucursal #${state.config.sucursal_id}` : '';
 
         await refreshLicenseUi();

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">CMoon POS</string>
-    <string name="title_activity_main">CMoon POS</string>
+    <string name="app_name">POSMoon</string>
+    <string name="title_activity_main">POSMoon</string>
     <string name="package_name">com.moon.cmoon.mobile</string>
     <string name="custom_url_scheme">com.moon.cmoon.mobile</string>
 </resources>

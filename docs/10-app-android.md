@@ -15,12 +15,12 @@ npx cap sync android
 npm run build:apk
 ```
 
-APK: `mobile/dist/CMoon-POS-1.0.0-debug.apk`
+APK: `mobile/dist/POSMoon-1.0.0-debug.apk`
 
 Instalar:
 
 ```bash
-adb install mobile/dist/CMoon-POS-1.0.0-debug.apk
+adb install mobile/dist/POSMoon-1.0.0-debug.apk
 ```
 
 CI: workflow `.github/workflows/android-apk.yml` genera APK en GitHub Actions.
@@ -41,7 +41,7 @@ CI: workflow `.github/workflows/android-apk.yml` genera APK en GitHub Actions.
 
 ### Reset
 
-Ajustes → Aplicaciones → CMoon POS → Borrar almacenamiento
+Ajustes → Aplicaciones → POSMoon → Borrar almacenamiento
 
 ## Códigos soportados
 

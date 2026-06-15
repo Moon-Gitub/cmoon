@@ -15,7 +15,7 @@ class DatosInicialesSeeder extends Seeder
         $empresa = Empresa::firstOrCreate(
             ['razon_social' => 'Mi Empresa'],
             [
-                'nombre_fantasia' => 'CMoon POS',
+                'nombre_fantasia' => 'POSMoon',
                 'condicion_iva' => 'RESPONSABLE_INSCRIPTO',
             ]
         );

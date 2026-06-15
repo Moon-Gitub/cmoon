@@ -40,7 +40,7 @@ class MercadoPagoQrService
             ->put("https://api.mercadopago.com/instore/orders/qr/seller/collectors/{$userId}/pos/{$posId}/qrs", [
                 'external_reference' => $referencia,
                 'title' => Str::limit($titulo, 250),
-                'description' => 'Venta CMoon POS',
+                'description' => 'Venta POSMoon',
                 'total_amount' => round($total, 2),
                 'items' => [[
                     'sku_number' => '1',

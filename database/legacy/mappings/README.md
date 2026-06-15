@@ -2,7 +2,7 @@
 
 Ver implementación en `app/LegacyImport/Mappers/` y cada `*Importer.php`.
 
-| Legacy (demonew) | CMoon |
+| Legacy (demonew) | POSMoon |
 |------------------|-------|
 | `empresa` | `empresas` + `sucursales` + `emisores` + `puntos_venta` |
 | `categorias.categoria` | `categorias.nombre` |

@@ -1,6 +1,6 @@
 {
   "appId": "com.moon.cmoon.mobile",
-  "appName": "CMoon POS",
+  "appName": "POSMoon",
   "webDir": "www",
   "server": {
     "androidScheme": "https"

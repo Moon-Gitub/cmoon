@@ -1,4 +1,4 @@
-# Guía: cómo está hecho CMoon y cómo agregar módulos
+# Guía: cómo está hecho POSMoon y cómo agregar módulos
 
 Esta guía explica **qué se creó en cada capa** del proyecto Laravel y el **paso a paso** para sumar pantallas, APIs o funcionalidad nueva siguiendo las mismas convenciones.
 

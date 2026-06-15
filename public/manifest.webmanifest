@@ -1,7 +1,7 @@
 {
-    "name": "CMoon POS",
-    "short_name": "CMoon",
-    "description": "Punto de venta CMoon: vendé incluso sin internet.",
+    "name": "POSMoon",
+    "short_name": "POSMoon",
+    "description": "Punto de venta POSMoon: vendé incluso sin internet.",
     "start_url": "/pos",
     "display": "standalone",
     "background_color": "#0f172a",

@@ -21,7 +21,7 @@
 | `app` | Laravel + nginx | 8080 (host) o solo Traefik en Dokploy |
 | `queue` | `php artisan queue:work` | — |
 | `scheduler` | `php artisan schedule:work` | — |
-| `mysql` | Base CMoon | solo red interna |
+| `mysql` | Base POSMoon | solo red interna |
 | `redis` | Cache, sesión, colas | solo red interna |
 
 Ruta de la app **dentro del contenedor**: `/var/www/html`

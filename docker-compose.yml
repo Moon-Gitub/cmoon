@@ -1,5 +1,5 @@
 # ============================================================
-# CMoon POS - Stack para Dokploy (y desarrollo local)
+# POSMoon - Stack para Dokploy (y desarrollo local)
 #
 # En Dokploy: tipo "Compose", Compose Path ./docker-compose.yml
 # Variables obligatorias en la pestania Environment:
@@ -17,7 +17,7 @@ services:
       - default
       - dokploy-network
     environment: &app-env
-      APP_NAME: ${APP_NAME:-CMoon}
+      APP_NAME: ${APP_NAME:-POSMoon}
       APP_ENV: ${APP_ENV:-production}
       APP_DEBUG: ${APP_DEBUG:-false}
       APP_KEY: ${APP_KEY:?Falta APP_KEY en Environment de Dokploy}

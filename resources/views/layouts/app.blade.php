@@ -36,7 +36,7 @@
                 </div>
             @endif
             <div>
-                <p class="text-sm font-semibold leading-tight text-white">{{ $empresaActual?->nombre_fantasia ?? 'CMoon POS' }}</p>
+                <p class="text-sm font-semibold leading-tight text-white">{{ $empresaActual?->nombre_fantasia ?? 'POSMoon' }}</p>
                 <p class="text-xs text-slate-400">{{ $empresaActual?->razon_social ?? 'Sistema de ventas' }}</p>
             </div>
         </div>
@@ -256,7 +256,7 @@
         </nav>
 
         <div class="border-t border-slate-800 p-3 text-xs text-slate-500">
-            CMoon POS · v1.0
+            POSMoon · v1.0
         </div>
     </aside>
 
@@ -319,7 +319,7 @@
         <div class="absolute inset-0 bg-slate-900/50" @click="menuAbierto = false"></div>
         <aside class="absolute left-0 top-0 flex h-full w-72 max-w-[85vw] flex-col bg-slate-900 text-slate-200 shadow-xl">
             <div class="flex h-16 items-center justify-between border-b border-slate-800 px-4">
-                <p class="text-sm font-semibold text-white">{{ $empresaActual?->nombre_fantasia ?? 'CMoon POS' }}</p>
+                <p class="text-sm font-semibold text-white">{{ $empresaActual?->nombre_fantasia ?? 'POSMoon' }}</p>
                 <button type="button" @click="menuAbierto = false" class="rounded-lg p-2 hover:bg-slate-800" aria-label="Cerrar menú">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>

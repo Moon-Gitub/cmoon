@@ -11,7 +11,7 @@
     <div class="w-full max-w-sm">
         <div class="mb-6 text-center">
             <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500 text-2xl font-bold text-white shadow-lg shadow-indigo-500/30">C</div>
-            <h1 class="text-2xl font-bold text-white">CMoon POS</h1>
+            <h1 class="text-2xl font-bold text-white">POSMoon</h1>
             <p class="text-sm text-slate-400">Ingresá con tu usuario para continuar</p>
         </div>
 

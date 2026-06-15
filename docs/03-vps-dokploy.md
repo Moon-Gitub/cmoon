@@ -23,7 +23,7 @@
 En la pestaña **Environment** del servicio, cargar (como mínimo):
 
 ```env
-APP_NAME=CMoon
+APP_NAME=POSMoon
 APP_ENV=production
 APP_DEBUG=false
 APP_KEY=base64:XXXXXXXX

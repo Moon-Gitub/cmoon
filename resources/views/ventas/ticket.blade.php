@@ -28,7 +28,7 @@
 </head>
 <body>
     <div class="centro">
-        <p class="negrita" style="font-size:14px">{{ $empresa?->nombre_fantasia ?? $empresa?->razon_social ?? 'CMoon POS' }}</p>
+        <p class="negrita" style="font-size:14px">{{ $empresa?->nombre_fantasia ?? $empresa?->razon_social ?? 'POSMoon' }}</p>
         @if ($empresa?->razon_social && $empresa?->nombre_fantasia)
             <p>{{ $empresa->razon_social }}</p>
         @endif

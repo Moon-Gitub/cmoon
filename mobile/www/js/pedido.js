@@ -26,7 +26,7 @@
             return;
         }
 
-        $('empresa').textContent = state.config?.empresa_nombre || 'CMoon';
+        $('empresa').textContent = state.config?.empresa_nombre || 'POSMoon';
         state.catalog = await window.cmoon.getCatalog();
         renderClientes(clientes());
         bindEvents();

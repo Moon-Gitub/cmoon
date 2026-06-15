@@ -1,11 +1,11 @@
-# CMoon POS — App de escritorio (Electron)
+# POSMoon — App de escritorio (Electron)
 
 Caja offline con **licencia Moon**: vende sin internet, pero debe conectarse al VPS periódicamente para renovar la licencia. Si no abona el mes, el sistema de cobros bloquea nuevas ventas.
 
 ## Requisitos
 
 - Node.js 20+
-- Servidor CMoon desplegado con API desktop habilitada
+- Servidor POSMoon desplegado con API desktop habilitada
 
 ## Configuración del servidor (VPS / Dokploy)
 

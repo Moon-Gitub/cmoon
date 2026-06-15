@@ -1,4 +1,4 @@
-# CMoon POS
+# POSMoon
 
 Migración del POS Moon a **Laravel 13**, dockerizado y listo para desplegar en un VPS con **Dokploy**.
 

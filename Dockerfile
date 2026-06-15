@@ -1,5 +1,5 @@
 # ============================================================
-# CMoon POS - Imagen de produccion
+# POSMoon - Imagen de produccion
 # Multi-stage: dependencias PHP -> assets frontend -> runtime
 # ============================================================
 

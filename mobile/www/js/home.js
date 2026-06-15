@@ -3,7 +3,7 @@
     async function init() {
         if (! await window.cmoon.isActivated()) return window.location.href = 'setup.html';
         const config = await window.cmoon.getConfig();
-        $('empresa').textContent = config?.empresa_nombre || 'CMoon';
+        $('empresa').textContent = config?.empresa_nombre || 'POSMoon';
         $('usuario').textContent = config?.usuario || 'Usuario';
         const st = await window.cmoon.licenseStatus();
         const map = [

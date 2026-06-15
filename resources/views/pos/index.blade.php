@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#0f172a">
     <link rel="manifest" href="/manifest.webmanifest">
-    <title>Punto de venta — CMoon POS</title>
+    <title>Punto de venta — POSMoon</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen overflow-x-hidden bg-slate-100 text-slate-900 lg:h-screen lg:overflow-hidden"
@@ -651,7 +651,7 @@
                             },
                             body: JSON.stringify({
                                 total: totalQr,
-                                titulo: 'Venta POS CMoon',
+                                titulo: 'Venta POSMoon',
                                 referencia,
                             }),
                         });

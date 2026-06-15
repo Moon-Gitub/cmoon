@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class LegacyImportContext
 {
-    /** @var array<string, int> clave stkProd legacy → sucursal_id CMoon */
+    /** @var array<string, int> clave stkProd legacy → sucursal_id POSMoon */
     public array $sucursalMap = [];
 
     public ?int $defaultSucursalId = null;

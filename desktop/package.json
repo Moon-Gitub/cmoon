@@ -1,7 +1,7 @@
 {
   "name": "cmoon-desktop",
   "version": "1.0.0",
-  "description": "CMoon POS — caja offline con licencia Moon",
+  "description": "POSMoon — caja offline con licencia Moon",
   "main": "electron/main.js",
   "author": "Moon Desarrollos",
   "license": "UNLICENSED",
@@ -14,7 +14,7 @@
   },
   "build": {
     "appId": "com.moon.cmoon.desktop",
-    "productName": "CMoon POS",
+    "productName": "POSMoon",
     "directories": { "output": "dist" },
     "files": ["electron/**/*", "renderer/**/*", "package.json"],
     "linux": { "target": ["AppImage", "deb"], "category": "Office" },

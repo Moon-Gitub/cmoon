@@ -1,4 +1,4 @@
-# Documentación CMoon POS
+# Documentación POSMoon
 
 Índice de la documentación del proyecto. Repositorio: [github.com/Moon-Gitub/cmoon](https://github.com/Moon-Gitub/cmoon)
 
@@ -18,7 +18,7 @@
 | [10-app-android.md](./10-app-android.md) | APK móvil, cámara, lector |
 | [11-api-desktop.md](./11-api-desktop.md) | API `/api/desktop/*` y licencias Moon |
 | [12-mantenimiento.md](./12-mantenimiento.md) | Migraciones, backups, redeploy, troubleshooting |
-| [15-migracion-legacy.md](./15-migracion-legacy.md) | **ETL demonew → CMoon** (`php artisan legacy:import`) |
+| [15-migracion-legacy.md](./15-migracion-legacy.md) | **ETL demonew → POSMoon** (`php artisan legacy:import`) |
 
 ## Inicio rápido
 

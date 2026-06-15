@@ -1,4 +1,4 @@
-# CMoon POS — Android
+# POSMoon — Android
 
 App móvil offline con la misma API que la caja de escritorio (`/api/desktop/*`).
 
@@ -48,4 +48,4 @@ Sirve `www/` con cualquier servidor estático; el escaneo por cámara solo funci
 
 ## Reset (volver a activar)
 
-En la app: borrar datos de la app en Ajustes → Aplicaciones → CMoon POS → Borrar almacenamiento.
+En la app: borrar datos de la app en Ajustes → Aplicaciones → POSMoon → Borrar almacenamiento.
