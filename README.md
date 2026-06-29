@@ -1,8 +1,22 @@
 # POSMoon
 
-Migración del POS Moon a **Laravel 13**, dockerizado y listo para desplegar en un VPS con **Dokploy**.
+Sistema de punto de venta completo desarrollado en **Laravel 13**, con integración e-commerce (Tiendanube), facturación electrónica (AFIP), y apps offline para escritorio y móvil.
 
 **Repositorio:** [github.com/Moon-Gitub/cmoon](https://github.com/Moon-Gitub/cmoon)
+
+---
+
+## Características principales
+
+- **Ventas y POS** — Punto de venta táctil, arqueos de caja, múltiples medios de pago
+- **Inventario** — Control de stock multi-sucursal, movimientos, alertas de stock bajo
+- **Compras** — Gestión de proveedores, cuentas corrientes, retenciones IIBB
+- **Clientes** — Base de clientes, cuentas corrientes, historial de compras
+- **Integración Tiendanube** — Sync completo de productos, stock, órdenes, carritos abandonados
+- **Facturación AFIP** — Factura electrónica A, B, C con homologación
+- **Informes** — Ventas, stock, movimientos, retenciones, exportación Excel/PDF
+- **Multi-empresa** — Múltiples empresas y sucursales en una instalación
+- **Apps offline** — Electron (Windows/Linux) y Android para vender sin conexión
 
 ---
 
@@ -28,6 +42,8 @@ Toda la guía de instalación, VPS, credenciales, accesos y apps cliente está e
 | App Android | [docs/10-app-android.md](./docs/10-app-android.md) |
 | API offline | [docs/11-api-desktop.md](./docs/11-api-desktop.md) |
 | Mantenimiento | [docs/12-mantenimiento.md](./docs/12-mantenimiento.md) |
+| Retenciones IIBB | [docs/15-retenciones-iibb.md](./docs/15-retenciones-iibb.md) |
+| **Integración Tiendanube** | [docs/16-integracion-tiendanube.md](./docs/16-integracion-tiendanube.md) |
 
 **Credenciales reales:** copiar plantilla → `CREDENCIALES.local.md` (no se sube a Git).
 
@@ -90,12 +106,46 @@ cmoon/
 
 ---
 
-## Fases del proyecto
+## Integración Tiendanube
 
-1. Auth, usuarios, permisos, empresa  
-2. Productos, categorías, listas  
-3. Ventas, caja, clientes  
-4. Compras, retenciones, informes  
-5. POS offline + API desktop  
-6. Facturación AFIP  
-7. Apps Electron y Android  
+POSMoon incluye integración completa con Tiendanube (Nuvemshop):
+
+| Funcionalidad | Descripción |
+|---------------|-------------|
+| **Productos** | Sync bidireccional, imágenes, variantes |
+| **Stock** | Actualización en tiempo real al vender/comprar |
+| **Órdenes** | Importación automática vía webhooks |
+| **Precios promocionales** | Sync de ofertas y descuentos |
+| **Clientes** | Sync bidireccional de datos |
+| **Carritos abandonados** | Importar como leads para recuperar ventas |
+| **Despacho** | Notificar envío con tracking |
+| **Multi-ubicación** | Stock por sucursal/ubicación |
+| **Metafields** | Campos personalizados (garantía, marca, etc.) |
+
+### Comandos disponibles
+
+```bash
+php artisan tiendanube:sync          # Sync productos y stock
+php artisan tiendanube:import-orders # Importar órdenes
+php artisan tiendanube:test          # Probar conexión
+php artisan tiendanube:sync-prices   # Sync precios promocionales
+php artisan tiendanube:import-abandoned # Carritos abandonados
+```
+
+Ver documentación completa: [docs/16-integracion-tiendanube.md](./docs/16-integracion-tiendanube.md)
+
+---
+
+## Módulos del sistema
+
+| Módulo | Estado | Descripción |
+|--------|--------|-------------|
+| Auth & Permisos | ✅ | Usuarios, roles, permisos por empresa |
+| Productos | ✅ | Catálogo, categorías, listas de precio |
+| Ventas & POS | ✅ | Punto de venta, arqueos, medios de pago |
+| Compras | ✅ | Proveedores, cuentas corrientes |
+| Retenciones | ✅ | IIBB con exportación SIRCAR |
+| Tiendanube | ✅ | Integración e-commerce completa |
+| Facturación AFIP | ✅ | Factura electrónica |
+| Apps Offline | ✅ | Electron + Android |
+| Informes | ✅ | Ventas, stock, exportación Excel/PDF |  

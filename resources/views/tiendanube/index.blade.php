@@ -420,6 +420,42 @@
                     </div>
                 </div>
 
+                {{-- Opciones avanzadas --}}
+                <div class="pt-4 border-t border-slate-700">
+                    <h4 class="text-sm font-medium text-slate-400 uppercase tracking-wider mb-4">Funciones avanzadas</h4>
+                    <div class="grid md:grid-cols-3 gap-4">
+                        <label class="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg cursor-pointer hover:bg-slate-700 transition">
+                            <div>
+                                <span class="font-medium text-sm">Precios promocionales</span>
+                                <p class="text-xs text-slate-400">Sincronizar ofertas</p>
+                            </div>
+                            <input type="checkbox" name="sync_prices" value="1"
+                                   @checked($integracion->sync_prices ?? false)
+                                   class="w-5 h-5 rounded bg-slate-600 border-slate-500 text-indigo-500">
+                        </label>
+
+                        <label class="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg cursor-pointer hover:bg-slate-700 transition">
+                            <div>
+                                <span class="font-medium text-sm">Metafields</span>
+                                <p class="text-xs text-slate-400">Campos personalizados</p>
+                            </div>
+                            <input type="checkbox" name="sync_metafields" value="1"
+                                   @checked($integracion->sync_metafields ?? false)
+                                   class="w-5 h-5 rounded bg-slate-600 border-slate-500 text-indigo-500">
+                        </label>
+
+                        <label class="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg cursor-pointer hover:bg-slate-700 transition">
+                            <div>
+                                <span class="font-medium text-sm">Carritos abandonados</span>
+                                <p class="text-xs text-slate-400">Importar como leads</p>
+                            </div>
+                            <input type="checkbox" name="import_abandoned" value="1"
+                                   @checked($integracion->import_abandoned ?? false)
+                                   class="w-5 h-5 rounded bg-slate-600 border-slate-500 text-indigo-500">
+                        </label>
+                    </div>
+                </div>
+
                 <div class="flex justify-end pt-4 border-t border-slate-700">
                     <button type="submit"
                             class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-medium transition">

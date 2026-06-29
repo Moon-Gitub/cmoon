@@ -78,9 +78,20 @@ class TiendanubeWebhookController extends Controller
 
             // Órdenes
             'order/created' => $this->handleOrderCreated($integracion, $entityId),
-            'order/paid' => $this->handleOrderPaid($integracion, $entityId),
+            'order/paid' => $this->handleOrderPaid($integracion, $entityId, $payload),
             'order/cancelled' => $this->handleOrderCancelled($integracion, $entityId),
-            'order/fulfilled' => $this->handleOrderFulfilled($integracion, $entityId),
+            'order/fulfilled' => $this->handleOrderFulfilled($integracion, $entityId, $payload),
+            'order/packed' => $this->handleOrderPacked($integracion, $entityId),
+
+            // Carritos abandonados
+            'cart/created', 'cart/updated' => $this->handleCartUpdate($integracion, $entityId, $payload),
+
+            // Clientes
+            'customer/created', 'customer/updated' => $this->handleCustomerUpdate($integracion, $entityId, $payload),
+
+            // Categorías
+            'category/created', 'category/updated' => $this->handleCategoryUpdate($integracion, $entityId),
+            'category/deleted' => $this->handleCategoryDelete($integracion, $entityId),
 
             // App
             'app/uninstalled' => $this->handleAppUninstalled($integracion),
@@ -173,10 +184,21 @@ class TiendanubeWebhookController extends Controller
         }
     }
 
-    private function handleOrderFulfilled(TiendanubeIntegracion $integracion, ?int $orderId): void
+    private function handleOrderFulfilled(TiendanubeIntegracion $integracion, ?int $orderId, array $payload = []): void
     {
         if (! $orderId) {
             return;
+        }
+
+        // Actualizar estado local
+        $venta = \App\Models\Venta::where('tn_order_id', $orderId)->first();
+
+        if ($venta) {
+            $venta->update([
+                'estado_envio' => 'despachado',
+                'despachada_at' => now(),
+                'tracking_number' => $payload['shipping_tracking_number'] ?? $venta->tracking_number,
+            ]);
         }
 
         TiendanubeLog::registrar(
@@ -186,6 +208,127 @@ class TiendanubeWebhookController extends Controller
             'order',
             $orderId,
             mensaje: "Orden #{$orderId} marcada como enviada en Tiendanube",
+        );
+    }
+
+    private function handleOrderPacked(TiendanubeIntegracion $integracion, ?int $orderId): void
+    {
+        if (! $orderId) {
+            return;
+        }
+
+        $venta = \App\Models\Venta::where('tn_order_id', $orderId)->first();
+
+        if ($venta) {
+            $venta->update(['estado_envio' => 'empaquetado']);
+        }
+
+        TiendanubeLog::registrar(
+            $integracion,
+            'order_import',
+            'webhook',
+            'order',
+            $orderId,
+            mensaje: "Orden #{$orderId} empaquetada",
+        );
+    }
+
+    private function handleCartUpdate(TiendanubeIntegracion $integracion, ?int $cartId, array $payload): void
+    {
+        // Los carritos abandonados se importan por batch, no individualmente
+        // Este webhook sirve para tracking en tiempo real si se necesita
+        if (! $integracion->import_abandoned) {
+            return;
+        }
+
+        TiendanubeLog::registrar(
+            $integracion,
+            'cart',
+            'webhook',
+            'cart',
+            $cartId,
+            mensaje: 'Carrito actualizado (pendiente de abandono)',
+        );
+    }
+
+    private function handleCustomerUpdate(TiendanubeIntegracion $integracion, ?int $customerId, array $payload): void
+    {
+        if (! $integracion->sync_customers || ! $customerId) {
+            return;
+        }
+
+        $email = $payload['email'] ?? null;
+
+        if (! $email) {
+            return;
+        }
+
+        // Buscar cliente local por email
+        $cliente = \App\Models\Cliente::where('empresa_id', $integracion->empresa_id)
+            ->where('email', $email)
+            ->first();
+
+        if ($cliente) {
+            // Actualizar datos
+            $updateData = [];
+
+            if (! empty($payload['name'])) {
+                $updateData['nombre'] = $payload['name'];
+            }
+            if (! empty($payload['phone'])) {
+                $updateData['telefono'] = $payload['phone'];
+            }
+            if (! empty($payload['identification'])) {
+                $updateData['documento'] = $payload['identification'];
+            }
+
+            if (! empty($updateData)) {
+                $cliente->update($updateData);
+            }
+        }
+
+        TiendanubeLog::registrar(
+            $integracion,
+            'customer_sync',
+            'webhook',
+            'customer',
+            $customerId,
+            mensaje: "Cliente actualizado desde Tiendanube: {$email}",
+        );
+    }
+
+    private function handleCategoryUpdate(TiendanubeIntegracion $integracion, ?int $categoryId): void
+    {
+        if (! $categoryId) {
+            return;
+        }
+
+        TiendanubeLog::registrar(
+            $integracion,
+            'category_sync',
+            'webhook',
+            'category',
+            $categoryId,
+            mensaje: "Categoría actualizada en Tiendanube: #{$categoryId}",
+        );
+    }
+
+    private function handleCategoryDelete(TiendanubeIntegracion $integracion, ?int $categoryId): void
+    {
+        if (! $categoryId) {
+            return;
+        }
+
+        // Eliminar mapeo de categoría
+        $integracion->categoryMaps()->where('tn_category_id', $categoryId)->delete();
+
+        TiendanubeLog::registrar(
+            $integracion,
+            'category_sync',
+            'webhook',
+            'category',
+            $categoryId,
+            mensaje: "Mapeo de categoría eliminado: #{$categoryId}",
         );
     }
 

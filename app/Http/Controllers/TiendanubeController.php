@@ -213,7 +213,10 @@ class TiendanubeController extends Controller
             'sync_products' => ['boolean'],
             'sync_stock' => ['boolean'],
             'sync_orders' => ['boolean'],
+            'sync_prices' => ['boolean'],
             'sync_customers' => ['boolean'],
+            'sync_metafields' => ['boolean'],
+            'import_abandoned' => ['boolean'],
             'auto_create_products' => ['boolean'],
             'default_sucursal_id' => ['nullable', 'exists:sucursales,id'],
         ]);
@@ -230,7 +233,10 @@ class TiendanubeController extends Controller
             'sync_products' => $request->boolean('sync_products'),
             'sync_stock' => $request->boolean('sync_stock'),
             'sync_orders' => $request->boolean('sync_orders'),
+            'sync_prices' => $request->boolean('sync_prices'),
             'sync_customers' => $request->boolean('sync_customers'),
+            'sync_metafields' => $request->boolean('sync_metafields'),
+            'import_abandoned' => $request->boolean('import_abandoned'),
             'auto_create_products' => $request->boolean('auto_create_products'),
             'default_sucursal_id' => $data['default_sucursal_id'] ?? null,
         ]);

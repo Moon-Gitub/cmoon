@@ -1,6 +1,6 @@
 # Integración con Tiendanube
 
-POSMoon permite conectar tu tienda de Tiendanube para sincronizar productos, stock y recibir órdenes automáticamente.
+POSMoon permite conectar tu tienda de Tiendanube para sincronizar productos, stock, precios, clientes y recibir órdenes automáticamente. Incluye funciones avanzadas como despacho de pedidos, precios promocionales, carritos abandonados y más.
 
 ## Índice
 
@@ -12,8 +12,10 @@ POSMoon permite conectar tu tienda de Tiendanube para sincronizar productos, sto
 6. [Sincronizar productos](#sincronizar-productos)
 7. [Sincronizar stock](#sincronizar-stock)
 8. [Importar órdenes](#importar-órdenes)
-9. [Historial y logs](#historial-y-logs)
-10. [Preguntas frecuentes](#preguntas-frecuentes)
+9. [Funciones avanzadas](#funciones-avanzadas)
+10. [Comandos de consola](#comandos-de-consola)
+11. [Historial y logs](#historial-y-logs)
+12. [Preguntas frecuentes](#preguntas-frecuentes)
 
 ---
 
@@ -211,6 +213,177 @@ En **Ventas**, podés filtrar por origen para ver solo las ventas online.
 
 ---
 
+## Funciones avanzadas
+
+POSMoon incluye integraciones avanzadas con la API de Tiendanube.
+
+### Precios promocionales
+
+Sincroniza automáticamente los precios de oferta a Tiendanube.
+
+**Cómo funciona:**
+1. Activá "Precios promocionales" en la configuración
+2. En un producto, completá los campos:
+   - **Precio promocional**: precio rebajado
+   - **Desde/Hasta**: fechas de la promoción (opcional)
+3. El precio promocional se muestra automáticamente en tu tienda
+
+**Nota**: Los precios vencidos se quitan automáticamente cada hora.
+
+### Metafields (campos personalizados)
+
+Sincroniza información adicional del producto a Tiendanube (visible en la ficha del producto).
+
+**Campos sincronizados:**
+- Garantía (meses)
+- SKU interno
+- Peso
+- Dimensiones (Alto × Ancho × Largo)
+- Marca
+- Origen
+
+Para activarlo, habilitá "Metafields" en la configuración.
+
+### Carritos abandonados
+
+Importa clientes que abandonaron el carrito sin comprar.
+
+**Cómo funciona:**
+1. Activá "Carritos abandonados" en la configuración
+2. POSMoon importa diariamente los checkouts abandonados
+3. Los encontrás en **Clientes** → filtrar por origen "tiendanube_abandoned"
+4. Incluye: email, teléfono, productos del carrito, monto total, URL de recuperación
+
+**Uso recomendado**: Contactá a estos leads para recuperar la venta.
+
+### Sincronización de clientes
+
+Sincroniza la base de clientes entre POSMoon y Tiendanube.
+
+- Al crear/editar un cliente en POSMoon, se actualiza en Tiendanube
+- Al recibir una orden, el cliente se crea/actualiza automáticamente
+
+### Despacho de pedidos
+
+Notifica a Tiendanube cuando despachás un pedido desde POSMoon.
+
+**Datos de tracking:**
+- Número de tracking
+- URL de seguimiento
+- Transportista
+
+Esto actualiza el estado de la orden en Tiendanube y envía notificación al cliente.
+
+### Multi-ubicación (Locations)
+
+Si tu tienda Tiendanube tiene múltiples ubicaciones de stock, POSMoon puede sincronizar el stock de cada sucursal a su ubicación correspondiente.
+
+**Configuración:**
+1. En **Sucursales**, configurá el "TN Location ID" de cada una
+2. POSMoon sincronizará el stock de cada sucursal a la ubicación correcta
+
+### Imágenes de productos
+
+Las imágenes de productos se sincronizan automáticamente:
+- Al crear un producto en Tiendanube desde POSMoon, se sube la imagen
+- Soporta tanto URLs externas como imágenes subidas a POSMoon
+
+### Órdenes borrador (Draft Orders)
+
+Podés crear órdenes borrador en Tiendanube desde POSMoon para enviar cotizaciones a clientes.
+
+### Cupones y descuentos
+
+API disponible para crear/gestionar cupones de descuento en Tiendanube desde POSMoon.
+
+---
+
+## Comandos de consola
+
+Usá estos comandos desde la terminal para operaciones masivas o automatizadas.
+
+### Sincronización general
+
+```bash
+# Sincronizar productos y stock de todas las tiendas
+php artisan tiendanube:sync
+
+# Solo una empresa específica
+php artisan tiendanube:sync --empresa=1
+
+# Solo productos
+php artisan tiendanube:sync --products
+
+# Solo stock
+php artisan tiendanube:sync --stock
+
+# Ejecutar sincrónicamente (sin queue)
+php artisan tiendanube:sync --sync
+```
+
+### Importar órdenes
+
+```bash
+# Importar órdenes de los últimos 7 días
+php artisan tiendanube:import-orders
+
+# Últimos 30 días
+php artisan tiendanube:import-orders --days=30
+
+# Empresa específica
+php artisan tiendanube:import-orders --empresa=1
+```
+
+### Importar carritos abandonados
+
+```bash
+# Importar carritos de los últimos 7 días
+php artisan tiendanube:import-abandoned
+
+# Últimos 14 días
+php artisan tiendanube:import-abandoned --days=14
+```
+
+### Sincronizar precios promocionales
+
+```bash
+php artisan tiendanube:sync-prices
+```
+
+### Sincronizar stock por ubicación
+
+```bash
+php artisan tiendanube:sync-locations
+```
+
+### Probar conexión
+
+```bash
+php artisan tiendanube:test
+
+# Resultado esperado:
+# Configuración OK
+#   Client ID: 123456
+#   User Agent: POSMoon (tu@email.com)
+# Probando conexiones:
+#   Mi Tienda (ID: 789)
+#     ✓ Conexión exitosa
+#     Nombre: Mi Tienda
+#     Plan: Tiendanube Full
+```
+
+### Registrar webhooks
+
+```bash
+# Registrar webhooks para todas las tiendas
+php artisan tiendanube:register-webhooks
+
+# Forzar re-registro (elimina y vuelve a crear)
+php artisan tiendanube:register-webhooks --force
+```
+
+---
+
 ## Historial y logs
 
 ### Ver actividad
@@ -264,7 +437,9 @@ Se genera un código automático: `TN-{id_producto}`.
 
 ### ¿Cómo manejo las variantes de productos?
 
-Actualmente se sincroniza la **primera variante** de cada producto. Soporte para múltiples variantes está en desarrollo.
+Al **importar desde Tiendanube**, cada variante se crea como un producto separado en POSMoon con el nombre del producto + los atributos de la variante (ej: "Remera - Azul / L").
+
+Al **exportar a Tiendanube**, los productos de POSMoon se crean con una sola variante. Para productos con múltiples variantes, creá cada variante como producto separado en POSMoon.
 
 ### ¿Por qué no llegan las órdenes automáticamente?
 

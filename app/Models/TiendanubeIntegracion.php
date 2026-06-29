@@ -23,13 +23,17 @@ class TiendanubeIntegracion extends Model
         'sync_products',
         'sync_stock',
         'sync_orders',
+        'sync_prices',
         'sync_customers',
+        'sync_metafields',
+        'import_abandoned',
         'auto_create_products',
         'default_sucursal_id',
         'webhook_secret',
         'last_product_sync_at',
         'last_stock_sync_at',
         'last_order_sync_at',
+        'last_abandoned_sync_at',
         'activo',
     ];
 
@@ -41,12 +45,16 @@ class TiendanubeIntegracion extends Model
             'sync_products' => 'boolean',
             'sync_stock' => 'boolean',
             'sync_orders' => 'boolean',
+            'sync_prices' => 'boolean',
             'sync_customers' => 'boolean',
+            'sync_metafields' => 'boolean',
+            'import_abandoned' => 'boolean',
             'auto_create_products' => 'boolean',
             'activo' => 'boolean',
             'last_product_sync_at' => 'datetime',
             'last_stock_sync_at' => 'datetime',
             'last_order_sync_at' => 'datetime',
+            'last_abandoned_sync_at' => 'datetime',
         ];
     }
 

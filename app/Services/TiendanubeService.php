@@ -571,6 +571,594 @@ class TiendanubeService
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Shipping Carriers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function getShippingCarriers(): array
+    {
+        $response = $this->client()->get('/shipping_carriers');
+
+        return $response->json() ?? [];
+    }
+
+    public function getShippingCarrier(int $carrierId): ?array
+    {
+        try {
+            $response = $this->client()->get("/shipping_carriers/{$carrierId}");
+
+            return $response->json();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    public function createShippingCarrier(array $data): array
+    {
+        $response = $this->client()->post('/shipping_carriers', $data);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al crear carrier: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function updateShippingCarrier(int $carrierId, array $data): array
+    {
+        $response = $this->client()->put("/shipping_carriers/{$carrierId}", $data);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al actualizar carrier: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function deleteShippingCarrier(int $carrierId): bool
+    {
+        $response = $this->client()->delete("/shipping_carriers/{$carrierId}");
+
+        return $response->successful();
+    }
+
+    public function getShippingCarrierOptions(int $carrierId): array
+    {
+        $response = $this->client()->get("/shipping_carriers/{$carrierId}/options");
+
+        return $response->json() ?? [];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Fulfillment (Despacho de pedidos)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function fulfillOrder(int $orderId, array $data = []): array
+    {
+        $response = $this->client()->post("/orders/{$orderId}/fulfill", $data);
+
+        $this->log(
+            'fulfillment',
+            'push',
+            array_merge(['order_id' => $orderId], $data),
+            $response->json(),
+            $response->successful() ? 'ok' : 'error',
+            $response->successful() ? 'Pedido marcado como despachado' : $response->body(),
+            'order',
+            $orderId,
+        );
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al despachar pedido: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function packOrder(int $orderId): array
+    {
+        $response = $this->client()->post("/orders/{$orderId}/pack");
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al empaquetar pedido: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function addTrackingToOrder(int $orderId, string $trackingNumber, ?string $trackingUrl = null, ?int $carrierId = null): array
+    {
+        $data = [
+            'shipping_tracking_number' => $trackingNumber,
+        ];
+
+        if ($trackingUrl) {
+            $data['shipping_tracking_url'] = $trackingUrl;
+        }
+
+        if ($carrierId) {
+            $data['shipping_carrier_id'] = $carrierId;
+        }
+
+        $response = $this->client()->put("/orders/{$orderId}", $data);
+
+        $this->log(
+            'tracking',
+            'push',
+            $data,
+            $response->json(),
+            $response->successful() ? 'ok' : 'error',
+            $response->successful() ? "Tracking agregado: {$trackingNumber}" : $response->body(),
+            'order',
+            $orderId,
+        );
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al agregar tracking: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Scripts (Pixels de Tracking)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function getScripts(): array
+    {
+        $response = $this->client()->get('/scripts');
+
+        return $response->json() ?? [];
+    }
+
+    public function createScript(string $src, string $event = 'onload', ?string $where = null): array
+    {
+        $data = [
+            'src' => $src,
+            'event' => $event, // 'onload' o 'beforeunload'
+        ];
+
+        if ($where) {
+            $data['where'] = $where; // 'store', 'checkout', 'all'
+        }
+
+        $response = $this->client()->post('/scripts', $data);
+
+        $this->log(
+            'script',
+            'push',
+            $data,
+            $response->json(),
+            $response->successful() ? 'ok' : 'error',
+            $response->successful() ? 'Script agregado' : $response->body(),
+        );
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al crear script: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function deleteScript(int $scriptId): bool
+    {
+        $response = $this->client()->delete("/scripts/{$scriptId}");
+
+        return $response->successful();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Metafields (Campos personalizados)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function getProductMetafields(int $productId): array
+    {
+        $response = $this->client()->get("/products/{$productId}/metafields");
+
+        return $response->json() ?? [];
+    }
+
+    public function createProductMetafield(int $productId, string $namespace, string $key, $value, string $valueType = 'string'): array
+    {
+        $data = [
+            'namespace' => $namespace,
+            'key' => $key,
+            'value' => $value,
+            'value_type' => $valueType, // 'string', 'integer', 'json'
+        ];
+
+        $response = $this->client()->post("/products/{$productId}/metafields", $data);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al crear metafield: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function updateProductMetafield(int $productId, int $metafieldId, $value): array
+    {
+        $response = $this->client()->put("/products/{$productId}/metafields/{$metafieldId}", [
+            'value' => $value,
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al actualizar metafield: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function deleteProductMetafield(int $productId, int $metafieldId): bool
+    {
+        $response = $this->client()->delete("/products/{$productId}/metafields/{$metafieldId}");
+
+        return $response->successful();
+    }
+
+    public function getOrderMetafields(int $orderId): array
+    {
+        $response = $this->client()->get("/orders/{$orderId}/metafields");
+
+        return $response->json() ?? [];
+    }
+
+    public function createOrderMetafield(int $orderId, string $namespace, string $key, $value, string $valueType = 'string'): array
+    {
+        $response = $this->client()->post("/orders/{$orderId}/metafields", [
+            'namespace' => $namespace,
+            'key' => $key,
+            'value' => $value,
+            'value_type' => $valueType,
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al crear metafield de orden: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Locations (Multi-ubicación de stock)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function getLocations(): array
+    {
+        $response = $this->client()->get('/locations');
+
+        return $response->json() ?? [];
+    }
+
+    public function getLocation(int $locationId): ?array
+    {
+        try {
+            $response = $this->client()->get("/locations/{$locationId}");
+
+            return $response->json();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    public function createLocation(array $data): array
+    {
+        $response = $this->client()->post('/locations', $data);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al crear ubicación: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function updateLocation(int $locationId, array $data): array
+    {
+        $response = $this->client()->put("/locations/{$locationId}", $data);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al actualizar ubicación: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function updateStockAtLocation(int $productId, int $locationId, int $quantity, ?int $variantId = null): array
+    {
+        $data = [
+            'location_id' => $locationId,
+            'stock' => $quantity,
+        ];
+
+        if ($variantId) {
+            $data['variant_id'] = $variantId;
+        }
+
+        $response = $this->client()->put("/products/{$productId}/variants/stock", $data);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al actualizar stock en ubicación: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Draft Orders (Órdenes borrador)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function getDraftOrders(array $params = []): array
+    {
+        $defaults = ['per_page' => 50, 'page' => 1];
+        $params = array_merge($defaults, $params);
+
+        $response = $this->client()->get('/draft_orders', $params);
+
+        return $response->json() ?? [];
+    }
+
+    public function getDraftOrder(int $draftOrderId): ?array
+    {
+        try {
+            $response = $this->client()->get("/draft_orders/{$draftOrderId}");
+
+            return $response->json();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    public function createDraftOrder(array $data): array
+    {
+        $response = $this->client()->post('/draft_orders', $data);
+
+        $this->log(
+            'draft_order',
+            'push',
+            $data,
+            $response->json(),
+            $response->successful() ? 'ok' : 'error',
+            $response->successful() ? 'Orden borrador creada' : $response->body(),
+        );
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al crear orden borrador: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function updateDraftOrder(int $draftOrderId, array $data): array
+    {
+        $response = $this->client()->put("/draft_orders/{$draftOrderId}", $data);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al actualizar orden borrador: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function deleteDraftOrder(int $draftOrderId): bool
+    {
+        $response = $this->client()->delete("/draft_orders/{$draftOrderId}");
+
+        return $response->successful();
+    }
+
+    public function convertDraftToOrder(int $draftOrderId): array
+    {
+        $response = $this->client()->post("/draft_orders/{$draftOrderId}/convert");
+
+        $this->log(
+            'draft_order',
+            'push',
+            ['draft_order_id' => $draftOrderId],
+            $response->json(),
+            $response->successful() ? 'ok' : 'error',
+            $response->successful() ? 'Borrador convertido a orden' : $response->body(),
+        );
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al convertir borrador: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Abandoned Carts (Carritos abandonados)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function getAbandonedCheckouts(array $params = []): array
+    {
+        $defaults = ['per_page' => 50, 'page' => 1];
+        $params = array_merge($defaults, $params);
+
+        $response = $this->client()->get('/abandoned_checkouts', $params);
+
+        return $response->json() ?? [];
+    }
+
+    public function getAbandonedCheckout(int $checkoutId): ?array
+    {
+        try {
+            $response = $this->client()->get("/abandoned_checkouts/{$checkoutId}");
+
+            return $response->json();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Price Lists (Listas de precios mayoristas)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function getPriceLists(): array
+    {
+        $response = $this->client()->get('/price_lists');
+
+        return $response->json() ?? [];
+    }
+
+    public function getPriceList(int $priceListId): ?array
+    {
+        try {
+            $response = $this->client()->get("/price_lists/{$priceListId}");
+
+            return $response->json();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    public function createPriceList(string $name, ?string $description = null): array
+    {
+        $data = ['name' => $name];
+
+        if ($description) {
+            $data['description'] = $description;
+        }
+
+        $response = $this->client()->post('/price_lists', $data);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al crear lista de precios: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function updatePriceList(int $priceListId, array $data): array
+    {
+        $response = $this->client()->put("/price_lists/{$priceListId}", $data);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al actualizar lista de precios: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function deletePriceList(int $priceListId): bool
+    {
+        $response = $this->client()->delete("/price_lists/{$priceListId}");
+
+        return $response->successful();
+    }
+
+    public function getPriceListPrices(int $priceListId, array $params = []): array
+    {
+        $response = $this->client()->get("/price_lists/{$priceListId}/prices", $params);
+
+        return $response->json() ?? [];
+    }
+
+    public function setPriceListPrice(int $priceListId, int $variantId, float $price): array
+    {
+        $response = $this->client()->put("/price_lists/{$priceListId}/prices/{$variantId}", [
+            'price' => $price,
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al establecer precio: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Promotional Prices (Precios promocionales)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function setPromotionalPrice(int $productId, int $variantId, float $promotionalPrice, ?string $startDate = null, ?string $endDate = null): array
+    {
+        $data = [
+            'promotional_price' => $promotionalPrice,
+        ];
+
+        if ($startDate) {
+            $data['promotional_price_start_date'] = $startDate;
+        }
+
+        if ($endDate) {
+            $data['promotional_price_end_date'] = $endDate;
+        }
+
+        $response = $this->client()->put("/products/{$productId}/variants/{$variantId}", $data);
+
+        $this->log(
+            'promo_price',
+            'push',
+            array_merge($data, ['product_id' => $productId, 'variant_id' => $variantId]),
+            $response->json(),
+            $response->successful() ? 'ok' : 'error',
+            $response->successful() ? "Precio promocional: \${$promotionalPrice}" : $response->body(),
+            'product',
+            $productId,
+        );
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al establecer precio promocional: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function removePromotionalPrice(int $productId, int $variantId): array
+    {
+        $response = $this->client()->put("/products/{$productId}/variants/{$variantId}", [
+            'promotional_price' => null,
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al quitar precio promocional: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Transactions (Transacciones de pago)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function getOrderTransactions(int $orderId): array
+    {
+        $response = $this->client()->get("/orders/{$orderId}/transactions");
+
+        return $response->json() ?? [];
+    }
+
+    public function createTransaction(int $orderId, array $data): array
+    {
+        $response = $this->client()->post("/orders/{$orderId}/transactions", $data);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al crear transacción: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Store Info
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function getStorePaymentProviders(): array
+    {
+        $response = $this->client()->get('/payment_providers');
+
+        return $response->json() ?? [];
+    }
+
+    public function getStoreShippingCarriersList(): array
+    {
+        $response = $this->client()->get('/shipping_carriers');
+
+        return $response->json() ?? [];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
 
