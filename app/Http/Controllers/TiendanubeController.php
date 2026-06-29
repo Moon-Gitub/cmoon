@@ -14,10 +14,6 @@ use Illuminate\View\View;
 
 class TiendanubeController extends Controller
 {
-    public function __construct(
-        private readonly TiendanubeService $tiendanube,
-    ) {}
-
     /**
      * Panel principal de integración Tiendanube
      */
@@ -69,7 +65,7 @@ class TiendanubeController extends Controller
         $state = Str::random(40);
         session(['tiendanube_oauth_state' => $state]);
 
-        $url = $this->tiendanube->getAuthorizationUrl($state);
+        $url = TiendanubeService::make()->getAuthorizationUrl($state);
 
         return redirect()->away($url);
     }
@@ -95,7 +91,8 @@ class TiendanubeController extends Controller
         session()->forget('tiendanube_oauth_state');
 
         try {
-            $tokenData = $this->tiendanube->exchangeCodeForToken($code);
+            $tiendanube = TiendanubeService::make();
+            $tokenData = $tiendanube->exchangeCodeForToken($code);
 
             $empresaId = auth()->user()->empresa_id;
             $storeId = $tokenData['user_id'];
@@ -113,7 +110,7 @@ class TiendanubeController extends Controller
             );
 
             // Obtener datos de la tienda
-            $storeInfo = $this->tiendanube->forIntegracion($integracion)->getStore();
+            $storeInfo = $tiendanube->forIntegracion($integracion)->getStore();
 
             if ($storeInfo) {
                 $integracion->update([
@@ -127,7 +124,7 @@ class TiendanubeController extends Controller
 
             // Registrar webhooks
             $webhookUrl = route('tiendanube.webhook');
-            $this->tiendanube->forIntegracion($integracion)->registerAllWebhooks($webhookUrl);
+            $tiendanube->forIntegracion($integracion)->registerAllWebhooks($webhookUrl);
 
             TiendanubeLog::registrar(
                 $integracion,
@@ -158,9 +155,10 @@ class TiendanubeController extends Controller
         if ($integracion) {
             // Intentar eliminar webhooks en Tiendanube
             try {
-                $webhooks = $this->tiendanube->forIntegracion($integracion)->getWebhooks();
+                $tiendanube = TiendanubeService::make()->forIntegracion($integracion);
+                $webhooks = $tiendanube->getWebhooks();
                 foreach ($webhooks as $webhook) {
-                    $this->tiendanube->deleteWebhook($webhook['id']);
+                    $tiendanube->deleteWebhook($webhook['id']);
                 }
             } catch (\Throwable) {
                 // Ignorar errores al eliminar webhooks
@@ -218,7 +216,7 @@ class TiendanubeController extends Controller
         $empresaId = auth()->user()->empresa_id;
         $integracion = TiendanubeIntegracion::where('empresa_id', $empresaId)->firstOrFail();
 
-        $ok = $this->tiendanube->forIntegracion($integracion)->testConnection();
+        $ok = TiendanubeService::make()->forIntegracion($integracion)->testConnection();
 
         if ($ok) {
             return back()->with('ok', 'Conexión exitosa con Tiendanube.');
