@@ -50,8 +50,12 @@ class StockService
             return $stock;
         });
 
-        // Disparar evento para integraciones (Tiendanube, etc.)
-        StockUpdated::dispatch($producto, $sucursalId, $stock->cantidad);
+        // Disparar evento para integraciones (Tiendanube, etc.) - no debe fallar si hay error
+        try {
+            StockUpdated::dispatch($producto, $sucursalId, $stock->cantidad);
+        } catch (\Throwable) {
+            // Silenciar errores de integraciones para no afectar operación principal
+        }
 
         return $stock;
     }

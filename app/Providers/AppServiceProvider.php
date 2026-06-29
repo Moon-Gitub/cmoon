@@ -25,7 +25,9 @@ class AppServiceProvider extends ServiceProvider
         \Carbon\Carbon::setLocale(config('app.locale', 'es'));
         date_default_timezone_set(config('app.timezone'));
 
-        // Sincronizar stock con Tiendanube cuando cambia
-        Event::listen(StockUpdated::class, SyncStockToTiendanubeOnChange::class);
+        // Sincronizar stock con Tiendanube cuando cambia (solo si está configurado)
+        if (config('tiendanube.client_id')) {
+            Event::listen(StockUpdated::class, SyncStockToTiendanubeOnChange::class);
+        }
     }
 }
