@@ -253,6 +253,14 @@
                     Retenciones IIBB
                 </a>
             @endcan
+
+            @can('empresa.editar')
+                <a href="{{ route('tiendanube.index') }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('tiendanube.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    Tiendanube
+                </a>
+            @endcan
         </nav>
 
         <div class="border-t border-slate-800 p-3 text-xs text-slate-500">

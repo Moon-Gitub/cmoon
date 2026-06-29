@@ -23,9 +23,16 @@ use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\RetencionController;
 use App\Http\Controllers\RutaController;
 use App\Http\Controllers\SucursalController;
+use App\Http\Controllers\TiendanubeController;
 use App\Http\Controllers\UsuarioController;
+use App\Http\Controllers\TiendanubeWebhookController;
 use App\Http\Controllers\VentaController;
 use Illuminate\Support\Facades\Route;
+
+// Webhook Tiendanube (sin auth, validado por HMAC)
+Route::post('/webhooks/tiendanube', [TiendanubeWebhookController::class, 'handle'])
+    ->name('tiendanube.webhook')
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
@@ -205,5 +212,21 @@ Route::middleware('auth')->group(function () {
         Route::post('/retenciones/{retencion}/anular', [RetencionController::class, 'anular'])->name('retenciones.anular');
         Route::get('/retenciones/txt', [RetencionController::class, 'exportarTxt'])->name('retenciones.txt');
         Route::get('/retenciones/zip', [RetencionController::class, 'exportarZip'])->name('retenciones.zip');
+    });
+
+    // Integración Tiendanube
+    Route::middleware('permission:empresa.editar')->prefix('integraciones')->group(function () {
+        Route::get('/tiendanube', [TiendanubeController::class, 'index'])->name('tiendanube.index');
+        Route::post('/tiendanube/connect', [TiendanubeController::class, 'connect'])->name('tiendanube.connect');
+        Route::get('/tiendanube/callback', [TiendanubeController::class, 'callback'])->name('tiendanube.callback');
+        Route::delete('/tiendanube', [TiendanubeController::class, 'disconnect'])->name('tiendanube.disconnect');
+        Route::patch('/tiendanube/config', [TiendanubeController::class, 'updateConfig'])->name('tiendanube.config');
+        Route::post('/tiendanube/test', [TiendanubeController::class, 'testConnection'])->name('tiendanube.test');
+        Route::get('/tiendanube/logs', [TiendanubeController::class, 'logs'])->name('tiendanube.logs');
+        Route::get('/tiendanube/productos', [TiendanubeController::class, 'productos'])->name('tiendanube.productos');
+        Route::post('/tiendanube/sync/products', [TiendanubeController::class, 'syncProducts'])->name('tiendanube.sync.products');
+        Route::post('/tiendanube/sync/stock', [TiendanubeController::class, 'syncStock'])->name('tiendanube.sync.stock');
+        Route::post('/tiendanube/import/orders', [TiendanubeController::class, 'importOrders'])->name('tiendanube.import.orders');
+        Route::post('/tiendanube/import/products', [TiendanubeController::class, 'importProducts'])->name('tiendanube.import.products');
     });
 });
