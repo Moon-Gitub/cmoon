@@ -35,6 +35,10 @@ class EmpresaController extends Controller
             'email' => ['nullable', 'email', 'max:255'],
             'color_primario' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'logo' => ['nullable', 'image', 'max:2048'],
+            'agente_retencion_iibb' => ['nullable', 'boolean'],
+            'codigo_jurisdiccion_iibb' => ['nullable', 'integer', 'min:1'],
+            'tipo_regimen_retencion_default' => ['nullable', 'integer', 'min:1'],
+            'proximo_numero_recibo' => ['nullable', 'integer', 'min:1'],
         ], [], [
             'razon_social' => 'razón social',
             'nombre_fantasia' => 'nombre de fantasía',
@@ -43,6 +47,8 @@ class EmpresaController extends Controller
         ]);
 
         unset($datos['logo']);
+
+        $datos['agente_retencion_iibb'] = $request->boolean('agente_retencion_iibb');
 
         if ($request->hasFile('logo')) {
             $datos['logo_path'] = $request->file('logo')->store('logos', 'public');

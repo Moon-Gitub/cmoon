@@ -36,6 +36,7 @@ return [
         'comprobantes' => \App\LegacyImport\Importers\ComprobanteImporter::class,
         'cc_clientes' => \App\LegacyImport\Importers\ClienteCuentaCorrienteImporter::class,
         'cc_proveedores' => \App\LegacyImport\Importers\ProveedorCuentaCorrienteImporter::class,
+        'retenciones' => \App\LegacyImport\Importers\RetencionImporter::class,
         'presupuestos' => \App\LegacyImport\Importers\PresupuestoImporter::class,
         'compras' => \App\LegacyImport\Importers\CompraImporter::class,
     ],

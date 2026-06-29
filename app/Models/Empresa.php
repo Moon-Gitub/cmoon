@@ -25,6 +25,10 @@ class Empresa extends Model
         'logo_path',
         'color_primario',
         'activa',
+        'agente_retencion_iibb',
+        'codigo_jurisdiccion_iibb',
+        'tipo_regimen_retencion_default',
+        'proximo_numero_recibo',
     ];
 
     protected function casts(): array
@@ -32,6 +36,10 @@ class Empresa extends Model
         return [
             'inicio_actividades' => 'date',
             'activa' => 'boolean',
+            'agente_retencion_iibb' => 'boolean',
+            'codigo_jurisdiccion_iibb' => 'integer',
+            'tipo_regimen_retencion_default' => 'integer',
+            'proximo_numero_recibo' => 'integer',
         ];
     }
 

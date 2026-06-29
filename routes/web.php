@@ -98,6 +98,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/clientes/{cliente}/cuenta', [CuentaCorrienteController::class, 'registrarCliente'])->name('clientes.cuenta.registrar');
         Route::get('/proveedores/{proveedor}/cuenta', [CuentaCorrienteController::class, 'proveedor'])->name('proveedores.cuenta');
         Route::post('/proveedores/{proveedor}/cuenta', [CuentaCorrienteController::class, 'registrarProveedor'])->name('proveedores.cuenta.registrar');
+        Route::post('/proveedores/{proveedor}/cuenta/factura', [CuentaCorrienteController::class, 'facturaProveedor'])->name('proveedores.cuenta.factura');
+        Route::post('/proveedores/{proveedor}/cuenta/pago', [CuentaCorrienteController::class, 'pagoProveedor'])->name('proveedores.cuenta.pago');
     });
 
     Route::middleware('permission:pos.vender')->group(function () {
@@ -202,5 +204,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/retenciones', [RetencionController::class, 'store'])->name('retenciones.store');
         Route::post('/retenciones/{retencion}/anular', [RetencionController::class, 'anular'])->name('retenciones.anular');
         Route::get('/retenciones/txt', [RetencionController::class, 'exportarTxt'])->name('retenciones.txt');
+        Route::get('/retenciones/zip', [RetencionController::class, 'exportarZip'])->name('retenciones.zip');
     });
 });

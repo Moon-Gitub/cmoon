@@ -21,14 +21,26 @@ class MovimientoCuenta extends Model
         'referencia_id',
         'user_id',
         'fecha',
+        'factura_numero',
+        'factura_neto',
+        'factura_iva',
+        'medio_pago_id',
+        'caja_sesion_id',
     ];
 
     protected function casts(): array
     {
         return [
             'importe' => 'decimal:2',
+            'factura_neto' => 'decimal:2',
+            'factura_iva' => 'decimal:2',
             'fecha' => 'date',
         ];
+    }
+
+    public function medioPago(): BelongsTo
+    {
+        return $this->belongsTo(MedioPago::class);
     }
 
     public function titular(): MorphTo

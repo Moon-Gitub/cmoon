@@ -46,6 +46,7 @@ class ProveedorImporter extends AbstractImporter
                 'telefono' => $row->telefono ?: null,
                 'domicilio' => $row->direccion ?: null,
                 'localidad' => $row->localidad ?: null,
+                'alicuota_retencion_iibb' => (float) ($row->tipo_alicuota_iibb ?? 0),
                 'observaciones' => $row->observaciones ?: null,
                 'activo' => true,
             ]);

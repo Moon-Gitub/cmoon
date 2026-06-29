@@ -3,9 +3,16 @@
 @section('titulo', 'Retenciones IIBB (SIRCAR)')
 
 @section('contenido')
+    @unless ($empresa->agente_retencion_iibb)
+        <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            El agente de retención IIBB no está habilitado.
+            Configuralo en <a href="{{ route('empresa.edit') }}" class="font-semibold underline">Datos de la empresa</a>.
+        </div>
+    @endunless
+
     @can('retenciones.gestionar')
         <details class="mb-4 rounded-xl border border-slate-200 bg-white shadow-sm" {{ $errors->any() ? 'open' : '' }}>
-            <summary class="cursor-pointer px-5 py-3 text-sm font-semibold text-indigo-700">+ Registrar retención</summary>
+            <summary class="cursor-pointer px-5 py-3 text-sm font-semibold text-indigo-700">+ Registrar retención manual</summary>
             <form method="POST" action="{{ route('retenciones.store') }}"
                   x-data="{ neto: {{ old('factura_neto', 0) }}, alicuota: {{ old('alicuota', 1.25) }} }"
                   class="grid grid-cols-1 gap-4 border-t border-slate-100 p-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -17,18 +24,17 @@
                             class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         <option value="">Seleccionar…</option>
                         @foreach ($proveedores as $proveedor)
-                            <option value="{{ $proveedor->id }}" data-alicuota="{{ $proveedor->alicuota_retencion_iibb }}">
+                            <option value="{{ $proveedor->id }}" data-alicuota="{{ $proveedor->alicuota_retencion_iibb }}"
+                                {{ (string) old('proveedor_id', $proveedorId) === (string) $proveedor->id ? 'selected' : '' }}>
                                 {{ $proveedor->razon_social }} {{ $proveedor->cuit ? "({$proveedor->cuit})" : '' }}
                             </option>
                         @endforeach
                     </select>
-                    @error('proveedor_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="mb-1 block text-sm font-medium text-slate-700">Factura proveedor *</label>
                     <input type="text" name="factura_numero" value="{{ old('factura_numero') }}" required
-                           placeholder="0001-00001234" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    @error('factura_numero')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                           class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 </div>
                 <div>
                     <label class="mb-1 block text-sm font-medium text-slate-700">Fecha *</label>
@@ -39,7 +45,6 @@
                     <label class="mb-1 block text-sm font-medium text-slate-700">Neto factura *</label>
                     <input type="number" name="factura_neto" step="0.01" min="0.01" x-model.number="neto" required
                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    @error('factura_neto')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="mb-1 block text-sm font-medium text-slate-700">Alícuota % *</label>
@@ -48,12 +53,12 @@
                 </div>
                 <div>
                     <label class="mb-1 block text-sm font-medium text-slate-700">Régimen</label>
-                    <input type="number" name="regimen" value="{{ old('regimen', 101) }}" required
+                    <input type="number" name="regimen" value="{{ old('regimen', $defaults['regimen']) }}" required
                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 </div>
                 <div>
                     <label class="mb-1 block text-sm font-medium text-slate-700">Jurisdicción</label>
-                    <input type="number" name="jurisdiccion" value="{{ old('jurisdiccion', 913) }}" required
+                    <input type="number" name="jurisdiccion" value="{{ old('jurisdiccion', $defaults['jurisdiccion']) }}" required
                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <p class="mt-1 text-xs text-slate-400">913 = Mendoza</p>
                 </div>
@@ -81,12 +86,27 @@
             <input type="date" name="hasta" value="{{ $hasta->format('Y-m-d') }}"
                    class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
         </div>
+        <div>
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Proveedor</label>
+            <select name="proveedor_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <option value="">Todos</option>
+                @foreach ($proveedores as $proveedor)
+                    <option value="{{ $proveedor->id }}" {{ (string) $proveedorId === (string) $proveedor->id ? 'selected' : '' }}>
+                        {{ $proveedor->razon_social }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
         <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Filtrar</button>
-        <a href="{{ route('retenciones.txt', ['desde' => $desde->format('Y-m-d'), 'hasta' => $hasta->format('Y-m-d')]) }}"
+        <a href="{{ route('retenciones.txt', request()->only(['desde', 'hasta', 'proveedor_id'])) }}"
            class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50">
-            Exportar TXT SIRCAR
+            Exportar TXT
         </a>
-        <p class="ml-auto text-sm text-slate-500">Total retenido:
+        <a href="{{ route('retenciones.zip', request()->only(['desde', 'hasta', 'proveedor_id'])) }}"
+           class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50">
+            Exportar ZIP
+        </a>
+        <p class="ml-auto text-sm text-slate-500">Total retenido (activas):
             <span class="text-lg font-bold text-indigo-600">$ {{ number_format((float) $totalPeriodo, 2, ',', '.') }}</span>
         </p>
     </form>
@@ -96,11 +116,13 @@
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <tr>
                     <th class="px-4 py-3">Fecha</th>
+                    <th class="px-4 py-3">Recibo</th>
                     <th class="px-4 py-3">Proveedor</th>
                     <th class="px-4 py-3">Factura</th>
                     <th class="px-4 py-3 text-right">Neto</th>
                     <th class="px-4 py-3 text-right">Alícuota</th>
                     <th class="px-4 py-3 text-right">Retenido</th>
+                    <th class="px-4 py-3 text-right">Neto pagado</th>
                     <th class="px-4 py-3"></th>
                 </tr>
             </thead>
@@ -108,6 +130,7 @@
                 @forelse ($retenciones as $retencion)
                     <tr class="hover:bg-slate-50 {{ $retencion->anulada ? 'opacity-50' : '' }}">
                         <td class="px-4 py-2.5">{{ $retencion->fecha->format('d/m/Y') }}</td>
+                        <td class="px-4 py-2.5 font-mono text-xs">{{ $retencion->numero_recibo ?? '—' }}</td>
                         <td class="px-4 py-2.5">
                             {{ $retencion->proveedor->razon_social }}
                             <span class="text-xs text-slate-400">{{ $retencion->proveedor->cuit }}</span>
@@ -119,6 +142,9 @@
                         <td class="px-4 py-2.5 text-right">$ {{ number_format((float) $retencion->factura_neto, 2, ',', '.') }}</td>
                         <td class="px-4 py-2.5 text-right">{{ rtrim(rtrim(number_format((float) $retencion->alicuota, 3, ',', ''), '0'), ',') }}%</td>
                         <td class="px-4 py-2.5 text-right font-semibold">$ {{ number_format((float) $retencion->monto, 2, ',', '.') }}</td>
+                        <td class="px-4 py-2.5 text-right text-slate-500">
+                            {{ $retencion->monto_neto_pagado !== null ? '$ '.number_format((float) $retencion->monto_neto_pagado, 2, ',', '.') : '—' }}
+                        </td>
                         <td class="px-4 py-2.5 text-right">
                             @can('retenciones.gestionar')
                                 <form method="POST" action="{{ route('retenciones.anular', $retencion) }}" class="inline"
@@ -132,7 +158,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="px-4 py-10 text-center text-slate-400">No hay retenciones en el período.</td></tr>
+                    <tr><td colspan="9" class="px-4 py-10 text-center text-slate-400">No hay retenciones en el período.</td></tr>
                 @endforelse
             </tbody>
         </table>

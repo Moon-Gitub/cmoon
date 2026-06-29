@@ -15,11 +15,14 @@ class Retencion extends Model
     protected $fillable = [
         'empresa_id',
         'proveedor_id',
+        'numero_recibo',
         'user_id',
+        'movimiento_cuenta_id',
         'factura_numero',
         'factura_neto',
         'alicuota',
         'monto',
+        'monto_neto_pagado',
         'fecha',
         'regimen',
         'jurisdiccion',
@@ -32,6 +35,7 @@ class Retencion extends Model
             'factura_neto' => 'decimal:2',
             'alicuota' => 'decimal:3',
             'monto' => 'decimal:2',
+            'monto_neto_pagado' => 'decimal:2',
             'fecha' => 'date',
             'anulada' => 'boolean',
         ];
@@ -45,5 +49,10 @@ class Retencion extends Model
     public function usuario(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function movimientoCuenta(): BelongsTo
+    {
+        return $this->belongsTo(MovimientoCuenta::class, 'movimiento_cuenta_id');
     }
 }

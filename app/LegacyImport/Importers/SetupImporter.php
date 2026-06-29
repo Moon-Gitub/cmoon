@@ -45,6 +45,10 @@ class SetupImporter extends AbstractImporter
                 'codigo_postal' => $legacy->codigo_postal ?: $empresa->codigo_postal,
                 'telefono' => $legacy->telefono ?: $empresa->telefono,
                 'email' => $legacy->mail ?: $empresa->email,
+                'agente_retencion_iibb' => (bool) ($legacy->agente_retencion_iibb ?? $empresa->agente_retencion_iibb),
+                'codigo_jurisdiccion_iibb' => (int) ($legacy->codigo_jurisdiccion_iibb ?? $empresa->codigo_jurisdiccion_iibb ?? 913),
+                'tipo_regimen_retencion_default' => (int) ($legacy->tipo_regimen_retencion_default ?? $empresa->tipo_regimen_retencion_default ?? 101),
+                'proximo_numero_recibo' => (int) ($legacy->proximo_numero_recibo ?? $empresa->proximo_numero_recibo ?? 1),
             ]);
         }
 
