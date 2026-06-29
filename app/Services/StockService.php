@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\StockUpdated;
 use App\Models\MovimientoStock;
 use App\Models\Producto;
 use App\Models\Stock;
@@ -25,7 +26,7 @@ class StockService
         ?Model $referencia = null,
         ?int $userId = null,
     ): Stock {
-        return DB::transaction(function () use ($producto, $sucursalId, $cantidad, $tipo, $observacion, $referencia, $userId) {
+        $stock = DB::transaction(function () use ($producto, $sucursalId, $cantidad, $tipo, $observacion, $referencia, $userId) {
             $stock = Stock::lockForUpdate()->firstOrCreate(
                 ['producto_id' => $producto->id, 'sucursal_id' => $sucursalId],
                 ['cantidad' => 0]
@@ -48,6 +49,11 @@ class StockService
 
             return $stock;
         });
+
+        // Disparar evento para integraciones (Tiendanube, etc.)
+        StockUpdated::dispatch($producto, $sucursalId, $stock->cantidad);
+
+        return $stock;
     }
 
     /**

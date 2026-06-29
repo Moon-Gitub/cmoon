@@ -28,6 +28,7 @@ class TiendanubeController extends Controller
         $logs = collect();
 
         if ($integracion) {
+            // Métricas básicas
             $stats = [
                 'productos_vinculados' => $integracion->productMaps()->count(),
                 'categorias_vinculadas' => $integracion->categoryMaps()->count(),
@@ -35,6 +36,35 @@ class TiendanubeController extends Controller
                 'last_stock_sync' => $integracion->last_stock_sync_at,
                 'last_order_sync' => $integracion->last_order_sync_at,
             ];
+
+            // Métricas avanzadas
+            $stats['ventas_importadas_hoy'] = \App\Models\Venta::where('empresa_id', $empresaId)
+                ->where('origen', 'tiendanube')
+                ->whereDate('created_at', today())
+                ->count();
+
+            $stats['ventas_importadas_mes'] = \App\Models\Venta::where('empresa_id', $empresaId)
+                ->where('origen', 'tiendanube')
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count();
+
+            $stats['total_ventas_tn'] = \App\Models\Venta::where('empresa_id', $empresaId)
+                ->where('origen', 'tiendanube')
+                ->whereNull('anulada_at')
+                ->sum('total');
+
+            // Errores recientes (últimas 24h)
+            $stats['errores_24h'] = $integracion->logs()
+                ->where('status', 'error')
+                ->where('created_at', '>=', now()->subDay())
+                ->count();
+
+            // Syncs exitosos hoy
+            $stats['syncs_hoy'] = $integracion->logs()
+                ->where('status', 'ok')
+                ->whereDate('created_at', today())
+                ->count();
 
             $logs = $integracion->logs()
                 ->orderByDesc('created_at')

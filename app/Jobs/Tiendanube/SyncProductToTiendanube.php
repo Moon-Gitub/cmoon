@@ -50,18 +50,26 @@ class SyncProductToTiendanube implements ShouldQueue
                     'last_synced_at' => now(),
                     'tn_sku' => $this->producto->codigo,
                 ]);
+
+                // Sincronizar imagen si existe y no tiene imágenes en TN
+                $this->syncImage($service, $map->tn_product_id);
             } else {
                 // Crear nuevo producto
                 $result = $service->createProduct($productData);
 
+                $tnProductId = $result['id'];
+
                 TiendanubeProductMap::create([
                     'integracion_id' => $this->integracion->id,
                     'producto_id' => $this->producto->id,
-                    'tn_product_id' => $result['id'],
+                    'tn_product_id' => $tnProductId,
                     'tn_variant_id' => $result['variants'][0]['id'] ?? null,
                     'tn_sku' => $this->producto->codigo,
                     'last_synced_at' => now(),
                 ]);
+
+                // Subir imagen si existe
+                $this->syncImage($service, $tnProductId);
             }
 
             // Sincronizar stock si está habilitado
@@ -122,5 +130,35 @@ class SyncProductToTiendanube implements ShouldQueue
         }
 
         return $data;
+    }
+
+    private function syncImage(TiendanubeService $service, int $tnProductId): void
+    {
+        if (! $this->producto->imagen_path) {
+            return;
+        }
+
+        // Verificar si ya tiene imágenes
+        $existingImages = $service->getProductImages($tnProductId);
+
+        if (! empty($existingImages)) {
+            return; // Ya tiene imágenes, no reemplazar
+        }
+
+        // Construir URL pública de la imagen
+        $imagePath = $this->producto->imagen_path;
+
+        // Si es una URL completa, usarla directamente
+        if (str_starts_with($imagePath, 'http')) {
+            $service->uploadProductImage($tnProductId, $imagePath);
+
+            return;
+        }
+
+        // Si es un path relativo, construir URL pública
+        $baseUrl = config('app.url');
+        $imageUrl = "{$baseUrl}/storage/{$imagePath}";
+
+        $service->uploadProductImage($tnProductId, $imageUrl);
     }
 }

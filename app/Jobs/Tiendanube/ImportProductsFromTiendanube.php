@@ -80,19 +80,14 @@ class ImportProductsFromTiendanube implements ShouldQueue
     private function importProduct(array $tnProduct): string
     {
         $tnProductId = $tnProduct['id'];
-        $variant = $tnProduct['variants'][0] ?? [];
-        $tnVariantId = $variant['id'] ?? null;
+        $variants = $tnProduct['variants'] ?? [];
 
-        // Buscar mapeo existente
-        $map = TiendanubeProductMap::where('integracion_id', $this->integracion->id)
-            ->where('tn_product_id', $tnProductId)
-            ->first();
+        if (empty($variants)) {
+            return 'skipped';
+        }
 
         $nombre = $tnProduct['name']['es'] ?? $tnProduct['name']['en'] ?? 'Producto TN';
         $descripcion = $tnProduct['description']['es'] ?? $tnProduct['description']['en'] ?? null;
-        $sku = $variant['sku'] ?? 'TN-'.$tnProductId;
-        $precio = (float) ($variant['price'] ?? 0);
-        $costo = (float) ($variant['cost'] ?? 0);
 
         // Limpiar HTML de descripción
         if ($descripcion) {
@@ -101,64 +96,97 @@ class ImportProductsFromTiendanube implements ShouldQueue
             $descripcion = trim($descripcion);
         }
 
-        if ($map && $map->producto) {
-            // Actualizar producto existente
-            $map->producto->update([
-                'nombre' => $nombre,
+        $categoriaId = $this->findOrCreateCategoria($tnProduct['categories'] ?? []);
+        $resultType = 'updated';
+
+        // Procesar cada variante como un producto separado (o actualizar si ya existe)
+        foreach ($variants as $index => $variant) {
+            $tnVariantId = $variant['id'] ?? null;
+            $sku = $variant['sku'] ?? "TN-{$tnProductId}-{$index}";
+            $precio = (float) ($variant['price'] ?? 0);
+            $costo = (float) ($variant['cost'] ?? 0);
+
+            // Construir nombre con atributos de variante si tiene múltiples
+            $variantName = $nombre;
+            $variantValues = array_filter([
+                $variant['values'][0]['es'] ?? $variant['values'][0]['en'] ?? null,
+                $variant['values'][1]['es'] ?? $variant['values'][1]['en'] ?? null,
+                $variant['values'][2]['es'] ?? $variant['values'][2]['en'] ?? null,
+            ]);
+
+            if (count($variants) > 1 && ! empty($variantValues)) {
+                $variantName = $nombre.' - '.implode(' / ', $variantValues);
+            }
+
+            // Buscar mapeo existente para esta variante
+            $map = TiendanubeProductMap::where('integracion_id', $this->integracion->id)
+                ->where('tn_product_id', $tnProductId)
+                ->where('tn_variant_id', $tnVariantId)
+                ->first();
+
+            if ($map && $map->producto) {
+                // Actualizar producto existente
+                $map->producto->update([
+                    'nombre' => $variantName,
+                    'descripcion' => $descripcion,
+                    'precio_venta' => $precio,
+                    'precio_compra' => $costo ?: $map->producto->precio_compra,
+                    'activo' => $tnProduct['published'] ?? true,
+                ]);
+
+                $map->update(['last_synced_at' => now(), 'tn_sku' => $sku]);
+
+                continue;
+            }
+
+            // Verificar si existe producto con mismo SKU
+            $existente = Producto::where('empresa_id', $this->integracion->empresa_id)
+                ->where('codigo', $sku)
+                ->first();
+
+            if ($existente) {
+                // Crear mapeo para producto existente
+                TiendanubeProductMap::updateOrCreate(
+                    [
+                        'integracion_id' => $this->integracion->id,
+                        'tn_product_id' => $tnProductId,
+                        'tn_variant_id' => $tnVariantId,
+                    ],
+                    [
+                        'producto_id' => $existente->id,
+                        'tn_sku' => $sku,
+                        'last_synced_at' => now(),
+                    ]
+                );
+
+                continue;
+            }
+
+            // Crear nuevo producto
+            $producto = Producto::create([
+                'empresa_id' => $this->integracion->empresa_id,
+                'categoria_id' => $categoriaId,
+                'codigo' => $sku,
+                'nombre' => $variantName,
                 'descripcion' => $descripcion,
                 'precio_venta' => $precio,
-                'precio_compra' => $costo ?: $map->producto->precio_compra,
+                'precio_compra' => $costo,
                 'activo' => $tnProduct['published'] ?? true,
             ]);
 
-            $map->update(['last_synced_at' => now()]);
-
-            return 'updated';
-        }
-
-        // Verificar si existe producto con mismo código
-        $existente = Producto::where('empresa_id', $this->integracion->empresa_id)
-            ->where('codigo', $sku)
-            ->first();
-
-        if ($existente) {
-            // Crear mapeo para producto existente
             TiendanubeProductMap::create([
                 'integracion_id' => $this->integracion->id,
-                'producto_id' => $existente->id,
+                'producto_id' => $producto->id,
                 'tn_product_id' => $tnProductId,
                 'tn_variant_id' => $tnVariantId,
                 'tn_sku' => $sku,
                 'last_synced_at' => now(),
             ]);
 
-            return 'updated';
+            $resultType = 'created';
         }
 
-        // Crear nuevo producto
-        $categoriaId = $this->findOrCreateCategoria($tnProduct['categories'] ?? []);
-
-        $producto = Producto::create([
-            'empresa_id' => $this->integracion->empresa_id,
-            'categoria_id' => $categoriaId,
-            'codigo' => $sku,
-            'nombre' => $nombre,
-            'descripcion' => $descripcion,
-            'precio_venta' => $precio,
-            'precio_compra' => $costo,
-            'activo' => $tnProduct['published'] ?? true,
-        ]);
-
-        TiendanubeProductMap::create([
-            'integracion_id' => $this->integracion->id,
-            'producto_id' => $producto->id,
-            'tn_product_id' => $tnProductId,
-            'tn_variant_id' => $tnVariantId,
-            'tn_sku' => $sku,
-            'last_synced_at' => now(),
-        ]);
-
-        return 'created';
+        return $resultType;
     }
 
     private function findOrCreateCategoria(array $categories): ?int

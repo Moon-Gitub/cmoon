@@ -230,6 +230,62 @@ class TiendanubeService
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Product Images
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function getProductImages(int $productId): array
+    {
+        $response = $this->client()->get("/products/{$productId}/images");
+
+        return $response->json() ?? [];
+    }
+
+    public function uploadProductImage(int $productId, string $imageUrl): ?array
+    {
+        $response = $this->client()->post("/products/{$productId}/images", [
+            'src' => $imageUrl,
+        ]);
+
+        if ($response->failed()) {
+            $this->log(
+                'product_sync',
+                'push',
+                ['product_id' => $productId, 'image_url' => $imageUrl],
+                null,
+                'error',
+                'Error subiendo imagen: '.$response->body(),
+                'product',
+                $productId,
+            );
+
+            return null;
+        }
+
+        return $response->json();
+    }
+
+    public function uploadProductImageBase64(int $productId, string $base64, string $filename): ?array
+    {
+        $response = $this->client()->post("/products/{$productId}/images", [
+            'filename' => $filename,
+            'attachment' => $base64,
+        ]);
+
+        if ($response->failed()) {
+            return null;
+        }
+
+        return $response->json();
+    }
+
+    public function deleteProductImage(int $productId, int $imageId): bool
+    {
+        $response = $this->client()->delete("/products/{$productId}/images/{$imageId}");
+
+        return $response->successful();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Stock
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -405,6 +461,69 @@ class TiendanubeService
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Coupons
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function getCoupons(array $params = []): array
+    {
+        $defaults = ['per_page' => 50, 'page' => 1];
+        $params = array_merge($defaults, $params);
+
+        $response = $this->client()->get('/coupons', $params);
+
+        return $response->json() ?? [];
+    }
+
+    public function getCoupon(int $couponId): ?array
+    {
+        try {
+            $response = $this->client()->get("/coupons/{$couponId}");
+
+            return $response->json();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    public function createCoupon(array $data): array
+    {
+        $response = $this->client()->post('/coupons', $data);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al crear cupón: '.$response->body());
+        }
+
+        $this->log(
+            'coupon_sync',
+            'push',
+            $data,
+            $response->json(),
+            'ok',
+            'Cupón creado: '.($data['code'] ?? 'N/A'),
+        );
+
+        return $response->json();
+    }
+
+    public function updateCoupon(int $couponId, array $data): array
+    {
+        $response = $this->client()->put("/coupons/{$couponId}", $data);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al actualizar cupón: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function deleteCoupon(int $couponId): bool
+    {
+        $response = $this->client()->delete("/coupons/{$couponId}");
+
+        return $response->successful();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Customers
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -427,6 +546,28 @@ class TiendanubeService
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    public function createCustomer(array $data): array
+    {
+        $response = $this->client()->post('/customers', $data);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al crear cliente: '.$response->body());
+        }
+
+        return $response->json();
+    }
+
+    public function updateCustomer(int $customerId, array $data): array
+    {
+        $response = $this->client()->put("/customers/{$customerId}", $data);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Error al actualizar cliente: '.$response->body());
+        }
+
+        return $response->json();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
