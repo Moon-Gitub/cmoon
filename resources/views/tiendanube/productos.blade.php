@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Productos Tiendanube')
+@section('titulo', 'Productos Tiendanube')
 
-@section('content')
+@section('contenido')
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <div>
