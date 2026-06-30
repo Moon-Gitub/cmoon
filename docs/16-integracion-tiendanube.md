@@ -2,6 +2,8 @@
 
 POSMoon permite conectar tu tienda de Tiendanube para sincronizar productos, stock, precios, clientes y recibir órdenes automáticamente. Incluye funciones avanzadas como despacho de pedidos, precios promocionales, carritos abandonados y más.
 
+> **Nota:** Esta integración es **totalmente opcional**. POSMoon funciona perfectamente sin Tiendanube. El menú y las funciones de Tiendanube solo aparecen si configurás las credenciales en el `.env`.
+
 ## Índice
 
 1. [Requisitos previos](#requisitos-previos)

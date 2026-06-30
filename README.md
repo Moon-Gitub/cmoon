@@ -106,9 +106,9 @@ cmoon/
 
 ---
 
-## Integración Tiendanube
+## Integración Tiendanube (opcional)
 
-POSMoon incluye integración completa con Tiendanube (Nuvemshop):
+POSMoon incluye integración completa con Tiendanube (Nuvemshop). **Es totalmente opcional** — el sistema funciona perfectamente sin configurarla.
 
 | Funcionalidad | Descripción |
 |---------------|-------------|
