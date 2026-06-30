@@ -123,6 +123,20 @@ services:
       timeout: 5s
       retries: 10
 
+  # Adminer - Admin de base de datos vía web (opcional, deshabilitar en producción si no se usa)
+  adminer:
+    image: adminer:4
+    restart: unless-stopped
+    networks:
+      - default
+      - dokploy-network
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+      ADMINER_DESIGN: dracula
+    depends_on:
+      mysql:
+        condition: service_healthy
+
 volumes:
   app-storage:
   mysql-data:
