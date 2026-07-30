@@ -76,8 +76,13 @@ if [ "$rc" -ne 0 ]; then
 fi
 
 echo "==> legacy:import --create-empresa" | tee -a "$OUT"
+IMPORT_ARGS=(legacy:import --create-empresa)
+if [ "${LEGACY_FORCE:-false}" = "true" ]; then
+  IMPORT_ARGS+=(--reset-maps)
+  echo "(LEGACY_FORCE → --reset-maps)" | tee -a "$OUT"
+fi
 set +e
-php artisan legacy:import --create-empresa >>"$OUT" 2>&1
+php artisan "${IMPORT_ARGS[@]}" >>"$OUT" 2>&1
 rc=$?
 set -e
 

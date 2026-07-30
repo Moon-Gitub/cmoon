@@ -140,7 +140,6 @@ class SetupImporter extends AbstractImporter
             'activa' => true,
         ];
 
-        // Reutilizar empresa del seeder / import previo si el CUIT ya existe.
         if ($cuit) {
             $existing = Empresa::query()->where('cuit', $cuit)->first();
             if ($existing) {
@@ -149,6 +148,20 @@ class SetupImporter extends AbstractImporter
                 return $existing->fresh();
             }
             $attrs['cuit'] = $cuit;
+        }
+
+        // Reutilizar la empresa del seeder ("Mi Empresa" / CUIT vacío) en lugar de crear otra.
+        $seed = Empresa::query()
+            ->where(function ($q) {
+                $q->whereNull('cuit')->orWhere('razon_social', 'Mi Empresa');
+            })
+            ->orderBy('id')
+            ->first();
+
+        if ($seed) {
+            $seed->update($attrs);
+
+            return $seed->fresh();
         }
 
         return Empresa::create($attrs);

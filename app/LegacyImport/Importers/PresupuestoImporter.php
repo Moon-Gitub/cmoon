@@ -22,6 +22,10 @@ class PresupuestoImporter extends AbstractImporter
 
     public function import(LegacyImportContext $ctx): void
     {
+        if (! $this->tableExists($ctx, 'presupuestos')) {
+            return;
+        }
+
         foreach ($ctx->legacy('presupuestos')->orderBy('id')->get() as $row) {
             if ($this->skipIfMapped($ctx, 'presupuesto', $row->id)) {
                 continue;

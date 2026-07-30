@@ -19,6 +19,10 @@ class ListaPrecioImporter extends AbstractImporter
 
     public function import(LegacyImportContext $ctx): void
     {
+        if (! $this->tableExists($ctx, 'listas_precio')) {
+            return;
+        }
+
         $query = $ctx->legacy('listas_precio')->orderBy('id');
 
         if ($this->columnExists($ctx, 'listas_precio', 'id_empresa')) {
@@ -47,14 +51,5 @@ class ListaPrecioImporter extends AbstractImporter
 
             $ctx->remember('lista_precio', $row->id, $lista->id);
         }
-    }
-
-    private function columnExists(LegacyImportContext $ctx, string $table, string $column): bool
-    {
-        return $ctx->legacy('information_schema.columns')
-            ->where('TABLE_SCHEMA', config('database.connections.'.config('legacy.connection').'.database'))
-            ->where('TABLE_NAME', $table)
-            ->where('COLUMN_NAME', $column)
-            ->exists();
     }
 }
