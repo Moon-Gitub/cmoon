@@ -71,7 +71,24 @@ class ProductoImporter extends AbstractImporter
                     continue;
                 }
 
-                $producto = Producto::create($payload);
+                $producto = Producto::query()
+                    ->where('empresa_id', $ctx->empresaId)
+                    ->where('codigo', $payload['codigo'])
+                    ->first();
+
+                if ($producto) {
+                    $producto->update(collect($payload)->except(['empresa_id', 'codigo'])->all());
+                } else {
+                    try {
+                        $producto = Producto::create($payload);
+                    } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                        // Carrera / código duplicado en legacy: reutilizar el existente.
+                        $producto = Producto::query()
+                            ->where('empresa_id', $ctx->empresaId)
+                            ->where('codigo', $payload['codigo'])
+                            ->firstOrFail();
+                    }
+                }
 
                 foreach ($this->stockFields as $field) {
                     if (! property_exists($row, $field) && ! isset($row->{$field})) {
