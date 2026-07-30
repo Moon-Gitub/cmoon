@@ -6,7 +6,6 @@ use App\Models\Emisor;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use SimpleXMLElement;
-use SoapClient;
 
 /**
  * WSAA: autenticación contra AFIP. Genera y cachea el Ticket de Acceso (TA)
@@ -80,13 +79,10 @@ class WsaaService
 
         $cms = $this->firmarTra($this->crearTra(), $certPath, $keyPath);
 
-        $cliente = new SoapClient(resource_path('afip/wsdl/wsaa.wsdl'), [
-            'soap_version' => SOAP_1_2,
-            'location' => $emisor->esProduccion() ? self::URL_PRODUCCION : self::URL_HOMOLOGACION,
-            'trace' => 1,
-            'exceptions' => true,
-            'connection_timeout' => 30,
-        ]);
+        $cliente = AfipSoap::client(
+            resource_path('afip/wsdl/wsaa.wsdl'),
+            $emisor->esProduccion() ? self::URL_PRODUCCION : self::URL_HOMOLOGACION,
+        );
 
         $resultado = $cliente->loginCms(['in0' => $cms]);
 

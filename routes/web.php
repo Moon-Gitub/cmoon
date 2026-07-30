@@ -27,12 +27,38 @@ use App\Http\Controllers\TiendanubeController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\TiendanubeWebhookController;
 use App\Http\Controllers\VentaController;
+use App\Services\Afip\AfipSoap;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 // Webhook Tiendanube (sin auth, validado por HMAC)
 Route::post('/webhooks/tiendanube', [TiendanubeWebhookController::class, 'handle'])
     ->name('tiendanube.webhook')
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
+// Diagnóstico de salida a AFIP (token = sha256(APP_KEY) primeros 16 hex)
+Route::get('/_diag/afip', function () {
+    $esperado = substr(hash('sha256', (string) config('app.key')), 0, 16);
+    abort_unless(hash_equals($esperado, (string) request('t')), 404);
+
+    $certs = [];
+    foreach (\App\Models\Emisor::query()->get(['id', 'cuit', 'entorno', 'certificado_path', 'clave_privada_path']) as $e) {
+        $certs[] = [
+            'id' => $e->id,
+            'cuit' => $e->cuit,
+            'entorno' => $e->entorno,
+            'cert_exists' => $e->certificado_path && Storage::exists($e->certificado_path),
+            'key_exists' => $e->clave_privada_path && Storage::exists($e->clave_privada_path),
+        ];
+    }
+
+    return response()->json([
+        'conectividad' => AfipSoap::diagnosticarConectividad(),
+        'emisores' => $certs,
+        'openssl' => extension_loaded('openssl'),
+        'soap' => extension_loaded('soap'),
+    ]);
+})->name('diag.afip');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');

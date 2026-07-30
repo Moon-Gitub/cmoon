@@ -199,12 +199,9 @@ class WsfeService
 
     private function cliente(Emisor $emisor): SoapClient
     {
-        return new SoapClient(resource_path('afip/wsdl/wsfe.wsdl'), [
-            'soap_version' => SOAP_1_2,
-            'location' => $emisor->esProduccion() ? self::URL_PRODUCCION : self::URL_HOMOLOGACION,
-            'trace' => 1,
-            'exceptions' => true,
-            'connection_timeout' => 30,
-        ]);
+        return AfipSoap::client(
+            resource_path('afip/wsdl/wsfe.wsdl'),
+            $emisor->esProduccion() ? self::URL_PRODUCCION : self::URL_HOMOLOGACION,
+        );
     }
 }
