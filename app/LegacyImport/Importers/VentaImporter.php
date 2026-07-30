@@ -67,23 +67,50 @@ class VentaImporter extends AbstractImporter
                     continue;
                 }
 
-                $venta = Venta::create([
-                    'uuid' => $uuid,
-                    'empresa_id' => $ctx->empresaId,
-                    'sucursal_id' => $sucursalId,
-                    'cliente_id' => $clienteId,
-                    'user_id' => $userId,
-                    // Usar id legacy como número para evitar colisión al fusionar
-                    // varias empresas legacy (mismo `codigo` en distintas empresas).
-                    'numero' => (int) $row->id,
-                    'estado' => $this->mapEstado($row->estado ?? 1),
-                    'origen' => 'pos',
-                    'subtotal' => $subtotal,
-                    'descuento' => 0,
-                    'recargo' => 0,
-                    'total' => $total,
-                    'fecha' => $this->parseDateTime($row->fecha ?? null) ?? now(),
-                ]);
+                // Preferir id legacy; si ya existe (imports previos usaban `codigo`),
+                // desplazar para no chocar con ventas.empresa_id+numero unique.
+                $numero = (int) $row->id;
+                if (Venta::query()
+                    ->where('empresa_id', $ctx->empresaId)
+                    ->where('numero', $numero)
+                    ->exists()) {
+                    $numero = 200_000_000 + (int) $row->id;
+                }
+
+                try {
+                    $venta = Venta::create([
+                        'uuid' => $uuid,
+                        'empresa_id' => $ctx->empresaId,
+                        'sucursal_id' => $sucursalId,
+                        'cliente_id' => $clienteId,
+                        'user_id' => $userId,
+                        'numero' => $numero,
+                        'estado' => $this->mapEstado($row->estado ?? 1),
+                        'origen' => 'pos',
+                        'subtotal' => $subtotal,
+                        'descuento' => 0,
+                        'recargo' => 0,
+                        'total' => $total,
+                        'fecha' => $this->parseDateTime($row->fecha ?? null) ?? now(),
+                    ]);
+                } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+                    $numero = 200_000_000 + (int) $row->id;
+                    $venta = Venta::create([
+                        'uuid' => $uuid,
+                        'empresa_id' => $ctx->empresaId,
+                        'sucursal_id' => $sucursalId,
+                        'cliente_id' => $clienteId,
+                        'user_id' => $userId,
+                        'numero' => $numero,
+                        'estado' => $this->mapEstado($row->estado ?? 1),
+                        'origen' => 'pos',
+                        'subtotal' => $subtotal,
+                        'descuento' => 0,
+                        'recargo' => 0,
+                        'total' => $total,
+                        'fecha' => $this->parseDateTime($row->fecha ?? null) ?? now(),
+                    ]);
+                }
 
                 foreach ($items as $item) {
                     $productoId = $ctx->idMap->get('producto', $item['id_producto']);
