@@ -99,6 +99,11 @@ class LegacyLoadDumpCommand extends Command
             }
         }
 
+        // Normalizar dump: evitar CREATE/USE de la BD original del cliente
+        $raw = preg_replace('/^CREATE DATABASE.*$/mi', '', $raw) ?? $raw;
+        $raw = preg_replace('/^USE [`\'"]?[\w]+[`\'"]?;?\s*$/mi', '', $raw) ?? $raw;
+        $raw = str_replace('`jamrod_db`', "`{$database}`", $raw);
+
         $this->info('Importando SQL ('.number_format(strlen($raw) / 1024 / 1024, 2).' MB)...');
 
         try {
