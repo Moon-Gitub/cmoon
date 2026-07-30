@@ -169,11 +169,17 @@ services:
           echo "LEGACY_AUTO_MIGRATE!=true → skip migrator"
           exit 0
         fi
+        if [ "${LEGACY_FORCE:-false}" = "true" ]; then
+          rm -f storage/app/legacy-migrate.done
+          echo "LEGACY_FORCE=true → re-run"
+        fi
         if [ -f storage/app/legacy-migrate.done ]; then
           echo "legacy-migrate.done existe → skip"
           exit 0
         fi
         export LEGACY_DB_PASSWORD="$${LEGACY_DB_PASSWORD:-$$DB_ROOT_PASSWORD}"
+        echo "==> migrate --force"
+        php artisan migrate --force || true
         echo "==> legacy:load-dump"
         php artisan legacy:load-dump --database="$${LEGACY_DB_DATABASE}"
         echo "==> legacy:import --create-empresa"
