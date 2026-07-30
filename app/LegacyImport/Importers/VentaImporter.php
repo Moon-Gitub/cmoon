@@ -28,7 +28,7 @@ class VentaImporter extends AbstractImporter
 
         $query = $ctx->legacy('ventas')->orderBy('id');
 
-        if ($this->hasColumn($ctx, 'id_empresa')) {
+        if ($this->columnExists($ctx, 'ventas', 'id_empresa')) {
             $query->where('id_empresa', $ctx->legacyEmpresaId);
         }
 
@@ -169,22 +169,5 @@ class VentaImporter extends AbstractImporter
     private function mapEstado(mixed $legacy): string
     {
         return 'completada';
-    }
-
-    private function hasColumn(LegacyImportContext $ctx, string $column): bool
-    {
-        return $ctx->legacy('information_schema.columns')
-            ->where('TABLE_SCHEMA', config('database.connections.'.config('legacy.connection').'.database'))
-            ->where('TABLE_NAME', 'ventas')
-            ->where('COLUMN_NAME', $column)
-            ->exists();
-    }
-
-    private function tableExists(LegacyImportContext $ctx, string $table): bool
-    {
-        return $ctx->legacy('information_schema.tables')
-            ->where('TABLE_SCHEMA', config('database.connections.'.config('legacy.connection').'.database'))
-            ->where('TABLE_NAME', $table)
-            ->exists();
     }
 }

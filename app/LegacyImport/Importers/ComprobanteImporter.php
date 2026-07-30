@@ -87,12 +87,4 @@ class ComprobanteImporter extends AbstractImporter
             $ctx->remember('comprobante', $vf->id, $ventaId);
         }
     }
-
-    private function tableExists(LegacyImportContext $ctx, string $table): bool
-    {
-        return $ctx->legacy('information_schema.tables')
-            ->where('TABLE_SCHEMA', config('database.connections.'.config('legacy.connection').'.database'))
-            ->where('TABLE_NAME', $table)
-            ->exists();
-    }
 }

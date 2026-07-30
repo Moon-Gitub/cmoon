@@ -24,7 +24,7 @@ class UserImporter extends AbstractImporter
     {
         $query = $ctx->legacy('usuarios')->orderBy('id');
 
-        if ($this->hasColumn($ctx, 'empresa')) {
+        if ($this->columnExists($ctx, 'usuarios', 'empresa')) {
             $query->where('empresa', $ctx->legacyEmpresaId);
         }
 

@@ -75,20 +75,4 @@ class RetencionImporter extends AbstractImporter
         }
     }
 
-    private function tableExists(LegacyImportContext $ctx, string $table): bool
-    {
-        return $ctx->legacy('information_schema.tables')
-            ->where('TABLE_SCHEMA', config('database.connections.'.config('legacy.connection').'.database'))
-            ->where('TABLE_NAME', $table)
-            ->exists();
-    }
-
-    private function columnExists(LegacyImportContext $ctx, string $table, string $column): bool
-    {
-        return $ctx->legacy('information_schema.columns')
-            ->where('TABLE_SCHEMA', config('database.connections.'.config('legacy.connection').'.database'))
-            ->where('TABLE_NAME', $table)
-            ->where('COLUMN_NAME', $column)
-            ->exists();
-    }
 }
