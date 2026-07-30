@@ -44,26 +44,47 @@ export LEGACY_DB_PASSWORD="${LEGACY_DB_PASSWORD:-${DB_ROOT_PASSWORD:-}}"
 export LEGACY_IMPORT_ENABLED=true
 rm -f bootstrap/cache/config.php bootstrap/cache/routes-v7.php 2>/dev/null || true
 
-set +e
+OUT=/tmp/mig-out.txt
+: > "$OUT"
+run_step() {
+  echo "==> $*" | tee -a "$OUT"
+  set +e
+  "$@" >>"$OUT" 2>&1
+  local rc=$?
+  set -e
+  return $rc
+}
+
 {
   echo "==> env check"
   echo "LEGACY_DB_DATABASE=${LEGACY_DB_DATABASE:-}"
   echo "LEGACY_DB_USERNAME=${LEGACY_DB_USERNAME:-}"
   echo "LEGACY_IMPORT_ENABLED=${LEGACY_IMPORT_ENABLED:-}"
-  echo "==> migrate --force"
-  php artisan migrate --force || true
-  echo "==> legacy:load-dump"
-  php artisan legacy:load-dump --database="${LEGACY_DB_DATABASE:-jamrod_legacy}"
-  echo "==> legacy:import --create-empresa"
-  php artisan legacy:import --create-empresa
-  echo "==> migración legacy finalizada"
-} 2>&1 | tee /tmp/mig-out.txt
-rc=${PIPESTATUS[0]}
+} | tee -a "$OUT"
+
+php artisan migrate --force >>"$OUT" 2>&1 || true
+
+echo "==> legacy:load-dump" | tee -a "$OUT"
+set +e
+php artisan legacy:load-dump --database="${LEGACY_DB_DATABASE:-jamrod_legacy}" >>"$OUT" 2>&1
+rc=$?
+set -e
+if [ "$rc" -ne 0 ]; then
+  log_sql "$(cat "$OUT")"
+  echo "==> load-dump FAILED rc=$rc"
+  exit "$rc"
+fi
+
+echo "==> legacy:import --create-empresa" | tee -a "$OUT"
+set +e
+php artisan legacy:import --create-empresa >>"$OUT" 2>&1
+rc=$?
 set -e
 
-log_sql "$(cat /tmp/mig-out.txt)"
+log_sql "$(cat "$OUT")"
 
 if [ "$rc" -eq 0 ]; then
+  echo "==> migración legacy finalizada" | tee -a "$OUT"
   date -u +"completed %Y-%m-%dT%H:%M:%SZ" > storage/app/legacy-migrate.done
   echo "==> done marker written"
 else

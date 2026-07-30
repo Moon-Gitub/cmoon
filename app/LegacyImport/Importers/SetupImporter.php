@@ -125,10 +125,10 @@ class SetupImporter extends AbstractImporter
 
     public static function createEmpresaFromLegacy(object $legacy): Empresa
     {
-        return Empresa::create([
+        $cuit = $legacy->cuit ?: null;
+        $attrs = [
             'razon_social' => $legacy->razon_social ?: 'Empresa importada',
             'nombre_fantasia' => $legacy->titular,
-            'cuit' => $legacy->cuit,
             'condicion_iva' => CondicionIvaMapper::toCmoon($legacy->condicion_iva),
             'ingresos_brutos' => $legacy->numero_iibb,
             'inicio_actividades' => $legacy->inicio_actividades ? \Carbon\Carbon::parse($legacy->inicio_actividades)->toDateString() : null,
@@ -138,6 +138,19 @@ class SetupImporter extends AbstractImporter
             'telefono' => $legacy->telefono,
             'email' => $legacy->mail,
             'activa' => true,
-        ]);
+        ];
+
+        // Reutilizar empresa del seeder / import previo si el CUIT ya existe.
+        if ($cuit) {
+            $existing = Empresa::query()->where('cuit', $cuit)->first();
+            if ($existing) {
+                $existing->update($attrs);
+
+                return $existing->fresh();
+            }
+            $attrs['cuit'] = $cuit;
+        }
+
+        return Empresa::create($attrs);
     }
 }
