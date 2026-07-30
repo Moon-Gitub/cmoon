@@ -16,9 +16,13 @@ class CajaController extends Controller
     public function index(): View
     {
         return view('cajas.index', [
-            'cajas' => Caja::with(['sucursal', 'sesionAbierta.usuario'])->orderBy('nombre')->get(),
+            'cajas' => Caja::with(['sucursal', 'sesionAbierta.usuario'])
+                ->whereHas('sucursal')
+                ->orderBy('nombre')
+                ->get(),
             'sucursales' => Sucursal::where('activa', true)->orderBy('nombre')->get(),
             'sesionesPrevias' => CajaSesion::with(['caja', 'usuario'])
+                ->whereHas('caja.sucursal')
                 ->where('estado', 'cerrada')
                 ->latest('cerrada_at')
                 ->limit(10)

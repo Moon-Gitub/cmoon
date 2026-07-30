@@ -11,7 +11,7 @@
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <div>
                             <h2 class="font-semibold">{{ $caja->nombre }}</h2>
-                            <p class="text-xs text-slate-500">{{ $caja->sucursal->nombre }}</p>
+                            <p class="text-xs text-slate-500">{{ $caja->sucursal?->nombre ?? 'Sin sucursal' }}</p>
                         </div>
 
                         @if ($caja->sesionAbierta)
