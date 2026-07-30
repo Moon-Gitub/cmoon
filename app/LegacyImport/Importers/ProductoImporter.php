@@ -36,6 +36,18 @@ class ProductoImporter extends AbstractImporter
                     $codigo = 'LEG-'.$row->id;
                 }
 
+                // Algunos clientes legacy (ej. Jamrod) usan `codigo` como nombre
+                // largo y `descripcion` como precio textual.
+                $descripcionRaw = trim((string) ($row->descripcion ?? ''));
+                $nombre = $descripcionRaw !== '' && ! is_numeric($descripcionRaw)
+                    ? $descripcionRaw
+                    : $codigo;
+
+                $precioVenta = (float) ($row->precio_venta ?? 0);
+                if ($precioVenta <= 0 && is_numeric($descripcionRaw)) {
+                    $precioVenta = (float) $descripcionRaw;
+                }
+
                 $categoriaId = $row->id_categoria
                     ? $ctx->idMap->get('categoria', $row->id_categoria)
                     : null;
@@ -43,11 +55,11 @@ class ProductoImporter extends AbstractImporter
                 $payload = [
                     'empresa_id' => $ctx->empresaId,
                     'categoria_id' => $categoriaId,
-                    'codigo' => $codigo,
-                    'nombre' => $row->descripcion ?: $codigo,
-                    'descripcion' => $row->descripcion ?: null,
+                    'codigo' => mb_substr($codigo, 0, 255),
+                    'nombre' => mb_substr($nombre, 0, 255),
+                    'descripcion' => is_numeric($descripcionRaw) ? null : ($descripcionRaw ?: null),
                     'precio_compra' => (float) ($row->precio_compra ?? 0),
-                    'precio_venta' => (float) ($row->precio_venta ?? 0),
+                    'precio_venta' => $precioVenta,
                     'alicuota_iva' => (float) ($row->tipo_iva ?? 21),
                     'stock_minimo' => (float) ($row->stock_bajo ?? 0),
                     'activo' => (bool) ($row->activo ?? true),

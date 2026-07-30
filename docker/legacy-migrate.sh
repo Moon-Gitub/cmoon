@@ -77,9 +77,10 @@ fi
 
 echo "==> legacy:import --create-empresa" | tee -a "$OUT"
 IMPORT_ARGS=(legacy:import --create-empresa)
-if [ "${LEGACY_FORCE:-false}" = "true" ]; then
+# LEGACY_RESET_MAPS=true borra mapeos (reimport total). Por defecto se reanuda.
+if [ "${LEGACY_RESET_MAPS:-false}" = "true" ]; then
   IMPORT_ARGS+=(--reset-maps)
-  echo "(LEGACY_FORCE → --reset-maps)" | tee -a "$OUT"
+  echo "(LEGACY_RESET_MAPS → --reset-maps)" | tee -a "$OUT"
 fi
 set +e
 php artisan "${IMPORT_ARGS[@]}" >>"$OUT" 2>&1
