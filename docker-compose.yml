@@ -137,6 +137,45 @@ services:
       mysql:
         condition: service_healthy
 
+  # One-shot: carga dump legacy + ETL (solo si LEGACY_AUTO_MIGRATE=true)
+  data-migrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    environment:
+      <<: *app-env
+      AUTORUN_ENABLED: "false"
+      LEGACY_IMPORT_ENABLED: ${LEGACY_IMPORT_ENABLED:-false}
+      LEGACY_DUMP_URL: ${LEGACY_DUMP_URL:-}
+      LEGACY_DB_HOST: ${LEGACY_DB_HOST:-mysql}
+      LEGACY_DB_PORT: ${LEGACY_DB_PORT:-3306}
+      LEGACY_DB_DATABASE: ${LEGACY_DB_DATABASE:-jamrod_legacy}
+      LEGACY_DB_USERNAME: ${LEGACY_DB_USERNAME:-root}
+      LEGACY_DB_PASSWORD: ${LEGACY_DB_PASSWORD:-${DB_ROOT_PASSWORD}}
+      LEGACY_AUTO_MIGRATE: ${LEGACY_AUTO_MIGRATE:-false}
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Falta DB_ROOT_PASSWORD}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      app:
+        condition: service_started
+    entrypoint: ["/bin/bash", "-lc"]
+    command:
+      - |
+        set -euo pipefail
+        if [ "${LEGACY_AUTO_MIGRATE:-false}" != "true" ]; then
+          echo "LEGACY_AUTO_MIGRATE!=true → skip migrator"
+          exit 0
+        fi
+        echo "==> legacy:load-dump"
+        php /var/www/html/artisan legacy:load-dump --database="${LEGACY_DB_DATABASE}"
+        echo "==> legacy:import --create-empresa"
+        php /var/www/html/artisan legacy:import --create-empresa
+        echo "==> migración legacy finalizada"
+    volumes:
+      - app-storage:/var/www/html/storage/app
+
 volumes:
   app-storage:
   mysql-data:
