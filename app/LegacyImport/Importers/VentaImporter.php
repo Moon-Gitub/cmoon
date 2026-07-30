@@ -73,7 +73,9 @@ class VentaImporter extends AbstractImporter
                     'sucursal_id' => $sucursalId,
                     'cliente_id' => $clienteId,
                     'user_id' => $userId,
-                    'numero' => (int) ($row->codigo ?? $row->id),
+                    // Usar id legacy como número para evitar colisión al fusionar
+                    // varias empresas legacy (mismo `codigo` en distintas empresas).
+                    'numero' => (int) $row->id,
                     'estado' => $this->mapEstado($row->estado ?? 1),
                     'origen' => 'pos',
                     'subtotal' => $subtotal,
