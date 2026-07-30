@@ -32,6 +32,8 @@ class AfipSoap
                     'verify_peer' => true,
                     'verify_peer_name' => true,
                     'peer_name' => $peerName,
+                    // AFIP usa DH débil: OpenSSL 3 rechaza con "dh key too small"
+                    'ciphers' => 'DEFAULT:@SECLEVEL=1',
                     'crypto_method' => STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT,
                 ],
                 'http' => [
@@ -98,6 +100,7 @@ class AfipSoap
                         'verify_peer' => true,
                         'verify_peer_name' => true,
                         'peer_name' => $host,
+                        'ciphers' => 'DEFAULT:@SECLEVEL=1',
                         'crypto_method' => STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT,
                     ],
                 ])
