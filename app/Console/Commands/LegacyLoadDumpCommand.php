@@ -3,9 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Process;
 
 class LegacyLoadDumpCommand extends Command
 {
@@ -14,7 +12,7 @@ class LegacyLoadDumpCommand extends Command
         {--database=jamrod_legacy : Nombre de la BD destino del dump}
         {--force : Reimportar aunque la BD ya tenga tablas}';
 
-    protected $description = 'Descargar dump legacy y cargarlo en MySQL (misma instancia) para legacy:import';
+    protected $description = 'Descargar dump legacy y cargarlo en MySQL (PDO, sin cliente mysql)';
 
     public function handle(): int
     {
@@ -30,100 +28,36 @@ class LegacyLoadDumpCommand extends Command
         $rootUser = env('DB_ROOT_USERNAME', 'root');
         $rootPass = env('DB_ROOT_PASSWORD') ?: env('DB_PASSWORD');
         $host = env('DB_HOST', 'mysql');
-        $port = env('DB_PORT', '3306');
+        $port = (string) env('DB_PORT', '3306');
 
         if (blank($rootPass)) {
-            $this->error('Falta DB_ROOT_PASSWORD para crear/cargar la BD legacy');
+            $this->error('Falta DB_ROOT_PASSWORD');
 
             return self::FAILURE;
         }
-
-        // ¿Ya cargada?
-        try {
-            $pdo = $this->rootPdo($host, $port, $rootUser, $rootPass);
-            $exists = $pdo->query("SHOW DATABASES LIKE ".$pdo->quote($database))->fetch();
-            if ($exists) {
-                $pdo->exec("USE `{$database}`");
-                $tables = (int) $pdo->query('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='.$pdo->quote($database))->fetchColumn();
-                $productos = 0;
-                if ($tables > 0) {
-                    try {
-                        $productos = (int) $pdo->query('SELECT COUNT(*) FROM productos')->fetchColumn();
-                    } catch (\Throwable) {
-                        $productos = 0;
-                    }
-                }
-
-                if ($productos > 0 && ! $this->option('force')) {
-                    $this->info("BD {$database} ya tiene datos (productos={$productos}). Skip. Usá --force para recrear.");
-
-                    return self::SUCCESS;
-                }
-            }
-        } catch (\Throwable $e) {
-            $this->error('No se pudo conectar a MySQL root: '.$e->getMessage());
-
-            return self::FAILURE;
-        }
-
-        $tmp = storage_path('app/legacy-dump-'.uniqid().'.sql.gz');
-        $tmpSql = preg_replace('/\.gz$/', '', $tmp);
-        if (! str_ends_with($tmp, '.gz')) {
-            $tmp .= '.gz';
-            $tmpSql = substr($tmp, 0, -3);
-        }
-
-        $this->info("Descargando dump: {$url}");
 
         try {
-            $response = Http::timeout(300)->withOptions(['sink' => $tmp])->get($url);
-            if (! $response->successful()) {
-                $this->error('Download HTTP '.$response->status());
-
-                return self::FAILURE;
-            }
+            $pdo = $this->pdo($host, $port, $rootUser, $rootPass);
         } catch (\Throwable $e) {
-            $this->error('Download falló: '.$e->getMessage());
+            $this->error('MySQL root: '.$e->getMessage());
 
             return self::FAILURE;
         }
 
-        $size = filesize($tmp) ?: 0;
-        $this->line('  Descargado: '.number_format($size / 1024 / 1024, 2).' MB');
-
-        // Detect gzip
-        $fh = fopen($tmp, 'rb');
-        $magic = $fh ? fread($fh, 2) : '';
-        if ($fh) {
-            fclose($fh);
-        }
-        $isGzip = $magic === "\x1f\x8b";
-
-        $sqlFile = $tmp;
-        if ($isGzip) {
-            $this->info('Descomprimiendo...');
-            $result = Process::timeout(300)->run(['gunzip', '-kf', $tmp]);
-            if ($result->failed()) {
-                // fallback php
-                $out = gzdecode(file_get_contents($tmp));
-                if ($out === false) {
-                    $this->error('No se pudo descomprimir el dump');
-
-                    return self::FAILURE;
-                }
-                file_put_contents($tmpSql, $out);
-            }
-            $sqlFile = $tmpSql;
-        }
-
-        $this->info("Creando BD {$database}...");
         $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+
+        $productos = $this->countProductos($pdo, $database);
+        if ($productos > 0 && ! $this->option('force')) {
+            $this->info("BD {$database} ya tiene datos (productos={$productos}). Skip.");
+
+            return self::SUCCESS;
+        }
+
         if ($this->option('force')) {
             $pdo->exec("DROP DATABASE IF EXISTS `{$database}`");
             $pdo->exec("CREATE DATABASE `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         }
 
-        // Grant app user access
         $appUser = env('DB_USERNAME', 'cmoon');
         try {
             $pdo->exec("GRANT ALL PRIVILEGES ON `{$database}`.* TO '{$appUser}'@'%'");
@@ -132,42 +66,151 @@ class LegacyLoadDumpCommand extends Command
             $this->warn('Grant: '.$e->getMessage());
         }
 
-        $this->info('Importando SQL (puede tardar)...');
-        $cmd = sprintf(
-            'mysql -h%s -P%s -u%s -p%s %s < %s',
-            escapeshellarg($host),
-            escapeshellarg((string) $port),
-            escapeshellarg($rootUser),
-            escapeshellarg($rootPass),
-            escapeshellarg($database),
-            escapeshellarg($sqlFile),
-        );
+        $this->info("Descargando: {$url}");
+        $tmp = storage_path('app/legacy-dump-'.uniqid('', true).'.bin');
+        try {
+            $response = Http::timeout(600)->withOptions(['sink' => $tmp])->get($url);
+            if (! $response->successful()) {
+                $this->error('HTTP '.$response->status());
 
-        $result = Process::timeout(1800)->run(['bash', '-lc', $cmd]);
-        @unlink($tmp);
-        @unlink($tmpSql);
-
-        if ($result->failed()) {
-            $this->error('mysql import falló: '.$result->errorOutput());
+                return self::FAILURE;
+            }
+        } catch (\Throwable $e) {
+            $this->error('Download: '.$e->getMessage());
 
             return self::FAILURE;
         }
 
-        $pdo->exec("USE `{$database}`");
-        $productos = (int) $pdo->query('SELECT COUNT(*) FROM productos')->fetchColumn();
-        $ventas = (int) $pdo->query('SELECT COUNT(*) FROM ventas')->fetchColumn();
-        $this->info("OK — productos={$productos}, ventas={$ventas}");
+        $raw = file_get_contents($tmp);
+        @unlink($tmp);
+        if ($raw === false || $raw === '') {
+            $this->error('Dump vacío');
+
+            return self::FAILURE;
+        }
+
+        if (str_starts_with($raw, "\x1f\x8b")) {
+            $this->info('Descomprimiendo gzip...');
+            $raw = gzdecode($raw);
+            if ($raw === false) {
+                $this->error('gzip inválido');
+
+                return self::FAILURE;
+            }
+        }
+
+        $this->info('Importando SQL ('.number_format(strlen($raw) / 1024 / 1024, 2).' MB)...');
+
+        try {
+            $db = $this->pdo($host, $port, $rootUser, $rootPass, $database);
+            $db->setAttribute(\PDO::ATTR_EMULATE_PREPARES, true);
+            // Import por statements (más seguro que multi-query gigante)
+            $this->importSql($db, $raw);
+        } catch (\Throwable $e) {
+            $this->error('Import: '.$e->getMessage());
+
+            return self::FAILURE;
+        }
+
+        $productos = $this->countProductos($pdo, $database);
+        $ventas = $this->countTable($pdo, $database, 'ventas');
+        $clientes = $this->countTable($pdo, $database, 'clientes');
+        $this->info("OK — productos={$productos}, clientes={$clientes}, ventas={$ventas}");
 
         return self::SUCCESS;
     }
 
-    private function rootPdo(string $host, string $port, string $user, string $pass): \PDO
+    private function importSql(\PDO $pdo, string $sql): void
     {
-        return new \PDO(
-            "mysql:host={$host};port={$port};charset=utf8mb4",
-            $user,
-            $pass,
-            [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]
-        );
+        // Quitar comentarios de línea y bloques, respetando strings lo mejor posible de forma simple
+        $sql = preg_replace('/^--.*$/m', '', $sql) ?? $sql;
+        $sql = preg_replace('/\/\*!.*?\*\//s', '', $sql) ?? $sql;
+
+        $statements = 0;
+        $buffer = '';
+        $len = strlen($sql);
+        $inString = false;
+        $stringChar = '';
+
+        for ($i = 0; $i < $len; $i++) {
+            $ch = $sql[$i];
+            $next = $i + 1 < $len ? $sql[$i + 1] : '';
+
+            if ($inString) {
+                $buffer .= $ch;
+                if ($ch === '\\' && $next !== '') {
+                    $buffer .= $next;
+                    $i++;
+
+                    continue;
+                }
+                if ($ch === $stringChar) {
+                    $inString = false;
+                }
+
+                continue;
+            }
+
+            if ($ch === '\'' || $ch === '"') {
+                $inString = true;
+                $stringChar = $ch;
+                $buffer .= $ch;
+
+                continue;
+            }
+
+            if ($ch === ';') {
+                $stmt = trim($buffer);
+                $buffer = '';
+                if ($stmt !== '') {
+                    $pdo->exec($stmt);
+                    $statements++;
+                    if ($statements % 500 === 0) {
+                        $this->line("  ... {$statements} statements");
+                    }
+                }
+
+                continue;
+            }
+
+            $buffer .= $ch;
+        }
+
+        $stmt = trim($buffer);
+        if ($stmt !== '') {
+            $pdo->exec($stmt);
+            $statements++;
+        }
+
+        $this->line("  Statements ejecutados: {$statements}");
+    }
+
+    private function pdo(string $host, string $port, string $user, string $pass, ?string $database = null): \PDO
+    {
+        $dsn = "mysql:host={$host};port={$port};charset=utf8mb4";
+        if ($database) {
+            $dsn .= ";dbname={$database}";
+        }
+
+        return new \PDO($dsn, $user, $pass, [
+            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+            \PDO::MYSQL_ATTR_MULTI_STATEMENTS => true,
+        ]);
+    }
+
+    private function countProductos(\PDO $pdo, string $database): int
+    {
+        return $this->countTable($pdo, $database, 'productos');
+    }
+
+    private function countTable(\PDO $pdo, string $database, string $table): int
+    {
+        try {
+            $pdo->exec("USE `{$database}`");
+
+            return (int) $pdo->query("SELECT COUNT(*) FROM `{$table}`")->fetchColumn();
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 }

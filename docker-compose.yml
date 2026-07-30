@@ -152,7 +152,7 @@ services:
       LEGACY_DB_PORT: ${LEGACY_DB_PORT:-3306}
       LEGACY_DB_DATABASE: ${LEGACY_DB_DATABASE:-jamrod_legacy}
       LEGACY_DB_USERNAME: ${LEGACY_DB_USERNAME:-root}
-      LEGACY_DB_PASSWORD: ${LEGACY_DB_PASSWORD:-${DB_ROOT_PASSWORD}}
+      LEGACY_DB_PASSWORD: ${LEGACY_DB_PASSWORD:-}
       LEGACY_AUTO_MIGRATE: ${LEGACY_AUTO_MIGRATE:-false}
       DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Falta DB_ROOT_PASSWORD}
     depends_on:
@@ -164,14 +164,21 @@ services:
     command:
       - |
         set -euo pipefail
+        cd /var/www/html
         if [ "${LEGACY_AUTO_MIGRATE:-false}" != "true" ]; then
           echo "LEGACY_AUTO_MIGRATE!=true → skip migrator"
           exit 0
         fi
+        if [ -f storage/app/legacy-migrate.done ]; then
+          echo "legacy-migrate.done existe → skip"
+          exit 0
+        fi
+        export LEGACY_DB_PASSWORD="$${LEGACY_DB_PASSWORD:-$$DB_ROOT_PASSWORD}"
         echo "==> legacy:load-dump"
-        php /var/www/html/artisan legacy:load-dump --database="${LEGACY_DB_DATABASE}"
+        php artisan legacy:load-dump --database="$${LEGACY_DB_DATABASE}"
         echo "==> legacy:import --create-empresa"
-        php /var/www/html/artisan legacy:import --create-empresa
+        php artisan legacy:import --create-empresa
+        date -u +"completed %Y-%m-%dT%H:%M:%SZ" > storage/app/legacy-migrate.done
         echo "==> migración legacy finalizada"
     volumes:
       - app-storage:/var/www/html/storage/app
