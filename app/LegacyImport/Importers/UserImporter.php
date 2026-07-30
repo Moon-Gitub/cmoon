@@ -24,10 +24,8 @@ class UserImporter extends AbstractImporter
     {
         $query = $ctx->legacy('usuarios')->orderBy('id');
 
-        if ($this->columnExists($ctx, 'usuarios', 'empresa')) {
-            $query->where('empresa', $ctx->legacyEmpresaId);
-        }
-
+        // No filtrar por empresa: en multi-empresa legacy (ej. Jamrod) todos
+        // los vendedores deben mapearse a la empresa destino de POSMoon.
         foreach ($query->get() as $row) {
             if ($this->skipIfMapped($ctx, 'user', $row->id)) {
                 if ($ctx->defaultUserId === null) {
@@ -85,14 +83,5 @@ class UserImporter extends AbstractImporter
         }
 
         return bcrypt('CMoon2026!');
-    }
-
-    private function hasColumn(LegacyImportContext $ctx, string $column): bool
-    {
-        return $ctx->legacy('information_schema.columns')
-            ->where('TABLE_SCHEMA', config('database.connections.'.config('legacy.connection').'.database'))
-            ->where('TABLE_NAME', 'usuarios')
-            ->where('COLUMN_NAME', $column)
-            ->exists();
     }
 }

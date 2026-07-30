@@ -28,7 +28,10 @@ class VentaImporter extends AbstractImporter
 
         $query = $ctx->legacy('ventas')->orderBy('id');
 
-        if ($this->columnExists($ctx, 'ventas', 'id_empresa')) {
+        // Importar todas las ventas del dump (multi-empresa legacy → un tenant).
+        // Filtrar solo si LEGACY_FILTER_EMPRESA=true.
+        if (filter_var(env('LEGACY_FILTER_EMPRESA', false), FILTER_VALIDATE_BOOL)
+            && $this->columnExists($ctx, 'ventas', 'id_empresa')) {
             $query->where('id_empresa', $ctx->legacyEmpresaId);
         }
 

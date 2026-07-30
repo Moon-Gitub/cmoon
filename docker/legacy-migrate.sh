@@ -46,20 +46,11 @@ rm -f bootstrap/cache/config.php bootstrap/cache/routes-v7.php 2>/dev/null || tr
 
 OUT=/tmp/mig-out.txt
 : > "$OUT"
-run_step() {
-  echo "==> $*" | tee -a "$OUT"
-  set +e
-  "$@" >>"$OUT" 2>&1
-  local rc=$?
-  set -e
-  return $rc
-}
 
 {
   echo "==> env check"
   echo "LEGACY_DB_DATABASE=${LEGACY_DB_DATABASE:-}"
-  echo "LEGACY_DB_USERNAME=${LEGACY_DB_USERNAME:-}"
-  echo "LEGACY_IMPORT_ENABLED=${LEGACY_IMPORT_ENABLED:-}"
+  echo "LEGACY_IMPORT_ONLY=${LEGACY_IMPORT_ONLY:-}"
 } | tee -a "$OUT"
 
 php artisan migrate --force >>"$OUT" 2>&1 || true
@@ -75,9 +66,12 @@ if [ "$rc" -ne 0 ]; then
   exit "$rc"
 fi
 
-echo "==> legacy:import --create-empresa" | tee -a "$OUT"
+ONLY="${LEGACY_IMPORT_ONLY:-}"
+echo "==> legacy:import --create-empresa ${ONLY:+--only=$ONLY}" | tee -a "$OUT"
 IMPORT_ARGS=(legacy:import --create-empresa)
-# LEGACY_RESET_MAPS=true borra mapeos (reimport total). Por defecto se reanuda.
+if [ -n "$ONLY" ]; then
+  IMPORT_ARGS+=(--only="$ONLY")
+fi
 if [ "${LEGACY_RESET_MAPS:-false}" = "true" ]; then
   IMPORT_ARGS+=(--reset-maps)
   echo "(LEGACY_RESET_MAPS → --reset-maps)" | tee -a "$OUT"
