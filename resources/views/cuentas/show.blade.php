@@ -57,7 +57,14 @@
                             <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium capitalize text-slate-700">{{ $mov->tipo }}</span>
                         </td>
                         <td class="px-4 py-3">
-                            {{ $mov->concepto }}
+                            @if ($mov->referencia instanceof \App\Models\Venta)
+                                <a href="{{ route('ventas.show', $mov->referencia) }}"
+                                   class="font-medium text-indigo-600 hover:text-indigo-800 hover:underline">
+                                    {{ $mov->concepto }}
+                                </a>
+                            @else
+                                {{ $mov->concepto }}
+                            @endif
                             @if ($mov->medioPago)
                                 <span class="block text-xs text-slate-400">{{ $mov->medioPago->nombre }}</span>
                             @endif

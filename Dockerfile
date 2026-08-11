@@ -36,9 +36,13 @@ FROM serversideup/php:8.4-fpm-nginx AS app
 USER root
 RUN install-php-extensions intl gd exif bcmath soap
 
+# PHP timezone (evita timestamps en UTC/GMT+0)
+COPY docker/php/zz-timezone.ini /usr/local/etc/php/conf.d/zz-timezone.ini
+
 ENV PHP_OPCACHE_ENABLE=1 \
     AUTORUN_ENABLED=true \
-    HEALTHCHECK_PATH=/up
+    HEALTHCHECK_PATH=/up \
+    TZ=America/Argentina/Buenos_Aires
 
 USER www-data
 

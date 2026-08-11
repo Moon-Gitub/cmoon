@@ -232,6 +232,18 @@ class FacturacionController extends Controller
         ]);
     }
 
+    public function ticket(Comprobante $comprobante): View
+    {
+        abort_if($comprobante->estado !== 'autorizado', 404);
+
+        $comprobante->load(['venta.items', 'emisor', 'puntoVenta']);
+
+        return view('facturacion.ticket', [
+            'comprobante' => $comprobante,
+            'qr' => $this->qrAfip($comprobante),
+        ]);
+    }
+
     /**
      * QR oficial AFIP (RG 4892): URL con el JSON del comprobante en base64.
      */

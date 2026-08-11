@@ -26,12 +26,16 @@
         .pie { display: flex; justify-content: space-between; align-items: flex-end; border: 1px solid #111; border-top: none; padding: 12px 16px; }
         .qr img { width: 110px; height: 110px; }
         @media print { body { padding: 0; } .no-print { display: none; } }
-        .no-print { margin-bottom: 16px; text-align: right; }
-        .no-print button { padding: 8px 20px; font-size: 13px; cursor: pointer; }
+        .no-print { margin-bottom: 16px; text-align: right; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+        .no-print a, .no-print button { padding: 8px 20px; font-size: 13px; cursor: pointer; text-decoration: none; color: inherit; border: 1px solid #ccc; background: #f8f8f8; border-radius: 4px; }
+        .transparencia { margin-top: 8px; font-size: 10px; color: #333; border-top: 1px dashed #999; padding-top: 6px; }
     </style>
 </head>
 <body onload="if (new URLSearchParams(location.search).get('print')) window.print()">
-    <div class="no-print"><button onclick="window.print()">Imprimir</button></div>
+    <div class="no-print">
+        <a href="{{ route('facturacion.ticket', $comprobante) }}?print=1" target="_blank">Imprimir ticket 80mm</a>
+        <button type="button" onclick="window.print()">Imprimir hoja</button>
+    </div>
 
     <div class="cabecera">
         <div class="letra">
@@ -94,7 +98,8 @@
 
     <div class="bloque">
         <table class="totales" style="width: 280px; margin-left: auto;">
-            @if ($comprobante->letra() !== 'C')
+            {{-- Factura/NC/ND A: discrimina neto + IVA por alícuota. B: solo total (Ley 27.743 abajo). C: solo total. --}}
+            @if ($comprobante->letra() === 'A')
                 <tr><td>Neto gravado</td><td class="num">$ {{ number_format((float) $comprobante->neto, 2, ',', '.') }}</td></tr>
                 @foreach ($comprobante->detalle_iva ?? [] as $fila)
                     <tr><td>IVA {{ rtrim(rtrim(number_format($fila['alicuota'], 2, ',', ''), '0'), ',') }}%</td>
@@ -103,6 +108,12 @@
             @endif
             <tr class="total-final"><td>TOTAL</td><td class="num">$ {{ number_format((float) $comprobante->total, 2, ',', '.') }}</td></tr>
         </table>
+        @if ($comprobante->letra() === 'B' && (float) $comprobante->iva > 0)
+            <div class="transparencia">
+                <p><strong>Régimen de Transparencia Fiscal al Consumidor Ley 27.743</strong></p>
+                <p>IVA: $ {{ number_format((float) $comprobante->iva, 2, ',', '.') }}</p>
+            </div>
+        @endif
     </div>
 
     <div class="pie">

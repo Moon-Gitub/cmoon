@@ -91,6 +91,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/productos/importar', [ProductoController::class, 'importarForm'])->name('productos.importar');
         Route::post('/productos/importar', [ProductoController::class, 'importar'])->name('productos.importar.procesar');
         Route::get('/productos/plantilla-csv', [ProductoController::class, 'plantillaCsv'])->name('productos.plantilla');
+        Route::get('/productos/precio-masivo', [ProductoController::class, 'precioMasivoForm'])->name('productos.precio-masivo');
+        Route::post('/productos/precio-masivo', [ProductoController::class, 'precioMasivo'])->name('productos.precio-masivo.aplicar');
+        Route::get('/productos/{producto}/auditoria', [ProductoController::class, 'auditoria'])->name('productos.auditoria');
         Route::get('/productos/{producto}/stock', [ProductoController::class, 'stock'])->name('productos.stock');
         Route::post('/productos/{producto}/stock', [ProductoController::class, 'ajustarStock'])->name('productos.stock.ajustar');
         Route::get('/productos/{producto}/combo', [ProductoController::class, 'combo'])->name('productos.combo');
@@ -110,6 +113,7 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('permission:clientes.ver')->group(function () {
+        Route::post('/clientes/padron-afip', [ClienteController::class, 'consultarPadron'])->name('clientes.padron');
         Route::resource('clientes', ClienteController::class);
     });
 
@@ -138,6 +142,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware('permission:pos.vender')->group(function () {
         Route::get('/pos', [PosController::class, 'index'])->name('pos');
         Route::get('/pos/catalogo', [PosController::class, 'catalogo'])->name('pos.catalogo');
+        Route::post('/pos/caja', [PosController::class, 'seleccionarCaja'])->name('pos.caja');
+        Route::post('/pos/clientes', [PosController::class, 'crearCliente'])->name('pos.clientes.store');
         Route::post('/pos/ventas', [PosController::class, 'guardar'])->name('pos.guardar');
         Route::post('/pos/ventas/{venta}/facturar', [PosController::class, 'facturar'])
             ->middleware('permission:facturacion.emitir')
@@ -150,12 +156,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/ventas', [VentaController::class, 'index'])->name('ventas.index');
         Route::get('/ventas/{venta}', [VentaController::class, 'show'])->name('ventas.show');
         Route::post('/ventas/{venta}/anular', [VentaController::class, 'anular'])->name('ventas.anular');
+        Route::post('/ventas/{venta}/fecha', [VentaController::class, 'editarFecha'])->name('ventas.editar-fecha');
         Route::get('/ventas/{venta}/ticket', [VentaController::class, 'ticket'])->name('ventas.ticket');
     });
 
     Route::middleware('permission:cajas.ver')->group(function () {
         Route::get('/cajas', [CajaController::class, 'index'])->name('cajas.index');
         Route::post('/cajas', [CajaController::class, 'store'])->name('cajas.store');
+        Route::delete('/cajas/{caja}', [CajaController::class, 'destroy'])->name('cajas.destroy');
         Route::post('/cajas/{caja}/abrir', [CajaController::class, 'abrir'])->name('cajas.abrir');
         Route::get('/cajas/sesiones/{sesion}', [CajaController::class, 'sesion'])->name('cajas.sesion');
         Route::post('/cajas/sesiones/{sesion}/cerrar', [CajaController::class, 'cerrar'])->name('cajas.cerrar');
@@ -174,6 +182,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/facturacion/manual', [FacturacionController::class, 'manualStore'])->name('facturacion.manual.store');
         Route::get('/facturacion/{comprobante}', [FacturacionController::class, 'show'])
             ->whereNumber('comprobante')->name('facturacion.show');
+        Route::get('/facturacion/{comprobante}/ticket', [FacturacionController::class, 'ticket'])
+            ->whereNumber('comprobante')->name('facturacion.ticket');
         Route::get('/facturacion/{comprobante}/nota', [FacturacionController::class, 'notaForm'])
             ->whereNumber('comprobante')->name('facturacion.nota');
         Route::post('/facturacion/{comprobante}/nota', [FacturacionController::class, 'notaStore'])

@@ -34,6 +34,20 @@
         @endcan
     </div>
 
+    <div class="mb-2 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
+        <p>
+            <span class="font-semibold text-slate-800">{{ number_format($productos->total(), 0, ',', '.') }}</span>
+            producto{{ $productos->total() === 1 ? '' : 's' }}
+            @if ($productos->total() > 0)
+                <span class="text-slate-400">· mostrando {{ $productos->firstItem() }}–{{ $productos->lastItem() }}</span>
+            @endif
+        </p>
+        @can('productos.editar')
+            <a href="{{ route('productos.precio-masivo') }}"
+               class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Cambio de precio masivo →</a>
+        @endcan
+    </div>
+
     <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -83,6 +97,8 @@
                                 @can('productos.editar')
                                     <a href="{{ route('productos.edit', $p) }}"
                                        class="rounded-lg border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-100">Editar</a>
+                                    <a href="{{ route('productos.auditoria', $p) }}"
+                                       class="rounded-lg border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-100">Hist.</a>
                                 @endcan
                                 @can('productos.eliminar')
                                     <form method="POST" action="{{ route('productos.destroy', $p) }}"

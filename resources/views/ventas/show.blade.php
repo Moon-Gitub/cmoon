@@ -74,6 +74,20 @@
                         </dd>
                     </div>
                     <div class="flex justify-between"><dt class="text-slate-500">Fecha</dt><dd class="font-medium">{{ $venta->fecha->format('d/m/Y H:i') }}</dd></div>
+                    @can('ventas.editar_fecha')
+                        @if ($venta->estado === 'completada')
+                            <form method="POST" action="{{ route('ventas.editar-fecha', $venta) }}" class="mt-2 flex items-end gap-2 border-t border-slate-100 pt-3">
+                                @csrf
+                                <div class="flex-1">
+                                    <label class="mb-1 block text-xs text-slate-500">Cambiar fecha</label>
+                                    <input type="datetime-local" name="fecha"
+                                           value="{{ $venta->fecha->format('Y-m-d\TH:i') }}"
+                                           class="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                </div>
+                                <button class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs hover:bg-slate-50">Guardar</button>
+                            </form>
+                        @endif
+                    @endcan
                     <div class="flex justify-between"><dt class="text-slate-500">Sucursal</dt><dd class="font-medium">{{ $venta->sucursal->nombre }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">Vendedor</dt><dd class="font-medium">{{ $venta->vendedor->name }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">Cliente</dt><dd class="font-medium">{{ $venta->cliente?->nombre ?? 'Consumidor final' }}</dd></div>
@@ -103,6 +117,10 @@
                         <a href="{{ route('facturacion.show', $comprobante) }}" target="_blank"
                            class="mt-2 block rounded-lg bg-emerald-600 py-2 text-center font-semibold text-white hover:bg-emerald-700">
                             Ver factura
+                        </a>
+                        <a href="{{ route('facturacion.ticket', $comprobante) }}?print=1" target="_blank"
+                           class="mt-2 block rounded-lg border border-emerald-600 py-2 text-center font-semibold text-emerald-700 hover:bg-emerald-50">
+                            Ticket fiscal 80mm
                         </a>
                     @endif
                 </div>

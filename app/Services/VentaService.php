@@ -196,6 +196,13 @@ class VentaService
 
     /**
      * Anula una venta: repone stock y revierte la cta. cte. si corresponde.
+     *
+     * Impacto en caja (decisión producto 5/8/2026 — Carlos Carrasco):
+     * - Al marcar estado=anulada, deja de contar en efectivoEsperado() de SU sesión.
+     * - NO se crea CajaMovimiento de egreso en la caja abierta de hoy si la venta
+     *   es de otra fecha (evita restar efectivo de la caja actual por anulaciones viejas).
+     * - Si la venta es del mismo día calendario que la apertura de su sesión (timezone app),
+     *   el impacto es implícito vía exclusión de ventas anuladas en esa sesión.
      */
     public function anular(Venta $venta, string $motivo, int $userId): Venta
     {
@@ -237,14 +244,64 @@ class VentaService
                 ]);
             }
 
+            $notaCaja = $this->notaImpactoCajaAnulacion($venta);
+            $motivoFinal = $notaCaja ? \Illuminate\Support\Str::limit(trim($motivo.' | '.$notaCaja), 250) : $motivo;
+
             $venta->update([
                 'estado' => 'anulada',
-                'motivo_anulacion' => $motivo,
+                'motivo_anulacion' => $motivoFinal,
                 'anulada_at' => now(),
                 'anulada_por' => $userId,
             ]);
 
             return $venta;
         });
+    }
+
+    /**
+     * Documenta si la anulación afecta o no el efectivo de la sesión asociada.
+     */
+    private function notaImpactoCajaAnulacion(Venta $venta): ?string
+    {
+        if (! $venta->caja_sesion_id) {
+            return 'Sin sesión de caja asociada (sin impacto en caja).';
+        }
+
+        $sesion = $venta->cajaSesion;
+        if (! $sesion) {
+            return null;
+        }
+
+        $diaVenta = $venta->fecha->timezone(config('app.timezone'))->toDateString();
+        $diaApertura = $sesion->abierta_at->timezone(config('app.timezone'))->toDateString();
+
+        if ($diaVenta === $diaApertura) {
+            return 'Caja: misma fecha sesión #'.$sesion->id;
+        }
+
+        return 'Sin egreso caja hoy (venta '.$diaVenta.' ≠ apertura '.$diaApertura.')';
+    }
+
+    /**
+     * Cambia la fecha de una venta (solo con permiso ventas.editar_fecha / admin).
+     */
+    public function cambiarFecha(Venta $venta, string $fecha, int $userId): Venta
+    {
+        if ($venta->estado === 'anulada') {
+            throw ValidationException::withMessages(['fecha' => 'No se puede cambiar la fecha de una venta anulada.']);
+        }
+
+        $anterior = $venta->fecha?->toDateTimeString();
+        $venta->update(['fecha' => $fecha]);
+
+        \Illuminate\Support\Facades\Log::info('venta.editar_fecha', [
+            'venta_id' => $venta->id,
+            'numero' => $venta->numero,
+            'fecha_anterior' => $anterior,
+            'fecha_nueva' => $fecha,
+            'user_id' => $userId,
+        ]);
+
+        return $venta->fresh();
     }
 }

@@ -127,4 +127,19 @@ class ClienteController extends Controller
             ->orderBy('name')
             ->get(['id', 'name']);
     }
+
+    public function consultarPadron(Request $request, \App\Services\Afip\PadronAfipService $padron): \Illuminate\Http\JsonResponse
+    {
+        abort_unless(auth()->user()->can('clientes.crear') || auth()->user()->can('clientes.editar'), 403);
+
+        $datos = $request->validate([
+            'cuit' => ['required', 'string', 'max:20'],
+        ]);
+
+        try {
+            return response()->json($padron->consultarPorCuit($datos['cuit']));
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
 }

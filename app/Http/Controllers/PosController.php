@@ -19,6 +19,7 @@ use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class PosController extends Controller
@@ -28,11 +29,19 @@ class PosController extends Controller
         $usuario = auth()->user();
         $sucursal = $usuario->sucursal ?? Sucursal::where('activa', true)->first();
 
-        $sesionAbierta = CajaSesion::with('caja')
+        $sesionesAbiertas = CajaSesion::with('caja')
             ->where('user_id', $usuario->id)
             ->where('estado', 'abierta')
-            ->latest('abierta_at')
-            ->first();
+            ->orderByDesc('abierta_at')
+            ->get();
+
+        $sesionElegidaId = (int) ($request->session()->get('pos_caja_sesion_id') ?? 0);
+        $sesionAbierta = $sesionesAbiertas->firstWhere('id', $sesionElegidaId)
+            ?? $sesionesAbiertas->first();
+
+        if ($sesionAbierta) {
+            $request->session()->put('pos_caja_sesion_id', $sesionAbierta->id);
+        }
 
         $presupuesto = null;
         $presupuestoItems = [];
@@ -54,9 +63,31 @@ class PosController extends Controller
         return view('pos.index', [
             'sucursal' => $sucursal,
             'sesionAbierta' => $sesionAbierta,
+            'sesionesAbiertas' => $sesionesAbiertas,
             'presupuesto' => $presupuesto,
             'presupuestoItems' => $presupuestoItems,
             'puedeFacturar' => auth()->user()->can('facturacion.emitir'),
+            'puedeCrearCliente' => auth()->user()->can('clientes.crear'),
+        ]);
+    }
+
+    public function seleccionarCaja(Request $request): JsonResponse
+    {
+        $datos = $request->validate([
+            'caja_sesion_id' => ['required', 'integer', 'exists:caja_sesiones,id'],
+        ]);
+
+        $sesion = CajaSesion::where('id', $datos['caja_sesion_id'])
+            ->where('user_id', auth()->id())
+            ->where('estado', 'abierta')
+            ->firstOrFail();
+
+        $request->session()->put('pos_caja_sesion_id', $sesion->id);
+
+        return response()->json([
+            'ok' => true,
+            'caja_sesion_id' => $sesion->id,
+            'caja' => $sesion->caja?->nombre,
         ]);
     }
 
@@ -115,6 +146,37 @@ class PosController extends Controller
         ]);
     }
 
+    public function crearCliente(Request $request): JsonResponse
+    {
+        abort_unless(auth()->user()->can('clientes.crear'), 403);
+
+        $datos = $request->validate([
+            'nombre' => ['required', 'string', 'max:255'],
+            'tipo_documento' => ['required', 'in:DNI,CUIT,CUIL,OTRO'],
+            'documento' => ['nullable', 'string', 'max:20'],
+            'condicion_iva' => ['required', 'in:CONSUMIDOR_FINAL,RESPONSABLE_INSCRIPTO,MONOTRIBUTO,EXENTO'],
+            'telefono' => ['nullable', 'string', 'max:30'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'lista_precio_id' => ['nullable', Rule::exists('listas_precio', 'id')],
+        ], [], [
+            'tipo_documento' => 'tipo de documento',
+            'condicion_iva' => 'condición frente al IVA',
+        ]);
+
+        $cliente = Cliente::create([
+            ...$datos,
+            'empresa_id' => auth()->user()->empresa_id,
+            'activo' => true,
+        ]);
+
+        return response()->json([
+            'id' => $cliente->id,
+            'nombre' => $cliente->nombre,
+            'documento' => $cliente->documento,
+            'lista_precio_id' => $cliente->lista_precio_id,
+        ], 201);
+    }
+
     public function guardar(Request $request, VentaService $ventaService): JsonResponse
     {
         $datos = $request->validate([
@@ -137,6 +199,21 @@ class PosController extends Controller
             'pagos.*.medio_pago_id' => ['required', 'exists:medios_pago,id'],
             'pagos.*.importe' => ['required', 'numeric', 'gt:0'],
         ]);
+
+        if (! empty($datos['caja_sesion_id'])) {
+            $sesionOk = CajaSesion::where('id', $datos['caja_sesion_id'])
+                ->where('user_id', auth()->id())
+                ->where('estado', 'abierta')
+                ->exists();
+            if (! $sesionOk) {
+                return response()->json(['message' => 'La sesión de caja no es válida o está cerrada.'], 422);
+            }
+        }
+
+        // Sin permiso de editar fecha: siempre now() del servidor (timezone app).
+        if (empty($datos['fecha']) || ! auth()->user()->can('ventas.editar_fecha')) {
+            unset($datos['fecha']);
+        }
 
         $venta = $ventaService->crear($datos, auth()->id());
 
@@ -168,16 +245,43 @@ class PosController extends Controller
 
         $comprobante = $servicio->facturarVenta($venta, $emisor, $puntoVenta, auth()->id());
 
+        $observaciones = $this->observacionesAfip($comprobante);
+
         return response()->json([
             'estado' => $comprobante->estado,
             'cae' => $comprobante->cae,
             'numero' => $comprobante->numeroFormateado(),
             'tipo' => $comprobante->tipoNombre(),
-            'mensaje' => $comprobante->mensaje_afip,
+            'mensaje' => $comprobante->mensaje_afip ?: (count($observaciones) ? implode(' | ', $observaciones) : null),
+            'observaciones' => $observaciones,
             'factura_url' => $comprobante->estado === 'autorizado'
                 ? route('facturacion.show', $comprobante)
                 : null,
+            'ticket_url' => $comprobante->estado === 'autorizado'
+                ? route('facturacion.ticket', $comprobante)
+                : null,
         ], $comprobante->estado === 'autorizado' ? 200 : 422);
+    }
+
+    /** @return list<string> */
+    private function observacionesAfip(\App\Models\Comprobante $comprobante): array
+    {
+        if ($comprobante->mensaje_afip) {
+            return array_values(array_filter(array_map('trim', explode(' | ', $comprobante->mensaje_afip))));
+        }
+
+        $obs = data_get($comprobante->respuesta_afip, 'FeDetResp.FECAEDetResponse.Observaciones.Obs');
+        if (! $obs) {
+            return [];
+        }
+
+        $lista = isset($obs['Code']) ? [$obs] : (array) $obs;
+
+        return collect($lista)
+            ->map(fn ($o) => is_array($o) ? "({$o['Code']}) ".($o['Msg'] ?? '') : (string) $o)
+            ->filter()
+            ->values()
+            ->all();
     }
 
     public function crearQrMercadoPago(Request $request, MercadoPagoQrService $mp): JsonResponse

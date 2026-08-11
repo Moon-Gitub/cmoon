@@ -97,7 +97,7 @@ class CuentaCorrienteController extends Controller
     private function vistaCuenta(Model $titular, string $nombre, string $rutaVolver, array $extra = []): View
     {
         $movimientos = $titular->movimientosCuenta()
-            ->with(['usuario', 'medioPago'])
+            ->with(['usuario', 'medioPago', 'referencia'])
             ->orderByDesc('fecha')
             ->orderByDesc('id')
             ->paginate(25);

@@ -41,6 +41,13 @@
                             @else
                                 <span class="text-sm text-slate-400">Cerrada</span>
                             @endcan
+                            @can('cajas.gestionar')
+                                <form method="POST" action="{{ route('cajas.destroy', $caja) }}"
+                                      onsubmit="return confirm('¿Eliminar/desactivar la caja {{ $caja->nombre }}?\nSi tiene historial solo se desactiva.')">
+                                    @csrf @method('DELETE')
+                                    <button class="rounded-lg border border-red-200 px-3 py-2 text-xs text-red-600 hover:bg-red-50">Eliminar</button>
+                                </form>
+                            @endcan
                         @endif
                     </div>
                 </div>

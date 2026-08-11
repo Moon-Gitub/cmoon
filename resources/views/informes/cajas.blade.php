@@ -39,11 +39,12 @@
                     <th class="px-4 py-3 text-right">Ventas</th>
                     <th class="px-4 py-3 text-right">Total</th>
                     <th class="px-4 py-3">Estado</th>
+                    <th class="px-4 py-3 text-right">Detalle</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($sesiones as $sesion)
-                    <tr>
+                    <tr class="hover:bg-slate-50">
                         <td class="px-4 py-3 font-medium">{{ $sesion->caja->nombre }}</td>
                         <td class="px-4 py-3">{{ $sesion->usuario->name }}</td>
                         <td class="px-4 py-3 whitespace-nowrap">{{ $sesion->abierta_at->format('d/m/Y H:i') }}</td>
@@ -57,9 +58,13 @@
                                 <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">Cerrada</span>
                             @endif
                         </td>
+                        <td class="px-4 py-3 text-right">
+                            <a href="{{ route('cajas.sesion', $sesion) }}"
+                               class="rounded-lg border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-100">Ver cierre</a>
+                        </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">No hay sesiones en el período.</td></tr>
+                    <tr><td colspan="8" class="px-4 py-8 text-center text-slate-400">No hay sesiones en el período.</td></tr>
                 @endforelse
             </tbody>
         </table>

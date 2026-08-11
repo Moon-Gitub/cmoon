@@ -41,8 +41,18 @@
             </div>
             <div>
                 <label class="mb-1 block text-sm font-medium text-slate-700">Número de documento</label>
-                <input type="text" name="documento" value="{{ old('documento', $cliente->documento) }}"
-                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                <div class="flex gap-2">
+                    <input type="text" name="documento" id="documento" value="{{ old('documento', $cliente->documento) }}"
+                           class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    @canany(['clientes.crear', 'clientes.editar'])
+                        <button type="button" id="btn-padron-afip"
+                                class="shrink-0 rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium hover:bg-slate-50"
+                                title="Consultar padrón AFIP (CUIT)">
+                            AFIP
+                        </button>
+                    @endcanany
+                </div>
+                <p id="padron-msg" class="mt-1 text-xs text-slate-500"></p>
             </div>
             <div>
                 <label class="mb-1 block text-sm font-medium text-slate-700">Teléfono</label>
@@ -124,4 +134,39 @@
             <a href="{{ route('clientes.index') }}" class="text-sm text-slate-500 hover:text-slate-700">Cancelar</a>
         </div>
     </form>
+
+    <script>
+        document.getElementById('btn-padron-afip')?.addEventListener('click', async () => {
+            const doc = document.getElementById('documento')?.value?.trim();
+            const msg = document.getElementById('padron-msg');
+            if (! doc) { if (msg) msg.textContent = 'Ingresá un CUIT.'; return; }
+            if (msg) { msg.textContent = 'Consultando padrón AFIP…'; msg.className = 'mt-1 text-xs text-slate-500'; }
+            try {
+                const res = await fetch('{{ route('clientes.padron') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                    },
+                    body: JSON.stringify({ cuit: doc }),
+                });
+                const data = await res.json();
+                if (! res.ok) {
+                    if (msg) { msg.textContent = data.message ?? 'Error AFIP'; msg.className = 'mt-1 text-xs text-red-600'; }
+                    return;
+                }
+                const set = (name, val) => { const el = document.querySelector(`[name="${name}"]`); if (el && val) el.value = val; };
+                set('nombre', data.nombre);
+                set('tipo_documento', data.tipo_documento);
+                set('documento', data.documento);
+                set('condicion_iva', data.condicion_iva);
+                set('domicilio', data.domicilio);
+                set('localidad', data.localidad);
+                if (msg) { msg.textContent = 'Datos cargados desde padrón AFIP.'; msg.className = 'mt-1 text-xs text-emerald-600'; }
+            } catch (e) {
+                if (msg) { msg.textContent = 'Error de conexión.'; msg.className = 'mt-1 text-xs text-red-600'; }
+            }
+        });
+    </script>
 @endsection

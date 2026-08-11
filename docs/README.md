@@ -4,6 +4,7 @@
 
 | Documento | Contenido |
 |-----------|-----------|
+| [00-prd.md](./00-prd.md) | **PRD del producto:** visión, usuarios, alcance, NFR, backlog |
 | [01-arquitectura.md](./01-arquitectura.md) | Stack, servicios Docker, carpetas del repo |
 | [02-desarrollo-local.md](./02-desarrollo-local.md) | Levantar el proyecto en tu PC |
 | [03-vps-dokploy.md](./03-vps-dokploy.md) | Deploy en VPS con Dokploy paso a paso |
@@ -20,6 +21,7 @@
 | [12-mantenimiento.md](./12-mantenimiento.md) | Migraciones, backups, redeploy, troubleshooting |
 | [15-retenciones-iibb.md](./15-retenciones-iibb.md) | **Retenciones IIBB** con exportación SIRCAR |
 | [16-integracion-tiendanube.md](./16-integracion-tiendanube.md) | **Integración Tiendanube** (opcional) — sync productos, stock, órdenes |
+| [17-feedback-carrasco-2026-08.md](./17-feedback-carrasco-2026-08.md) | **Feedback Carlos Carrasco** — backlog cajas/POS/AFIP/factura B |
 
 ## Inicio rápido
 

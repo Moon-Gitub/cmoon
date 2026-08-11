@@ -17,6 +17,7 @@ class CajaController extends Controller
     {
         return view('cajas.index', [
             'cajas' => Caja::with(['sucursal', 'sesionAbierta.usuario'])
+                ->where('activa', true)
                 ->whereHas('sucursal')
                 ->orderBy('nombre')
                 ->get(),
@@ -122,5 +123,31 @@ class CajaController extends Controller
             'ventas' => $sesion->ventas()->with('pagos.medioPago')->orderByDesc('fecha')->get(),
             'efectivoEsperado' => $sesion->efectivoEsperado(),
         ]);
+    }
+
+    /**
+     * Soft-delete (activa=false). Reglas:
+     * - Solo cajas.gestionar
+     * - No permitir si tiene sesión abierta
+     * - Si tiene historial de sesiones, solo desactiva (no borra filas)
+     * - Si nunca tuvo sesiones, se puede hard-delete
+     */
+    public function destroy(Caja $caja): RedirectResponse
+    {
+        abort_unless(auth()->user()->can('cajas.gestionar'), 403);
+
+        if ($caja->sesionAbierta) {
+            return back()->with('error', 'No se puede eliminar: la caja tiene una sesión abierta. Cerrala primero.');
+        }
+
+        if ($caja->sesiones()->exists()) {
+            $caja->update(['activa' => false]);
+
+            return back()->with('ok', "Caja {$caja->nombre} desactivada (conserva historial de cierres).");
+        }
+
+        $caja->delete();
+
+        return back()->with('ok', "Caja {$caja->nombre} eliminada.");
     }
 }

@@ -317,4 +317,79 @@ class ProductoController extends Controller
             'Content-Disposition' => 'attachment; filename="plantilla-productos.csv"',
         ]);
     }
+
+    public function precioMasivoForm(): View
+    {
+        abort_unless(auth()->user()->can('productos.precio_masivo') || auth()->user()->can('productos.editar'), 403);
+
+        return view('productos.precio-masivo', [
+            'categorias' => Categoria::orderBy('nombre')->get(),
+        ]);
+    }
+
+    public function precioMasivo(Request $request): RedirectResponse
+    {
+        abort_unless(auth()->user()->can('productos.precio_masivo') || auth()->user()->can('productos.editar'), 403);
+
+        $datos = $request->validate([
+            'categoria_id' => ['nullable', Rule::exists('categorias', 'id')],
+            'modo' => ['required', 'in:porcentaje,fijo'],
+            'campo' => ['required', 'in:precio_venta,precio_compra'],
+            'valor' => ['required', 'numeric'],
+        ], [], [
+            'categoria_id' => 'categoría',
+            'campo' => 'campo de precio',
+        ]);
+
+        $query = Producto::query()->where('activo', true);
+        if (! empty($datos['categoria_id'])) {
+            $query->where('categoria_id', $datos['categoria_id']);
+        }
+
+        $afectados = 0;
+        $query->orderBy('id')->chunkById(100, function ($productos) use ($datos, &$afectados) {
+            foreach ($productos as $producto) {
+                $actual = (float) $producto->{$datos['campo']};
+                $nuevo = $datos['modo'] === 'porcentaje'
+                    ? round($actual * (1 + ((float) $datos['valor'] / 100)), 2)
+                    : round($actual + (float) $datos['valor'], 2);
+
+                if ($nuevo < 0) {
+                    $nuevo = 0;
+                }
+
+                if (abs($nuevo - $actual) < 0.0001) {
+                    continue;
+                }
+
+                $producto->update([
+                    $datos['campo'] => $nuevo,
+                ]);
+                // Auditoría vía ProductoObserver (origen update). Reforzar origen:
+                \App\Models\ProductoAuditoria::where('producto_id', $producto->id)
+                    ->where('campo', $datos['campo'])
+                    ->latest('id')
+                    ->limit(1)
+                    ->update(['origen' => 'precio_masivo']);
+
+                $afectados++;
+            }
+        });
+
+        return redirect()->route('productos.index')
+            ->with('ok', "Precio masivo aplicado a {$afectados} producto(s).");
+    }
+
+    public function auditoria(Producto $producto): View
+    {
+        abort_unless(auth()->user()->can('productos.auditoria') || auth()->user()->can('productos.editar'), 403);
+
+        return view('productos.auditoria', [
+            'producto' => $producto,
+            'historial' => \App\Models\ProductoAuditoria::with('usuario')
+                ->where('producto_id', $producto->id)
+                ->orderByDesc('id')
+                ->paginate(40),
+        ]);
+    }
 }

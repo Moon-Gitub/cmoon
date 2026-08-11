@@ -68,7 +68,20 @@ class VentaController extends Controller
 
         $ventaService->anular($venta, $datos['motivo'], auth()->id());
 
-        return back()->with('ok', "Venta #{$venta->numero} anulada. Stock repuesto.");
+        return back()->with('ok', "Venta #{$venta->numero} anulada. Stock repuesto. Revisá la nota de impacto en caja en el motivo.");
+    }
+
+    public function editarFecha(Request $request, Venta $venta, VentaService $ventaService): RedirectResponse
+    {
+        abort_unless(auth()->user()->can('ventas.editar_fecha'), 403);
+
+        $datos = $request->validate([
+            'fecha' => ['required', 'date'],
+        ]);
+
+        $ventaService->cambiarFecha($venta, $datos['fecha'], auth()->id());
+
+        return back()->with('ok', "Fecha de la venta #{$venta->numero} actualizada.");
     }
 
     public function ticket(Venta $venta): View

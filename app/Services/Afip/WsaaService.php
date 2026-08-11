@@ -20,13 +20,15 @@ class WsaaService
 
     /**
      * Devuelve ['token' => ..., 'sign' => ...] vigentes para el emisor.
+     *
+     * @param  string  $servicio  wsfe | ws_sr_padron_a5 | ...
      */
-    public function credenciales(Emisor $emisor): array
+    public function credenciales(Emisor $emisor, string $servicio = self::SERVICIO): array
     {
-        $ta = $this->taVigente($emisor);
+        $ta = $this->taVigente($emisor, $servicio);
 
         if (! $ta) {
-            $ta = $this->generarTa($emisor);
+            $ta = $this->generarTa($emisor, $servicio);
         }
 
         return [
@@ -35,14 +37,16 @@ class WsaaService
         ];
     }
 
-    private function rutaTa(Emisor $emisor): string
+    private function rutaTa(Emisor $emisor, string $servicio = self::SERVICIO): string
     {
-        return "afip/ta/ta-{$emisor->id}-{$emisor->entorno}.xml";
+        $suffix = $servicio === self::SERVICIO ? '' : "-{$servicio}";
+
+        return "afip/ta/ta-{$emisor->id}-{$emisor->entorno}{$suffix}.xml";
     }
 
-    private function taVigente(Emisor $emisor): ?SimpleXMLElement
+    private function taVigente(Emisor $emisor, string $servicio = self::SERVICIO): ?SimpleXMLElement
     {
-        $ruta = $this->rutaTa($emisor);
+        $ruta = $this->rutaTa($emisor, $servicio);
 
         if (! Storage::exists($ruta)) {
             return null;
@@ -62,7 +66,7 @@ class WsaaService
         return $ta;
     }
 
-    private function generarTa(Emisor $emisor): SimpleXMLElement
+    private function generarTa(Emisor $emisor, string $servicio = self::SERVICIO): SimpleXMLElement
     {
         if (! $emisor->tieneCertificado()) {
             throw new RuntimeException(
@@ -77,7 +81,7 @@ class WsaaService
             throw new RuntimeException('No se encontraron los archivos del certificado AFIP en el servidor.');
         }
 
-        $cms = $this->firmarTra($this->crearTra(), $certPath, $keyPath);
+        $cms = $this->firmarTra($this->crearTra($servicio), $certPath, $keyPath);
 
         $cliente = AfipSoap::client(
             resource_path('afip/wsdl/wsaa.wsdl'),
@@ -87,7 +91,7 @@ class WsaaService
         $resultado = $cliente->loginCms(['in0' => $cms]);
 
         $this->asegurarDirectorioTa();
-        Storage::put($this->rutaTa($emisor), $resultado->loginCmsReturn);
+        Storage::put($this->rutaTa($emisor, $servicio), $resultado->loginCmsReturn);
 
         return simplexml_load_string($resultado->loginCmsReturn);
     }
@@ -100,7 +104,7 @@ class WsaaService
         }
     }
 
-    private function crearTra(): string
+    private function crearTra(string $servicio = self::SERVICIO): string
     {
         $tra = new SimpleXMLElement(
             '<?xml version="1.0" encoding="UTF-8"?><loginTicketRequest version="1.0"></loginTicketRequest>'
@@ -109,7 +113,7 @@ class WsaaService
         $tra->header->addChild('uniqueId', (string) time());
         $tra->header->addChild('generationTime', date('c', time() - 60));
         $tra->header->addChild('expirationTime', date('c', time() + 600));
-        $tra->addChild('service', self::SERVICIO);
+        $tra->addChild('service', $servicio);
 
         // Archivo temporal: el TRA se borra después de firmarlo
         $rutaTra = tempnam(sys_get_temp_dir(), 'afip-tra-');

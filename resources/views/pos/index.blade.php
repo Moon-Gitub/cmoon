@@ -34,7 +34,14 @@
                 <span x-show="pendientes.length" x-cloak
                       class="flex items-center gap-1.5 rounded-full bg-amber-500/20 px-2.5 py-1 text-amber-300"
                       x-text="pendientes.length + (pendientes.length === 1 ? ' venta por sincronizar' : ' ventas por sincronizar')"></span>
-                @if ($sesionAbierta)
+                @if ($sesionesAbiertas->count() > 1)
+                    <select x-model.number="cajaSesionId" @change="cambiarCaja()"
+                            class="rounded-full border-0 bg-emerald-500/20 px-2.5 py-1 text-xs text-emerald-300 focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                        @foreach ($sesionesAbiertas as $s)
+                            <option value="{{ $s->id }}" class="text-slate-900">{{ $s->caja->nombre }}</option>
+                        @endforeach
+                    </select>
+                @elseif ($sesionAbierta)
                     <span class="flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-2.5 py-1 text-emerald-300">
                         <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
                         {{ $sesionAbierta->caja->nombre }} abierta
@@ -134,13 +141,31 @@
             <aside class="flex w-full shrink-0 flex-col gap-3 border-t border-slate-200 bg-white p-3 sm:p-4 lg:w-80 lg:border-l lg:border-t-0">
                 <div>
                     <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Cliente</label>
-                    <select x-model="clienteId" @change="errorPago = ''"
-                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
-                        <option value="">Consumidor final</option>
-                        <template x-for="c in clientes" :key="c.id">
-                            <option :value="c.id" x-text="c.nombre + (c.documento ? ' (' + c.documento + ')' : '')"></option>
-                        </template>
-                    </select>
+                    <div class="relative" @click.outside="clienteMenu = false">
+                        <div class="flex gap-1">
+                            <input type="text" x-model="clienteBusqueda" @focus="clienteMenu = true" @input="clienteMenu = true"
+                                   placeholder="Buscar cliente…"
+                                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+                            @if ($puedeCrearCliente ?? false)
+                                <button type="button" @click="modalCliente = true; errorCliente = ''"
+                                        class="shrink-0 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 text-sm font-bold text-indigo-700 hover:bg-indigo-100"
+                                        title="Nuevo cliente">+</button>
+                            @endif
+                        </div>
+                        <div x-show="clienteMenu" x-cloak
+                             class="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+                            <button type="button" @click="elegirCliente('')"
+                                    class="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                                    :class="! clienteId && 'bg-indigo-50 font-medium'">Consumidor final</button>
+                            <template x-for="c in clientesFiltrados()" :key="c.id">
+                                <button type="button" @click="elegirCliente(c.id)"
+                                        class="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                                        :class="clienteId == c.id && 'bg-indigo-50 font-medium'"
+                                        x-text="c.nombre + (c.documento ? ' (' + c.documento + ')' : '')"></button>
+                            </template>
+                            <p class="px-3 py-2 text-xs text-slate-400" x-show="clientesFiltrados().length === 0">Sin resultados</p>
+                        </div>
+                    </div>
                     <p class="mt-1 text-xs text-indigo-600" x-show="listaActiva()" x-text="'Lista: ' + (listaActiva()?.nombre ?? '') + ' (' + (listaActiva()?.porcentaje > 0 ? '+' : '') + (listaActiva()?.porcentaje ?? 0) + '%)'"></p>
                 </div>
 
@@ -259,7 +284,7 @@
                 Total <span class="font-semibold" x-text="fmt(ventaOk?.total ?? 0)"></span>.
                 Se va a sincronizar sola cuando vuelva internet.
             </p>
-            <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+            <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <button type="button" @click="imprimirTicket()" x-show="! ventaOk?.offline && ! ventaOk?.factura_url"
                         class="flex-1 rounded-xl border border-slate-300 py-2.5 text-sm font-medium hover:bg-slate-50">
                     Imprimir ticket
@@ -275,12 +300,21 @@
                    class="flex-1 rounded-xl border border-emerald-300 bg-emerald-50 py-2.5 text-center text-sm font-semibold text-emerald-700 hover:bg-emerald-100">
                     Ver factura
                 </a>
+                <a x-show="ventaOk?.ticket_fiscal_url" :href="(ventaOk?.ticket_fiscal_url ?? '') + '?print=1'" target="_blank"
+                   class="flex-1 rounded-xl border border-slate-300 bg-white py-2.5 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                    Ticket fiscal
+                </a>
                 <button type="button" @click="ventaOk = null; $refs.buscador.focus()"
                         class="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">
                     Nueva venta (Esc)
                 </button>
             </div>
             <p class="mt-3 text-xs text-red-600" x-show="errorFactura" x-text="errorFactura"></p>
+            <ul class="mt-2 space-y-1 text-left text-xs text-red-600" x-show="observacionesAfip.length">
+                <template x-for="(obs, i) in observacionesAfip" :key="i">
+                    <li x-text="obs"></li>
+                </template>
+            </ul>
             <p class="mt-2 text-xs text-emerald-700" x-show="ventaOk?.facturada" x-text="ventaOk?.factura_msg"></p>
 
             <div x-show="puedeFacturar && emisores.length && ! ventaOk?.offline && ! ventaOk?.facturada"
@@ -323,6 +357,45 @@
         </div>
     </div>
 
+    {{-- Modal alta rápida de cliente --}}
+    <div x-show="modalCliente" x-transition.opacity
+         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" @click.outside="modalCliente = false">
+            <h2 class="mb-4 text-lg font-bold">Nuevo cliente</h2>
+            <div class="space-y-3 text-sm">
+                <input type="text" x-model="nuevoCliente.nombre" placeholder="Nombre / razón social *"
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2">
+                <div class="grid grid-cols-2 gap-2">
+                    <select x-model="nuevoCliente.tipo_documento" class="rounded-lg border border-slate-300 px-3 py-2">
+                        <option value="DNI">DNI</option>
+                        <option value="CUIT">CUIT</option>
+                        <option value="CUIL">CUIL</option>
+                        <option value="OTRO">OTRO</option>
+                    </select>
+                    <input type="text" x-model="nuevoCliente.documento" placeholder="Documento"
+                           class="rounded-lg border border-slate-300 px-3 py-2">
+                </div>
+                <select x-model="nuevoCliente.condicion_iva" class="w-full rounded-lg border border-slate-300 px-3 py-2">
+                    <option value="CONSUMIDOR_FINAL">Consumidor final</option>
+                    <option value="RESPONSABLE_INSCRIPTO">Responsable Inscripto</option>
+                    <option value="MONOTRIBUTO">Monotributo</option>
+                    <option value="EXENTO">Exento</option>
+                </select>
+                <input type="text" x-model="nuevoCliente.telefono" placeholder="Teléfono"
+                       class="w-full rounded-lg border border-slate-300 px-3 py-2">
+            </div>
+            <p class="mt-2 text-xs text-red-600" x-show="errorCliente" x-text="errorCliente"></p>
+            <div class="mt-4 flex gap-3">
+                <button type="button" @click="modalCliente = false"
+                        class="flex-1 rounded-xl border border-slate-300 py-2.5 text-sm">Cancelar</button>
+                <button type="button" @click="guardarCliente()" :disabled="guardandoCliente"
+                        class="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-bold text-white disabled:opacity-50">
+                    Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         function posApp() {
             return {
@@ -330,11 +403,14 @@
                 mercadopagoQr: false, puedeFacturar: @json($puedeFacturar ?? false),
                 emisorId: null, puntoVentaId: null,
                 carrito: [], busqueda: '', sugerencias: [], seleccion: 0,
-                clienteId: '', descuento: 0,
+                clienteId: '', clienteBusqueda: '', clienteMenu: false,
+                descuento: 0,
                 modalPago: false, pagos: [], recibido: 0, errorPago: '',
                 modalQr: false, qrSvg: '', qrReferencia: '', qrTotal: 0, qrEsperando: false,
                 qrPollTimer: null, errorQr: '',
-                procesando: false, ventaOk: null, facturando: false, errorFactura: '',
+                modalCliente: false, guardandoCliente: false, errorCliente: '',
+                nuevoCliente: { nombre: '', tipo_documento: 'DNI', documento: '', condicion_iva: 'CONSUMIDOR_FINAL', telefono: '' },
+                procesando: false, ventaOk: null, facturando: false, errorFactura: '', observacionesAfip: [],
                 online: navigator.onLine, pendientes: [], sincronizando: false,
                 sucursalId: {{ $sucursal?->id ?? 'null' }},
                 cajaSesionId: {{ $sesionAbierta?->id ?? 'null' }},
@@ -376,7 +452,88 @@
                         // Carrito precargado desde el presupuesto #{{ $presupuesto->numero }}
                         this.carrito = @json($presupuestoItems);
                         this.clienteId = '{{ $presupuesto->cliente_id ?? '' }}';
+                        this.syncClienteBusqueda();
                     @endif
+                },
+
+                syncClienteBusqueda() {
+                    if (! this.clienteId) {
+                        this.clienteBusqueda = '';
+                        return;
+                    }
+                    const c = this.clientes.find(c => c.id == this.clienteId);
+                    this.clienteBusqueda = c ? (c.nombre + (c.documento ? ' (' + c.documento + ')' : '')) : '';
+                },
+
+                clientesFiltrados() {
+                    const q = (this.clienteBusqueda || '').trim().toLowerCase();
+                    if (! q || (this.clienteId && this.clienteBusqueda === this.etiquetaCliente(this.clienteId))) {
+                        return this.clientes.slice(0, 40);
+                    }
+                    return this.clientes
+                        .filter(c => (c.nombre || '').toLowerCase().includes(q)
+                            || (c.documento || '').toLowerCase().includes(q))
+                        .slice(0, 40);
+                },
+
+                etiquetaCliente(id) {
+                    const c = this.clientes.find(c => c.id == id);
+                    return c ? (c.nombre + (c.documento ? ' (' + c.documento + ')' : '')) : '';
+                },
+
+                elegirCliente(id) {
+                    this.clienteId = id ? String(id) : '';
+                    this.syncClienteBusqueda();
+                    this.clienteMenu = false;
+                    this.errorPago = '';
+                },
+
+                async cambiarCaja() {
+                    try {
+                        await fetch('{{ route('pos.caja') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                            },
+                            body: JSON.stringify({ caja_sesion_id: this.cajaSesionId }),
+                        });
+                    } catch { /* ignore */ }
+                },
+
+                async guardarCliente() {
+                    if (! this.nuevoCliente.nombre?.trim()) {
+                        this.errorCliente = 'El nombre es obligatorio.';
+                        return;
+                    }
+                    this.guardandoCliente = true;
+                    this.errorCliente = '';
+                    try {
+                        const res = await fetch('{{ route('pos.clientes.store') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                            },
+                            body: JSON.stringify(this.nuevoCliente),
+                        });
+                        const data = await res.json();
+                        if (! res.ok) {
+                            this.errorCliente = data.message ?? (data.errors ? Object.values(data.errors).flat().join(' ') : 'No se pudo crear.');
+                            return;
+                        }
+                        this.clientes.push(data);
+                        this.clientes.sort((a, b) => a.nombre.localeCompare(b.nombre));
+                        this.elegirCliente(data.id);
+                        this.modalCliente = false;
+                        this.nuevoCliente = { nombre: '', tipo_documento: 'DNI', documento: '', condicion_iva: 'CONSUMIDOR_FINAL', telefono: '' };
+                    } catch {
+                        this.errorCliente = 'Error de conexión.';
+                    } finally {
+                        this.guardandoCliente = false;
+                    }
                 },
 
                 guardarPendientes() {
@@ -593,7 +750,7 @@
                         caja_sesion_id: this.cajaSesionId,
                         cliente_id: this.clienteId ? Number(this.clienteId) : null,
                         descuento: this.descuento || 0,
-                        fecha: new Date().toISOString(),
+                        // Fecha: la define el servidor (APP_TIMEZONE). Evita UTC de toISOString().
                         origen: 'pos',
                         items: this.carrito.map(i => ({
                             producto_id: i.producto_id,
@@ -715,6 +872,7 @@
                     }
                     this.facturando = true;
                     this.errorFactura = '';
+                    this.observacionesAfip = [];
                     try {
                         const res = await fetch(`{{ url('/pos/ventas') }}/${this.ventaOk.id}/facturar`, {
                             method: 'POST',
@@ -732,8 +890,12 @@
                         if (data.estado === 'autorizado') {
                             this.ventaOk.facturada = true;
                             this.ventaOk.factura_url = data.factura_url;
+                            this.ventaOk.ticket_fiscal_url = data.ticket_url;
                             this.ventaOk.factura_msg = `${data.tipo} ${data.numero} · CAE ${data.cae}`;
                         } else {
+                            this.observacionesAfip = Array.isArray(data.observaciones) && data.observaciones.length
+                                ? data.observaciones
+                                : [];
                             this.errorFactura = data.mensaje ?? 'AFIP no autorizó el comprobante.';
                         }
                     } catch {
@@ -748,7 +910,9 @@
                     this.carrito = [];
                     this.descuento = 0;
                     this.clienteId = '';
+                    this.clienteBusqueda = '';
                     this.presupuestoId = null;
+                    this.observacionesAfip = [];
                 },
 
                 imprimirTicket() {

@@ -92,6 +92,17 @@ php artisan legacy:import --empresa-id=2 --only=setup,productos,clientes,ventas
 php artisan legacy:import --empresa-id=2 --force --reset-maps
 ```
 
+### Sync incremental post-cutover (solo IDs nuevos)
+
+El import es idempotente: sin `--force` / sin `--reset-maps`, `skipIfMapped` omite filas ya presentes en `legacy_import_maps` y **solo crea legacy_ids nuevos**.
+
+1. Comparar `COUNT`/`MAX(id)` en origen (cPanel) vs maps o conteos POSMoon.
+2. Si hay delta: dump fresco → `php artisan legacy:load-dump --database=<cliente>_legacy --force` (el load sin `--force` hace skip si ya hay productos).
+3. `php artisan legacy:import --empresa-id=N --only=productos,clientes,ventas,comprobantes`
+4. Apagar `LEGACY_IMPORT_ENABLED`.
+
+No hay filtro SQL por `id`/`fecha` en los importers: se recorre la tabla legacy y se salta lo mapeado. No actualiza stock/precio de productos ya mapeados.
+
 ## Orden de importación
 
 | Clave | Contenido |
