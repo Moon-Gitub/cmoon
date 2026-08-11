@@ -66,6 +66,28 @@ En **Dokploy** no se usa archivo `.env` en disco: cada variable se carga en la p
 | `DESKTOP_LICENSE_SECRET` | APP_KEY | Secreto HMAC licencias (`openssl rand -hex 32`) |
 | `DESKTOP_OFFLINE_GRACE_DAYS` | 7 | Días que vende offline con abono al día |
 
+## Shopify (opcional)
+
+| Variable | Default | Descripción |
+|----------|---------|-------------|
+| `SHOPIFY_STORE_DOMAIN` | — | `tienda.myshopify.com` (default UI) |
+| `SHOPIFY_API_KEY` | — | API key de la app |
+| `SHOPIFY_API_SECRET` | — | Secret (HMAC webhooks) |
+| `SHOPIFY_ACCESS_TOKEN` | — | Admin API token (default) |
+| `SHOPIFY_WEBHOOK_SECRET` | — | Si difiere del API secret |
+| `SHOPIFY_API_VERSION` | `2025-01` | Versión Admin REST |
+
+Credenciales por empresa también en UI `/integraciones/shopify`. Ver [18-integracion-shopify.md](./18-integracion-shopify.md).
+
+## API REST v1
+
+| Variable | Default | Descripción |
+|----------|---------|-------------|
+| `API_VERSION` | `1.0.0` | Versión en OpenAPI/Scramble |
+| `SANCTUM_STATEFUL_DOMAINS` | localhost… | Dominios SPA cookie (opcional) |
+
+Docs: [19-api-rest.md](./19-api-rest.md) · UI `/docs/api`.
+
 ## Docker interno
 
 | Variable | Descripción |

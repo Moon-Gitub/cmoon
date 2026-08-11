@@ -24,8 +24,10 @@ use App\Http\Controllers\RetencionController;
 use App\Http\Controllers\RutaController;
 use App\Http\Controllers\SucursalController;
 use App\Http\Controllers\TiendanubeController;
+use App\Http\Controllers\ShopifyController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\TiendanubeWebhookController;
+use App\Http\Controllers\ShopifyWebhookController;
 use App\Http\Controllers\VentaController;
 use App\Services\Afip\AfipSoap;
 use Illuminate\Support\Facades\Route;
@@ -34,6 +36,11 @@ use Illuminate\Support\Facades\Storage;
 // Webhook Tiendanube (sin auth, validado por HMAC)
 Route::post('/webhooks/tiendanube', [TiendanubeWebhookController::class, 'handle'])
     ->name('tiendanube.webhook')
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
+// Webhook Shopify (sin auth, validado por X-Shopify-Hmac-Sha256)
+Route::post('/webhooks/shopify', [ShopifyWebhookController::class, 'handle'])
+    ->name('shopify.webhook')
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
 // Diagnóstico de salida a AFIP (token = sha256(APP_KEY) primeros 16 hex)
@@ -264,5 +271,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/tiendanube/sync/stock', [TiendanubeController::class, 'syncStock'])->name('tiendanube.sync.stock');
         Route::post('/tiendanube/import/orders', [TiendanubeController::class, 'importOrders'])->name('tiendanube.import.orders');
         Route::post('/tiendanube/import/products', [TiendanubeController::class, 'importProducts'])->name('tiendanube.import.products');
+
+        // Shopify
+        Route::get('/shopify', [ShopifyController::class, 'index'])->name('shopify.index');
+        Route::post('/shopify', [ShopifyController::class, 'store'])->name('shopify.store');
+        Route::delete('/shopify', [ShopifyController::class, 'disconnect'])->name('shopify.disconnect');
+        Route::patch('/shopify/config', [ShopifyController::class, 'updateConfig'])->name('shopify.config');
+        Route::post('/shopify/test', [ShopifyController::class, 'testConnection'])->name('shopify.test');
+        Route::get('/shopify/logs', [ShopifyController::class, 'logs'])->name('shopify.logs');
+        Route::post('/shopify/import/products', [ShopifyController::class, 'importProducts'])->name('shopify.import.products');
+        Route::post('/shopify/sync/products', [ShopifyController::class, 'syncProducts'])->name('shopify.sync.products');
     });
 });

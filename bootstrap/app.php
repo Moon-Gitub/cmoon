@@ -28,6 +28,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // autenticada y la cookie SameSite=Lax bloquea POST de otros sitios.
         $middleware->validateCsrfTokens(except: [
             'pos/ventas',
+            'webhooks/tiendanube',
+            'webhooks/shopify',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

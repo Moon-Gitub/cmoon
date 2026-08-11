@@ -22,6 +22,8 @@
 | [15-retenciones-iibb.md](./15-retenciones-iibb.md) | **Retenciones IIBB** con exportación SIRCAR |
 | [16-integracion-tiendanube.md](./16-integracion-tiendanube.md) | **Integración Tiendanube** (opcional) — sync productos, stock, órdenes |
 | [17-feedback-carrasco-2026-08.md](./17-feedback-carrasco-2026-08.md) | **Feedback Carlos Carrasco** — backlog cajas/POS/AFIP/factura B |
+| [18-integracion-shopify.md](./18-integracion-shopify.md) | **Integración Shopify** — config, pull productos, webhooks órdenes |
+| [19-api-rest.md](./19-api-rest.md) | **API REST v1** + Sanctum + Scramble (`/docs/api`) |
 
 ## Inicio rápido
 
