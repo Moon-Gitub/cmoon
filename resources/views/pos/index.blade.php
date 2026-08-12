@@ -443,6 +443,7 @@
                         const res = await fetch('{{ route('pos.catalogo') }}', { headers: { 'Accept': 'application/json' } });
                         const data = await res.json();
                         Object.assign(this, data);
+                        this.filtrarMediosQr();
                         if (this.emisores?.length) {
                             this.emisorId = this.emisores[0].id;
                             this.puntoVentaId = this.emisores[0].puntos_venta?.[0]?.id ?? null;
@@ -452,6 +453,7 @@
                         // Sin conexión: usar el último catálogo conocido
                         const cache = localStorage.getItem('pos_catalogo');
                         if (cache) Object.assign(this, JSON.parse(cache));
+                        this.filtrarMediosQr();
                     }
 
                     @if ($presupuesto)
@@ -460,6 +462,13 @@
                         this.clienteId = '{{ $presupuesto->cliente_id ?? '' }}';
                         this.syncClienteBusqueda();
                     @endif
+                },
+
+                filtrarMediosQr() {
+                    if (this.mercadopagoQr || ! Array.isArray(this.medios)) {
+                        return;
+                    }
+                    this.medios = this.medios.filter(m => m.tipo !== 'qr');
                 },
 
                 syncClienteBusqueda() {
@@ -688,7 +697,9 @@
                 },
 
                 usaQrMercadoPago() {
-                    return this.pagos.some(p => this.medioPorId(p.medio_pago_id)?.tipo === 'qr');
+                    // Solo el flujo de cobro MP: requiere medio tipo qr Y credenciales en el servidor.
+                    return this.mercadopagoQr
+                        && this.pagos.some(p => this.medioPorId(p.medio_pago_id)?.tipo === 'qr');
                 },
 
                 importeQr() {
@@ -795,7 +806,8 @@
 
                 async iniciarCobroQr() {
                     if (! this.mercadopagoQr) {
-                        this.errorPago = 'Mercado Pago QR no está configurado en el servidor.';
+                        // Sin MP configurado el medio QR no debería estar en la lista; registrar como venta normal.
+                        await this.registrarVenta();
                         return;
                     }
                     this.procesando = true;

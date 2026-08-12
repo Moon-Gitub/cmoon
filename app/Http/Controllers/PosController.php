@@ -126,12 +126,18 @@ class PosController extends Controller
                     'nombre' => $l->nombre,
                     'porcentaje' => (float) $l->porcentaje,
                 ]),
-            'medios' => $medios->map(fn ($m) => [
-                'id' => $m->id,
-                'nombre' => $m->nombre,
-                'tipo' => $m->tipo,
-                'recargo' => (float) $m->recargo_porcentaje,
-            ]),
+            'medios' => $medios
+                ->when(
+                    ! app(MercadoPagoQrService::class)->configurado(),
+                    fn ($col) => $col->reject(fn ($m) => $m->tipo === 'qr')
+                )
+                ->values()
+                ->map(fn ($m) => [
+                    'id' => $m->id,
+                    'nombre' => $m->nombre,
+                    'tipo' => $m->tipo,
+                    'recargo' => (float) $m->recargo_porcentaje,
+                ]),
             'emisores' => $emisores->map(fn ($e) => [
                 'id' => $e->id,
                 'nombre' => $e->razon_social,
