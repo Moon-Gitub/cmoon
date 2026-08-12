@@ -51,6 +51,8 @@ OUT=/tmp/mig-out.txt
   echo "==> env check"
   echo "LEGACY_DB_DATABASE=${LEGACY_DB_DATABASE:-}"
   echo "LEGACY_IMPORT_ONLY=${LEGACY_IMPORT_ONLY:-}"
+  echo "LEGACY_VENTAS_DESDE=${LEGACY_VENTAS_DESDE:-}"
+  echo "LEGACY_VENTAS_HASTA=${LEGACY_VENTAS_HASTA:-}"
 } | tee -a "$OUT"
 
 php artisan migrate --force >>"$OUT" 2>&1 || true

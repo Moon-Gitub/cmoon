@@ -43,4 +43,16 @@ return [
 
     'chunk_size' => (int) env('LEGACY_IMPORT_CHUNK', 200),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Filtro opcional de ventas por fecha (cutover rápido / histórico después)
+    |--------------------------------------------------------------------------
+    |
+    | Ej.: LEGACY_VENTAS_DESDE=2026-08-01 deja el POS andando con el mes actual;
+    | luego un import sin filtro (sin --reset-maps) completa el historial.
+    |
+    */
+    'ventas_desde' => env('LEGACY_VENTAS_DESDE'),
+    'ventas_hasta' => env('LEGACY_VENTAS_HASTA'),
+
 ];

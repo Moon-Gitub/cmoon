@@ -35,6 +35,15 @@ class VentaImporter extends AbstractImporter
             $query->where('id_empresa', $ctx->legacyEmpresaId);
         }
 
+        $desde = config('legacy.ventas_desde');
+        $hasta = config('legacy.ventas_hasta');
+        if (is_string($desde) && $desde !== '') {
+            $query->where('fecha', '>=', $desde);
+        }
+        if (is_string($hasta) && $hasta !== '') {
+            $query->where('fecha', '<=', $hasta);
+        }
+
         $chunk = config('legacy.chunk_size', 200);
 
         $query->chunk($chunk, function ($rows) use ($ctx) {
