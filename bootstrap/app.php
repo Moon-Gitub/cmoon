@@ -30,6 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'pos/ventas',
             'webhooks/tiendanube',
             'webhooks/shopify',
+            'webhooks/ycloud',
+            'webhooks/n8n',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

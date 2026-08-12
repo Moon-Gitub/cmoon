@@ -17,6 +17,12 @@
                 <option value="">Activos</option>
                 <option value="inactivos" {{ request('estado') === 'inactivos' ? 'selected' : '' }}>Inactivos</option>
             </select>
+            <select name="canal" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <option value="">Todos los canales</option>
+                <option value="shopify" {{ request('canal') === 'shopify' ? 'selected' : '' }}>Shopify</option>
+                <option value="whatsapp" {{ request('canal') === 'whatsapp' ? 'selected' : '' }}>WhatsApp</option>
+                <option value="tiendanube" {{ request('canal') === 'tiendanube' ? 'selected' : '' }}>Tiendanube</option>
+            </select>
             <button class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50">Filtrar</button>
         </form>
 
@@ -43,8 +49,12 @@
             @endif
         </p>
         @can('productos.editar')
-            <a href="{{ route('productos.precio-masivo') }}"
-               class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Cambio de precio masivo →</a>
+            <div class="flex gap-3">
+                <a href="{{ route('productos.canales') }}"
+                   class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Publicar en canales →</a>
+                <a href="{{ route('productos.precio-masivo') }}"
+                   class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Cambio de precio masivo →</a>
+            </div>
         @endcan
     </div>
 
@@ -71,6 +81,9 @@
                             {{ $p->nombre }}
                             @if ($p->pesable)<span class="ml-1 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">BALANZA</span>@endif
                             @if ($p->es_combo)<span class="ml-1 rounded bg-purple-50 px-1.5 py-0.5 text-[10px] font-medium text-purple-700">COMBO</span>@endif
+                            @if ($p->publicar_shopify)<span class="ml-1 rounded bg-lime-50 px-1.5 py-0.5 text-[10px] font-medium text-lime-700">SHOPIFY</span>@endif
+                            @if ($p->publicar_whatsapp)<span class="ml-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">WA</span>@endif
+                            @if ($p->publicar_tiendanube)<span class="ml-1 rounded bg-sky-50 px-1.5 py-0.5 text-[10px] font-medium text-sky-700">TN</span>@endif
                         </td>
                         <td class="px-4 py-3 text-slate-600">{{ $p->categoria?->nombre ?? '—' }}</td>
                         <td class="px-4 py-3 text-right text-slate-600">$ {{ number_format((float) $p->precio_compra, 2, ',', '.') }}</td>

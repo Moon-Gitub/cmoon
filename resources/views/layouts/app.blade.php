@@ -264,11 +264,27 @@
                 @endcan
             @endif
 
+            <a href="{{ route('asistente.index') }}"
+               class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('asistente.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg>
+                Asistente IA
+            </a>
+
             @can('empresa.editar')
                 <a href="{{ route('shopify.index') }}"
                    class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('shopify.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/></svg>
                     Shopify
+                </a>
+                <a href="{{ route('n8n.index') }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('n8n.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
+                    n8n
+                </a>
+                <a href="{{ route('ycloud.index') }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('ycloud.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/></svg>
+                    WhatsApp
                 </a>
                 <a href="/docs/api"
                    target="_blank"
@@ -350,6 +366,7 @@
             </div>
             <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4 text-sm">
                 <a href="{{ route('dashboard') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Inicio</a>
+                <a href="{{ route('asistente.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Asistente IA</a>
                 @can('pos.vender')<a href="{{ route('pos') }}" class="block rounded-lg px-3 py-2 text-emerald-300 hover:bg-slate-800">Punto de venta</a>@endcan
                 @can('ventas.ver')<a href="{{ route('ventas.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Ventas</a>@endcan
                 @can('productos.ver')<a href="{{ route('productos.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Productos</a>@endcan

@@ -315,6 +315,12 @@
                     <li x-text="obs"></li>
                 </template>
             </ul>
+            <button type="button" x-show="observacionesAfip.length || errorFactura"
+                    @click="explicarAfipIa()"
+                    class="mt-2 text-xs font-medium text-indigo-600">
+                Explicar con IA (1 uso)
+            </button>
+            <p class="mt-2 whitespace-pre-wrap text-left text-xs text-slate-600" x-show="explicacionAfip" x-text="explicacionAfip"></p>
             <p class="mt-2 text-xs text-emerald-700" x-show="ventaOk?.facturada" x-text="ventaOk?.factura_msg"></p>
 
             <div x-show="puedeFacturar && emisores.length && ! ventaOk?.offline && ! ventaOk?.facturada"
@@ -410,7 +416,7 @@
                 qrPollTimer: null, errorQr: '',
                 modalCliente: false, guardandoCliente: false, errorCliente: '',
                 nuevoCliente: { nombre: '', tipo_documento: 'DNI', documento: '', condicion_iva: 'CONSUMIDOR_FINAL', telefono: '' },
-                procesando: false, ventaOk: null, facturando: false, errorFactura: '', observacionesAfip: [],
+                procesando: false, ventaOk: null, facturando: false, errorFactura: '', observacionesAfip: [], explicacionAfip: '',
                 online: navigator.onLine, pendientes: [], sincronizando: false,
                 sucursalId: {{ $sucursal?->id ?? 'null' }},
                 cajaSesionId: {{ $sesionAbierta?->id ?? 'null' }},
@@ -865,6 +871,28 @@
                     this.modalPago = true;
                 },
 
+                async explicarAfipIa() {
+                    this.explicacionAfip = 'Consultando IA…';
+                    try {
+                        const res = await fetch(@json(route('ia.afip.explicar')), {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                            },
+                            body: JSON.stringify({
+                                mensaje: this.errorFactura,
+                                observaciones: this.observacionesAfip,
+                            }),
+                        });
+                        const data = await res.json();
+                        this.explicacionAfip = data.texto || 'Sin explicación.';
+                    } catch {
+                        this.explicacionAfip = 'No se pudo consultar la IA.';
+                    }
+                },
+
                 async facturarVenta() {
                     if (! this.ventaOk?.id || ! this.emisorId || ! this.puntoVentaId) {
                         this.errorFactura = 'No hay emisor o punto de venta configurado.';
@@ -873,6 +901,7 @@
                     this.facturando = true;
                     this.errorFactura = '';
                     this.observacionesAfip = [];
+                    this.explicacionAfip = '';
                     try {
                         const res = await fetch(`{{ url('/pos/ventas') }}/${this.ventaOk.id}/facturar`, {
                             method: 'POST',

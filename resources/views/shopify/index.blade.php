@@ -7,7 +7,7 @@
     <div class="flex items-center justify-between">
         <div>
             <h1 class="text-2xl font-bold">Integración Shopify</h1>
-            <p class="text-slate-500 mt-1">Sincronizá productos y recibí órdenes online en POSMoon</p>
+            <p class="text-slate-500 mt-1">Sincronizá productos y recibí órdenes online en POSMoon. El push solo lleva productos marcados en <a class="text-indigo-600 hover:underline" href="{{ route('productos.canales') }}">Publicar en canales</a>.</p>
         </div>
         @if($integracion)
             <a href="{{ route('shopify.logs') }}" class="text-sm text-indigo-600 hover:underline">Ver logs →</a>

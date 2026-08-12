@@ -32,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
         date_default_timezone_set(config('app.timezone'));
 
         \App\Models\Producto::observe(\App\Observers\ProductoObserver::class);
+        \App\Models\Venta::observe(\App\Observers\VentaObserver::class);
 
         // Sincronizar stock con Tiendanube cuando cambia (solo si está configurado)
         if (config('tiendanube.client_id')) {

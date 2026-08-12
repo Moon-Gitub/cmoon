@@ -95,6 +95,11 @@
                                         <button class="text-sm font-medium text-amber-600 hover:text-amber-800">Reintentar</button>
                                     </form>
                                 @endcan
+                                <button type="button"
+                                        class="ml-2 text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                                        onclick="explicarAfip({{ $c->id }}, this)">
+                                    ¿Qué dice AFIP?
+                                </button>
                             @endif
                         </td>
                     </tr>
@@ -106,4 +111,34 @@
     </div>
 
     <div class="mt-4">{{ $comprobantes->links() }}</div>
+    <dialog id="dlg-afip" class="max-w-lg rounded-xl p-4 shadow-xl">
+        <p class="mb-2 text-sm font-semibold">Explicación AFIP</p>
+        <p id="dlg-afip-txt" class="whitespace-pre-wrap text-sm text-slate-700"></p>
+        <form method="dialog" class="mt-3 text-right">
+            <button class="rounded-lg bg-slate-800 px-3 py-1.5 text-sm text-white">Cerrar</button>
+        </form>
+    </dialog>
+    <script>
+    async function explicarAfip(id, btn) {
+        const dlg = document.getElementById('dlg-afip');
+        const txt = document.getElementById('dlg-afip-txt');
+        txt.textContent = 'Consultando IA (1 uso del cupo)…';
+        dlg.showModal();
+        try {
+            const res = await fetch(@json(route('ia.afip.explicar')), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                },
+                body: JSON.stringify({ comprobante_id: id }),
+            });
+            const data = await res.json();
+            txt.textContent = data.texto || 'Sin explicación.';
+        } catch (e) {
+            txt.textContent = 'No se pudo consultar.';
+        }
+    }
+    </script>
 @endsection

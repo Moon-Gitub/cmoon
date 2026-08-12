@@ -25,9 +25,15 @@ use App\Http\Controllers\RutaController;
 use App\Http\Controllers\SucursalController;
 use App\Http\Controllers\TiendanubeController;
 use App\Http\Controllers\ShopifyController;
+use App\Http\Controllers\YcloudController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\TiendanubeWebhookController;
 use App\Http\Controllers\ShopifyWebhookController;
+use App\Http\Controllers\YcloudWebhookController;
+use App\Http\Controllers\N8nController;
+use App\Http\Controllers\N8nWebhookController;
+use App\Http\Controllers\AsistenteController;
+use App\Http\Controllers\IaOperativaController;
 use App\Http\Controllers\VentaController;
 use App\Services\Afip\AfipSoap;
 use Illuminate\Support\Facades\Route;
@@ -41,6 +47,14 @@ Route::post('/webhooks/tiendanube', [TiendanubeWebhookController::class, 'handle
 // Webhook Shopify (sin auth, validado por X-Shopify-Hmac-Sha256)
 Route::post('/webhooks/shopify', [ShopifyWebhookController::class, 'handle'])
     ->name('shopify.webhook')
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
+Route::post('/webhooks/ycloud', [YcloudWebhookController::class, 'handle'])
+    ->name('ycloud.webhook')
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
+Route::post('/webhooks/n8n', [N8nWebhookController::class, 'handle'])
+    ->name('n8n.webhook')
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
 // Diagnóstico de salida a AFIP (token = sha256(APP_KEY) primeros 16 hex)
@@ -76,6 +90,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
+    Route::get('/asistente', [AsistenteController::class, 'index'])->name('asistente.index');
+    Route::post('/asistente/preguntar', [AsistenteController::class, 'preguntar'])->name('asistente.preguntar');
+    Route::post('/asistente/abono', [AsistenteController::class, 'solicitarAbono'])->name('asistente.abono');
+
+    Route::post('/ia/productos/sugerir', [IaOperativaController::class, 'sugerirProducto'])->name('ia.productos.sugerir');
+    Route::post('/ia/productos/sugerir-canales', [IaOperativaController::class, 'sugerirCanales'])->name('ia.productos.canales');
+    Route::post('/ia/productos/aplicar-canales', [IaOperativaController::class, 'aplicarCanalesSugeridos'])->name('ia.productos.canales.aplicar');
+    Route::post('/ia/afip/explicar', [IaOperativaController::class, 'explicarAfip'])->name('ia.afip.explicar');
+
     Route::get('/perfil', [PerfilController::class, 'edit'])->name('perfil.edit');
     Route::put('/perfil/password', [PerfilController::class, 'updatePassword'])->name('perfil.password');
 
@@ -100,6 +123,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/productos/plantilla-csv', [ProductoController::class, 'plantillaCsv'])->name('productos.plantilla');
         Route::get('/productos/precio-masivo', [ProductoController::class, 'precioMasivoForm'])->name('productos.precio-masivo');
         Route::post('/productos/precio-masivo', [ProductoController::class, 'precioMasivo'])->name('productos.precio-masivo.aplicar');
+        Route::get('/productos/canales', [ProductoController::class, 'canales'])->name('productos.canales');
+        Route::post('/productos/canales', [ProductoController::class, 'canalesAplicar'])->name('productos.canales.aplicar');
         Route::get('/productos/{producto}/auditoria', [ProductoController::class, 'auditoria'])->name('productos.auditoria');
         Route::get('/productos/{producto}/stock', [ProductoController::class, 'stock'])->name('productos.stock');
         Route::post('/productos/{producto}/stock', [ProductoController::class, 'ajustarStock'])->name('productos.stock.ajustar');
@@ -281,5 +306,18 @@ Route::middleware('auth')->group(function () {
         Route::get('/shopify/logs', [ShopifyController::class, 'logs'])->name('shopify.logs');
         Route::post('/shopify/import/products', [ShopifyController::class, 'importProducts'])->name('shopify.import.products');
         Route::post('/shopify/sync/products', [ShopifyController::class, 'syncProducts'])->name('shopify.sync.products');
+
+        Route::get('/whatsapp', [YcloudController::class, 'index'])->name('ycloud.index');
+        Route::post('/whatsapp', [YcloudController::class, 'store'])->name('ycloud.store');
+        Route::delete('/whatsapp', [YcloudController::class, 'disconnect'])->name('ycloud.disconnect');
+        Route::patch('/whatsapp/config', [YcloudController::class, 'updateConfig'])->name('ycloud.config');
+        Route::post('/whatsapp/test', [YcloudController::class, 'testConnection'])->name('ycloud.test');
+        Route::post('/whatsapp/probar', [YcloudController::class, 'probar'])->name('ycloud.probar');
+        Route::get('/whatsapp/mensajes', [YcloudController::class, 'mensajes'])->name('ycloud.mensajes');
+        Route::post('/whatsapp/conversaciones/{conversacion}/reanudar', [YcloudController::class, 'reanudarBot'])->name('ycloud.reanudar');
+
+        Route::get('/n8n', [N8nController::class, 'index'])->name('n8n.index');
+        Route::post('/n8n', [N8nController::class, 'store'])->name('n8n.store');
+        Route::post('/n8n/probar', [N8nController::class, 'probar'])->name('n8n.probar');
     });
 });

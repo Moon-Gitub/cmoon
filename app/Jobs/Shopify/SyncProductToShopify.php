@@ -30,6 +30,10 @@ class SyncProductToShopify implements ShouldQueue
             return;
         }
 
+        if (! $this->producto->publicar_shopify) {
+            return;
+        }
+
         $service = ShopifyService::make()->forIntegracion($this->integracion);
         $map = ShopifyProductMap::where('integracion_id', $this->integracion->id)
             ->where('producto_id', $this->producto->id)

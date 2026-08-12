@@ -29,6 +29,10 @@ class ProductoApiController extends Controller
             $query->where('activo', $request->boolean('activo'));
         }
 
+        if ($request->filled('canal')) {
+            $query->publicarEn((string) $request->input('canal'));
+        }
+
         $productos = $query->orderBy('nombre')
             ->paginate(min((int) $request->integer('per_page', 50), 100));
 

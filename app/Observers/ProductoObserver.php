@@ -7,7 +7,7 @@ use App\Models\ProductoAuditoria;
 
 class ProductoObserver
 {
-    private const CAMPOS = ['nombre', 'precio_venta', 'precio_compra', 'codigo', 'activo'];
+    private const CAMPOS = ['nombre', 'precio_venta', 'precio_compra', 'codigo', 'activo', 'publicar_shopify', 'publicar_whatsapp', 'publicar_tiendanube'];
 
     public function updated(Producto $producto): void
     {
@@ -28,5 +28,15 @@ class ProductoObserver
         }
 
         // Stock se audita vía movimientos_stock; no duplicar aquí.
+
+        if ($producto->wasChanged(self::CAMPOS)) {
+            app(\App\Services\N8nService::class)->emitir((int) $producto->empresa_id, 'producto.actualizado', [
+                'id' => $producto->id,
+                'codigo' => $producto->codigo,
+                'nombre' => $producto->nombre,
+                'precio_venta' => $producto->precio_venta,
+                'cambios' => $producto->getChanges(),
+            ]);
+        }
     }
 }

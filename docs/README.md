@@ -24,6 +24,9 @@
 | [17-feedback-carrasco-2026-08.md](./17-feedback-carrasco-2026-08.md) | **Feedback Carlos Carrasco** — backlog cajas/POS/AFIP/factura B |
 | [18-integracion-shopify.md](./18-integracion-shopify.md) | **Integración Shopify** — config, pull productos, webhooks órdenes |
 | [19-api-rest.md](./19-api-rest.md) | **API REST v1** + Sanctum + Scramble (`/docs/api`) |
+| [20-whatsapp-ycloud.md](./20-whatsapp-ycloud.md) | **WhatsApp YCloud** — canales por producto, bot de consultas, catálogo |
+| [21-n8n-ia.md](./21-n8n-ia.md) | **n8n** webhooks + **chat IA** con cupo mensual / abono |
+| [22-ia-operativa.md](./22-ia-operativa.md) | **IA en productos / AFIP / canales** (cupo free vs abono) |
 
 ## Inicio rápido
 

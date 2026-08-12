@@ -29,6 +29,7 @@ class SyncAllProductsToTiendanube implements ShouldQueue
 
         $productos = Producto::where('empresa_id', $this->integracion->empresa_id)
             ->where('activo', true)
+            ->where('publicar_tiendanube', true)
             ->get();
 
         $total = $productos->count();

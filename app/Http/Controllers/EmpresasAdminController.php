@@ -40,8 +40,18 @@ class EmpresasAdminController extends Controller
 
     public function update(Request $request, Empresa $empresa): RedirectResponse
     {
+        $extra = $request->validate([
+            'ia_plan' => ['nullable', 'in:incluido,abono'],
+            'ia_abono_hasta' => ['nullable', 'date'],
+            'ia_cupo_override' => ['nullable', 'integer', 'min:1', 'max:100000'],
+        ]);
+
         $empresa->update($this->validar($request, $empresa) + [
             'activa' => $request->boolean('activa'),
+            'ia_plan' => $extra['ia_plan'] ?? $empresa->ia_plan ?? 'incluido',
+            'ia_abono_hasta' => $extra['ia_abono_hasta'] ?? null,
+            'ia_cupo_override' => $extra['ia_cupo_override'] ?? null,
+            'ia_abono_solicitado_at' => ($extra['ia_plan'] ?? '') === 'abono' ? null : $empresa->ia_abono_solicitado_at,
         ]);
 
         return back()->with('ok', 'Empresa actualizada.');

@@ -32,6 +32,10 @@ class SyncProductToTiendanube implements ShouldQueue
             return;
         }
 
+        if (! $this->producto->publicar_tiendanube) {
+            return;
+        }
+
         $service = $tiendanube->forIntegracion($this->integracion);
 
         // Buscar mapeo existente

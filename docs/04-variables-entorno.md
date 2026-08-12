@@ -79,6 +79,31 @@ En **Dokploy** no se usa archivo `.env` en disco: cada variable se carga en la p
 
 Credenciales por empresa también en UI `/integraciones/shopify`. Ver [18-integracion-shopify.md](./18-integracion-shopify.md).
 
+## WhatsApp / YCloud (opcional)
+
+| Variable | Default | Descripción |
+|----------|---------|-------------|
+| `YCLOUD_API_KEY` | — | API key (fallback; preferí UI por empresa) |
+| `YCLOUD_PHONE_FROM` | — | Número Business E.164 |
+| `YCLOUD_WABA_ID` | — | WhatsApp Business Account ID |
+| `YCLOUD_WEBHOOK_SECRET` | — | Firma webhook (opcional) |
+| `YCLOUD_CATALOG_TEMPLATE` | — | Nombre de plantilla catálogo Meta |
+| `OPENAI_API_KEY` | — | Si hay, el bot redacta con IA |
+| `OPENAI_BASE_URL` | `https://api.openai.com/v1` | Compatible Groq/etc. |
+| `OPENAI_MODEL` | `gpt-4o-mini` | Modelo chat |
+
+UI: `/integraciones/whatsapp`. Canales: `/productos/canales`. Ver [20-whatsapp-ycloud.md](./20-whatsapp-ycloud.md).
+
+## Chat IA / n8n
+
+| Variable | Default | Descripción |
+|----------|---------|-------------|
+| `IA_CUPO_INCLUIDO` | 50 | Preguntas/mes sin abono |
+| `IA_CUPO_ABONO` | 500 | Preguntas/mes con abono |
+| `IA_ABONO_PRECIO` | consultar | Texto en la UI |
+
+Ver [21-n8n-ia.md](./21-n8n-ia.md).
+
 ## API REST v1
 
 | Variable | Default | Descripción |

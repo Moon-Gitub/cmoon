@@ -29,6 +29,7 @@ class SyncAllProductsToShopify implements ShouldQueue
         Producto::withoutGlobalScopes()
             ->where('empresa_id', $this->integracion->empresa_id)
             ->where('activo', true)
+            ->where('publicar_shopify', true)
             ->orderBy('id')
             ->chunkById(50, function ($productos) {
                 foreach ($productos as $producto) {

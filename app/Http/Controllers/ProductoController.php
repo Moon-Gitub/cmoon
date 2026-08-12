@@ -26,6 +26,7 @@ class ProductoController extends Controller
             ->when($request->filled('categoria'), fn ($q) => $q->where('categoria_id', $request->integer('categoria')))
             ->when($request->input('estado') === 'inactivos', fn ($q) => $q->where('activo', false))
             ->when($request->input('estado') !== 'inactivos', fn ($q) => $q->where('activo', true))
+            ->when($request->filled('canal'), fn ($q) => $q->publicarEn((string) $request->input('canal')))
             ->orderBy('nombre')
             ->paginate(20)
             ->withQueryString();
@@ -163,9 +164,65 @@ class ProductoController extends Controller
             'pesable' => $request->boolean('pesable'),
             'es_combo' => $request->boolean('es_combo'),
             'activo' => $request->boolean('activo'),
+            'publicar_shopify' => $request->boolean('publicar_shopify'),
+            'publicar_whatsapp' => $request->boolean('publicar_whatsapp'),
+            'publicar_tiendanube' => $request->boolean('publicar_tiendanube'),
             'stock_minimo' => isset($datos['stock_minimo']) ? (float) $datos['stock_minimo'] : 0,
             'alicuota_iva' => (float) $datos['alicuota_iva'],
         ];
+    }
+
+    public function canales(Request $request): View
+    {
+        abort_unless(auth()->user()->can('productos.editar'), 403);
+
+        $productos = Producto::with(['categoria', 'stocks'])
+            ->when($request->filled('buscar'), function ($query) use ($request) {
+                $buscar = $request->string('buscar');
+                $query->where(fn ($q) => $q
+                    ->where('nombre', 'like', "%{$buscar}%")
+                    ->orWhere('codigo', 'like', "%{$buscar}%"));
+            })
+            ->when($request->filled('categoria'), fn ($q) => $q->where('categoria_id', $request->integer('categoria')))
+            ->when($request->filled('canal'), fn ($q) => $q->publicarEn((string) $request->input('canal')))
+            ->when($request->input('sin_canal') === '1', function ($q) {
+                $q->where('publicar_shopify', false)
+                    ->where('publicar_whatsapp', false)
+                    ->where('publicar_tiendanube', false);
+            })
+            ->where('activo', true)
+            ->orderBy('nombre')
+            ->paginate(40)
+            ->withQueryString();
+
+        return view('productos.canales', [
+            'productos' => $productos,
+            'categorias' => Categoria::orderBy('nombre')->get(),
+        ]);
+    }
+
+    public function canalesAplicar(Request $request): RedirectResponse
+    {
+        abort_unless(auth()->user()->can('productos.editar'), 403);
+
+        $datos = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer'],
+            'accion' => ['required', 'in:activar,desactivar'],
+            'canal' => ['required', 'in:shopify,whatsapp,tiendanube'],
+        ]);
+
+        $columna = 'publicar_'.$datos['canal'];
+        $valor = $datos['accion'] === 'activar';
+
+        $n = Producto::query()
+            ->whereIn('id', $datos['ids'])
+            ->update([$columna => $valor]);
+
+        $label = Producto::CANALES[$datos['canal']];
+        $verbo = $valor ? 'marcados para' : 'quitados de';
+
+        return back()->with('ok', "{$n} producto(s) {$verbo} {$label}.");
     }
 
     public function combo(Producto $producto): View

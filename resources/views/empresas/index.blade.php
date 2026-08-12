@@ -77,6 +77,10 @@
                             </p>
                             <p class="text-xs text-slate-500">
                                 {{ $empresa->cuit ?? 'Sin CUIT' }} · {{ $empresa->usuarios_count }} usuario(s)
+                                · IA {{ $empresa->ia_plan === 'abono' ? 'abono' : 'incluido' }}
+                                @if ($empresa->ia_abono_solicitado_at && $empresa->ia_plan !== 'abono')
+                                    <span class="ml-1 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">quiere abono</span>
+                                @endif
                             </p>
                         </div>
                     </div>
@@ -117,6 +121,23 @@
                         <label class="mb-1 block text-sm font-medium text-slate-700">Teléfono</label>
                         <input type="text" name="telefono" value="{{ $empresa->telefono }}"
                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-slate-700">Plan chat IA</label>
+                        <select name="ia_plan" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                            <option value="incluido" {{ ($empresa->ia_plan ?? 'incluido') === 'incluido' ? 'selected' : '' }}>Incluido ({{ config('ia.cupo_incluido') }}/mes)</option>
+                            <option value="abono" {{ ($empresa->ia_plan ?? '') === 'abono' ? 'selected' : '' }}>Abono ({{ config('ia.cupo_abono') }}/mes)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-slate-700">Abono hasta</label>
+                        <input type="date" name="ia_abono_hasta" value="{{ $empresa->ia_abono_hasta?->format('Y-m-d') }}"
+                               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-slate-700">Cupo custom (opcional)</label>
+                        <input type="number" name="ia_cupo_override" min="1" value="{{ $empresa->ia_cupo_override }}"
+                               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="vacío = default">
                     </div>
                     <div class="flex items-center justify-between sm:col-span-2 lg:col-span-3">
                         <label class="flex items-center gap-2 text-sm text-slate-700">

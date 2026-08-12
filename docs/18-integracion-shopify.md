@@ -60,7 +60,7 @@ También podés registrar manualmente en Shopify Admin → Settings → Notifica
 | Dirección | Qué hace | Mapeo |
 |-----------|----------|--------|
 | **Pull** | Shopify → POSMoon | Variantes → productos locales; SKU → `productos.codigo` |
-| **Push** | POSMoon → Shopify | Requiere flag `push_products` |
+| **Push** | POSMoon → Shopify | Requiere `push_products` **y** productos con `publicar_shopify` |
 
 UI: botones en `/integraciones/shopify`.  
 API: `POST /api/v1/shopify/sync/productos` con `{ "direccion": "pull"|"push" }`.
