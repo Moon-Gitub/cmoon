@@ -25,6 +25,7 @@ class VentaImporter extends AbstractImporter
     public function import(LegacyImportContext $ctx): void
     {
         MedioPagoResolver::reset();
+        $this->ensureDefaults($ctx);
 
         $query = $ctx->legacy('ventas')->orderBy('id');
 
@@ -204,6 +205,33 @@ class VentaImporter extends AbstractImporter
                 'medio_pago_id' => $medioId,
                 'importe' => $importe,
             ]);
+        }
+    }
+
+    private function ensureDefaults(LegacyImportContext $ctx): void
+    {
+        if ($ctx->defaultUserId === null) {
+            $ctx->defaultUserId = \App\Models\User::query()
+                ->where('empresa_id', $ctx->empresaId)
+                ->orderBy('id')
+                ->value('id');
+        }
+
+        if ($ctx->defaultSucursalId === null) {
+            $sucursales = \App\Models\Sucursal::query()
+                ->where('empresa_id', $ctx->empresaId)
+                ->orderBy('id')
+                ->get(['id', 'codigo', 'nombre']);
+
+            foreach ($sucursales as $sucursal) {
+                if ($sucursal->codigo) {
+                    $ctx->sucursalMap[$sucursal->codigo] ??= $sucursal->id;
+                }
+                $ctx->sucursalMap['stock'] ??= $sucursal->id;
+                $ctx->sucursalMap['stkProd'] ??= $sucursal->id;
+            }
+
+            $ctx->defaultSucursalId = $sucursales->first()?->id;
         }
     }
 
