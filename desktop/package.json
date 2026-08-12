@@ -1,6 +1,6 @@
 {
   "name": "cmoon-desktop",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "POSMoon — caja offline (Windows/Linux) con sync al servidor",
   "main": "electron/main.js",
   "author": "Moon Desarrollos",
@@ -11,13 +11,15 @@
     "postinstall": "electron-rebuild -f -w better-sqlite3",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
-    "dist:win": "electron-builder --win --x64",
+    "dist:win": "bash scripts/build-win.sh",
+    "dist:win:builder": "electron-builder --win --x64 -c.npmRebuild=false",
     "dist:linux": "electron-builder --linux"
   },
   "build": {
     "appId": "com.moon.cmoon.desktop",
     "productName": "POSMoon Offline",
     "copyright": "Copyright © Moon Desarrollos",
+    "npmRebuild": false,
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -60,7 +62,7 @@
     "electron-rebuild": "^3.2.9"
   },
   "dependencies": {
-    "better-sqlite3": "^11.7.0",
+    "better-sqlite3": "12.11.1",
     "uuid": "^11.0.3"
   }
 }
