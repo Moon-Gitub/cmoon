@@ -40,13 +40,9 @@
         {
           "target": "nsis",
           "arch": ["x64"]
-        },
-        {
-          "target": "portable",
-          "arch": ["x64"]
         }
       ],
-      "artifactName": "POSMoon-Offline-${version}-${arch}.${ext}"
+      "artifactName": "POSMoon-Offline-${version}-Setup-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
