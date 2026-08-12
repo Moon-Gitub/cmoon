@@ -73,12 +73,4 @@ class ProveedorCuentaCorrienteImporter extends AbstractImporter
             $ctx->remember('cc_proveedor', $row->id, $proveedorId);
         }
     }
-
-    private function tableExists(LegacyImportContext $ctx, string $table): bool
-    {
-        return $ctx->legacy('information_schema.tables')
-            ->where('TABLE_SCHEMA', config('database.connections.'.config('legacy.connection').'.database'))
-            ->where('TABLE_NAME', $table)
-            ->exists();
-    }
 }
