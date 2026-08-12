@@ -27,6 +27,7 @@ return [
         'categorias' => \App\LegacyImport\Importers\CategoriaImporter::class,
         'listas_precio' => \App\LegacyImport\Importers\ListaPrecioImporter::class,
         'medios_pago' => \App\LegacyImport\Importers\MedioPagoImporter::class,
+        'balanzas_formatos' => \App\LegacyImport\Importers\BalanzaFormatoImporter::class,
         'users' => \App\LegacyImport\Importers\UserImporter::class,
         'proveedores' => \App\LegacyImport\Importers\ProveedorImporter::class,
         'productos' => \App\LegacyImport\Importers\ProductoImporter::class,

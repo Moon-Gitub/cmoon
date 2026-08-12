@@ -90,6 +90,55 @@
     function medios() { return state.catalog?.medios || []; }
     function clientes() { return state.catalog?.clientes || []; }
     function listas() { return state.catalog?.listas || []; }
+    function balanzasFormatos() { return state.catalog?.balanzas_formatos || []; }
+
+    function interpretarCodigoBalanza(codigo, cantidadManual) {
+        const formatos = balanzasFormatos();
+        if (! codigo || ! formatos.length) return null;
+        const codigoStr = String(codigo);
+        let mejor = null;
+        for (const cfg of formatos) {
+            if (! cfg?.prefijo) continue;
+            const pref = String(cfg.prefijo);
+            if (! codigoStr.startsWith(pref)) continue;
+            if (cfg.longitud_min && codigoStr.length < cfg.longitud_min) continue;
+            if (cfg.longitud_max && codigoStr.length > cfg.longitud_max) continue;
+            if (! mejor || String(mejor.prefijo).length < pref.length) mejor = cfg;
+        }
+        if (! mejor) return null;
+
+        const posProd = parseInt(mejor.pos_producto, 10) || 0;
+        const lenProd = parseInt(mejor.longitud_producto, 10) || 0;
+        if (lenProd <= 0) return null;
+        const idProducto = codigoStr.substr(posProd, lenProd);
+
+        const modo = mejor.modo_cantidad || 'ninguno';
+        let cantidad = 0;
+        if (modo === 'peso') {
+            if (mejor.pos_cantidad === null || mejor.pos_cantidad === undefined || ! mejor.longitud_cantidad) return null;
+            const bruto = codigoStr.substr(parseInt(mejor.pos_cantidad, 10), parseInt(mejor.longitud_cantidad, 10));
+            const num = parseFloat(bruto) || 0;
+            let divisor = parseFloat(mejor.factor_divisor) || 1;
+            if (! divisor) divisor = 1;
+            cantidad = num / divisor;
+        } else if (modo === 'unidad') {
+            const fija = parseFloat(mejor.cantidad_fija);
+            cantidad = (fija && fija > 0) ? fija : 1;
+        } else {
+            cantidad = parseFloat(cantidadManual) || 1;
+        }
+        if (! cantidad || cantidad <= 0) cantidad = 1;
+        return { idProducto, cantidad };
+    }
+
+    function buscarPorCodigoProducto(codigoProd) {
+        const raw = String(codigoProd);
+        const stripped = String(parseInt(raw, 10));
+        return productos().find(p => {
+            const c = String(p.codigo);
+            return c === raw || c === stripped || String(parseInt(c, 10)) === stripped || c.padStart(raw.length, '0') === raw;
+        }) || null;
+    }
 
     function fillClientes() {
         const sel = $('cliente');
@@ -206,12 +255,11 @@
         const q = $('buscar').value.trim();
         if (! q) return;
 
-        // cantidad*codigo (ej. 2*779… o 0.080*65)
+        // cantidad*codigo
         const mult = q.match(/^(\d+(?:[.,]\d+)?)\s*[\*xX]\s*(.+)$/);
         if (mult) {
             const cant = parseNum(mult[1]);
-            const codigo = mult[2].trim();
-            const p = productos().find(x => String(x.codigo).toLowerCase() === codigo.toLowerCase());
+            const p = buscarPorCodigoProducto(mult[2].trim());
             if (p && cant && cant > 0) {
                 pushItem(p, cant, p.codigo);
                 clearBuscar();
@@ -219,12 +267,23 @@
             }
         }
 
-        // Código de balanza EAN-13 (prefijo 2): 2 + PLU(5) + peso en gramos(5) + verificador
+        // Formatos demonew / balanzas_formatos (Cabañas: 20000 + codigo 2 dígitos)
+        const parsed = interpretarCodigoBalanza(q, 1);
+        if (parsed?.idProducto) {
+            const p = buscarPorCodigoProducto(parsed.idProducto);
+            if (p) {
+                pushItem(p, parsed.cantidad, q);
+                clearBuscar();
+                return;
+            }
+        }
+
+        // Fallback EAN-13 genérico
         if (/^2\d{12}$/.test(q)) {
             const plu = q.slice(1, 6);
             const gramos = parseInt(q.slice(6, 11), 10);
-            const p = productos().find(x =>
-                x.pesable && (x.codigo === plu || x.codigo === String(parseInt(plu, 10))));
+            const p = buscarPorCodigoProducto(plu)
+                || productos().find(x => x.pesable && (x.codigo === plu || x.codigo === String(parseInt(plu, 10))));
             if (p && gramos > 0) {
                 pushItem(p, gramos / 1000, q);
                 clearBuscar();

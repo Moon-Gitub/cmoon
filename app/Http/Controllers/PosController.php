@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CajaSesion;
+use App\Models\BalanzaFormato;
 use App\Models\Cliente;
 use App\Models\Emisor;
 use App\Models\ListaPrecio;
@@ -140,6 +141,7 @@ class PosController extends Controller
                     'tipo' => $m->tipo,
                     'recargo' => (float) $m->recargo_porcentaje,
                 ]),
+            'balanzas_formatos' => BalanzaFormato::configParaVenta(auth()->user()?->empresa_id)->values(),
             'emisores' => $emisores->map(fn ($e) => [
                 'id' => $e->id,
                 'nombre' => $e->razon_social,

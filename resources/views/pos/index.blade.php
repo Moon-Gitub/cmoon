@@ -414,7 +414,7 @@
     <script>
         function posApp() {
             return {
-                productos: [], clientes: [], listas: [], medios: [], emisores: [],
+                productos: [], clientes: [], listas: [], medios: [], emisores: [], balanzas_formatos: [],
                 mercadopagoQr: false, puedeFacturar: @json($puedeFacturar ?? false),
                 emisorId: null, puntoVentaId: null,
                 carrito: [], busqueda: '', sugerencias: [], seleccion: 0,
@@ -656,16 +656,111 @@
                     this.seleccion = (this.seleccion + dir + this.sugerencias.length) % this.sugerencias.length;
                 },
 
+                interpretarCodigoBalanza(codigo, cantidadManual) {
+                    const formatos = this.balanzas_formatos || [];
+                    if (! codigo || ! formatos.length) return null;
+                    const codigoStr = String(codigo);
+                    let mejor = null;
+                    for (const cfg of formatos) {
+                        if (! cfg?.prefijo) continue;
+                        const pref = String(cfg.prefijo);
+                        if (! codigoStr.startsWith(pref)) continue;
+                        if (cfg.longitud_min && codigoStr.length < cfg.longitud_min) continue;
+                        if (cfg.longitud_max && codigoStr.length > cfg.longitud_max) continue;
+                        if (! mejor || String(mejor.prefijo).length < pref.length) mejor = cfg;
+                    }
+                    if (! mejor) return null;
+
+                    const posProd = parseInt(mejor.pos_producto, 10) || 0;
+                    const lenProd = parseInt(mejor.longitud_producto, 10) || 0;
+                    if (lenProd <= 0) return null;
+                    const idProducto = codigoStr.substr(posProd, lenProd);
+
+                    const modo = mejor.modo_cantidad || 'ninguno';
+                    let cantidad = 0;
+                    if (modo === 'peso') {
+                        const posCant = mejor.pos_cantidad;
+                        const lenCant = mejor.longitud_cantidad;
+                        if (posCant === null || posCant === undefined || ! lenCant) return null;
+                        const bruto = codigoStr.substr(parseInt(posCant, 10), parseInt(lenCant, 10));
+                        const num = parseFloat(bruto) || 0;
+                        let divisor = parseFloat(mejor.factor_divisor) || 1;
+                        if (! divisor) divisor = 1;
+                        cantidad = num / divisor;
+                    } else if (modo === 'unidad') {
+                        const fija = parseFloat(mejor.cantidad_fija);
+                        cantidad = (fija && fija > 0) ? fija : 1;
+                    } else {
+                        cantidad = parseFloat(cantidadManual) || 1;
+                    }
+                    if (! cantidad || cantidad <= 0) cantidad = 1;
+
+                    return { idProducto, cantidad };
+                },
+
+                buscarPorCodigoProducto(codigoProd) {
+                    const raw = String(codigoProd);
+                    const stripped = String(parseInt(raw, 10));
+                    return this.productos.find(p => {
+                        const c = String(p.codigo);
+                        return c === raw
+                            || c === stripped
+                            || String(parseInt(c, 10)) === stripped
+                            || c.padStart(raw.length, '0') === raw;
+                    }) || null;
+                },
+
                 agregarPorEnter() {
                     const q = this.busqueda.trim();
                     if (! q) return;
 
-                    // Código de balanza EAN-13 (prefijo 2): 2 + PLU(5) + peso en gramos(5) + verificador
+                    // cantidad*codigo (ej. 2*65 o 0.080*65)
+                    const mult = q.match(/^(\d+(?:[.,]\d+)?)\s*[\*xX]\s*(.+)$/);
+                    if (mult) {
+                        const cant = this.parseCantidad?.(mult[1]) ?? Number(String(mult[1]).replace(',', '.'));
+                        const prod = this.buscarPorCodigoProducto(mult[2].trim());
+                        if (prod && cant > 0) {
+                            this.carrito.push({
+                                producto_id: prod.id,
+                                codigo: prod.codigo,
+                                nombre: prod.nombre,
+                                cantidad: Math.round(cant * 1000) / 1000,
+                                precio: this.precioDe(prod),
+                                iva: prod.iva,
+                                pesable: !! prod.pesable,
+                            });
+                            this.busqueda = '';
+                            this.sugerencias = [];
+                            return;
+                        }
+                    }
+
+                    // Formatos de balanza del cliente (igual demonew / balanzas_formatos)
+                    const parsed = this.interpretarCodigoBalanza(q, 1);
+                    if (parsed?.idProducto) {
+                        const producto = this.buscarPorCodigoProducto(parsed.idProducto);
+                        if (producto) {
+                            this.carrito.push({
+                                producto_id: producto.id,
+                                codigo: q,
+                                nombre: producto.nombre,
+                                cantidad: Math.round(parsed.cantidad * 1000) / 1000,
+                                precio: this.precioDe(producto),
+                                iva: producto.iva,
+                                pesable: true,
+                            });
+                            this.busqueda = '';
+                            this.sugerencias = [];
+                            return;
+                        }
+                    }
+
+                    // Fallback EAN-13 genérico: 2 + PLU(5) + gramos(5) + digito
                     if (/^2\d{12}$/.test(q)) {
                         const plu = q.slice(1, 6);
                         const gramos = parseInt(q.slice(6, 11), 10);
-                        const producto = this.productos.find(p =>
-                            p.pesable && (p.codigo === plu || p.codigo === String(parseInt(plu, 10))));
+                        const producto = this.buscarPorCodigoProducto(plu)
+                            || this.productos.find(p => p.pesable && (p.codigo === plu || p.codigo === String(parseInt(plu, 10))));
                         if (producto && gramos > 0) {
                             this.carrito.push({
                                 producto_id: producto.id,
@@ -701,17 +796,20 @@
                     return Number.isFinite(n) ? n : null;
                 },
 
-                setCantidad(idx, raw) {
+                onCantidadInput(idx, raw) {
+                    this.carrito[idx]._cantEdit = raw;
                     const n = this.parseCantidad(raw);
-                    if (n === null) return; // deja tipar "0." / "0,0" sin pisar
-                    if (n < 0) return;
-                    this.carrito[idx].cantidad = n;
+                    if (n !== null && n >= 0) {
+                        this.carrito[idx].cantidad = n;
+                    }
                 },
 
                 normalizarCantidad(idx, el) {
-                    const n = this.parseCantidad(el?.value ?? this.carrito[idx].cantidad);
+                    const raw = el?.value ?? this.carrito[idx]._cantEdit ?? this.carrito[idx].cantidad;
+                    const n = this.parseCantidad(raw);
                     const valor = (n !== null && n > 0) ? Math.round(n * 1000) / 1000 : 0.001;
                     this.carrito[idx].cantidad = valor;
+                    delete this.carrito[idx]._cantEdit;
                     if (el) el.value = String(valor);
                 },
 

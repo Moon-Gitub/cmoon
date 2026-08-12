@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\BalanzaFormato;
 use App\Models\Cliente;
 use App\Models\DesktopInstallation;
 use App\Models\ListaPrecio;
@@ -285,6 +286,7 @@ class DesktopApiController extends Controller
             'medios' => MedioPago::where('activo', true)->orderBy('nombre')
                 ->get(['id', 'nombre', 'tipo', 'recargo_porcentaje'])
                 ->map(fn ($m) => ['id' => $m->id, 'nombre' => $m->nombre, 'tipo' => $m->tipo, 'recargo' => (float) $m->recargo_porcentaje]),
+            'balanzas_formatos' => BalanzaFormato::configParaVenta($user?->empresa_id)->values(),
             'synced_at' => now()->toIso8601String(),
         ];
     }
