@@ -160,8 +160,12 @@
                             <template x-for="c in clientesFiltrados()" :key="c.id">
                                 <button type="button" @click="elegirCliente(c.id)"
                                         class="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
-                                        :class="clienteId == c.id && 'bg-indigo-50 font-medium'"
-                                        x-text="c.nombre + (c.documento ? ' (' + c.documento + ')' : '')"></button>
+                                        :class="clienteId == c.id && 'bg-indigo-50 font-medium'">
+                                    <span x-text="c.nombre + (c.documento ? ' (' + c.documento + ')' : '')"></span>
+                                    <span class="ml-1 text-xs text-indigo-600"
+                                          x-show="c.lista_precio_id"
+                                          x-text="etiquetaLista(c.lista_precio_id)"></span>
+                                </button>
                             </template>
                             <p class="px-3 py-2 text-xs text-slate-400" x-show="clientesFiltrados().length === 0">Sin resultados</p>
                         </div>
@@ -496,11 +500,29 @@
                     return c ? (c.nombre + (c.documento ? ' (' + c.documento + ')' : '')) : '';
                 },
 
+                etiquetaLista(listaId) {
+                    const l = this.listas.find(x => Number(x.id) === Number(listaId));
+                    if (! l) return '';
+                    const signo = l.porcentaje > 0 ? '+' : '';
+                    return '(' + l.nombre + ' ' + signo + l.porcentaje + '%)';
+                },
+
                 elegirCliente(id) {
                     this.clienteId = id ? String(id) : '';
                     this.syncClienteBusqueda();
                     this.clienteMenu = false;
                     this.errorPago = '';
+                    this.recalcularPreciosCarrito();
+                },
+
+                recalcularPreciosCarrito() {
+                    if (! this.carrito.length) return;
+                    for (const item of this.carrito) {
+                        const prod = this.productos.find(p => Number(p.id) === Number(item.producto_id));
+                        if (prod) {
+                            item.precio = this.precioDe(prod);
+                        }
+                    }
                 },
 
                 async cambiarCaja() {
@@ -647,15 +669,17 @@
 
                 agregar(prod) {
                     const existente = this.carrito.find(i => i.producto_id === prod.id);
+                    const precio = this.precioDe(prod);
                     if (existente && ! prod.pesable) {
                         existente.cantidad += 1;
+                        existente.precio = precio;
                     } else {
                         this.carrito.push({
                             producto_id: prod.id,
                             codigo: prod.codigo,
                             nombre: prod.nombre,
                             cantidad: 1,
-                            precio: this.precioDe(prod),
+                            precio: precio,
                             iva: prod.iva,
                         });
                     }
