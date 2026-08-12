@@ -57,6 +57,7 @@ class ListaPrecioController extends Controller
                     ->ignore($lista),
             ],
             'porcentaje' => ['required', 'numeric', 'between:-99,500'],
+            'base' => ['required', Rule::in(['venta', 'compra'])],
             'activa' => ['boolean'],
         ]) + ['activa' => $request->boolean('activa')];
     }

@@ -17,10 +17,18 @@
                     @error('nombre')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-slate-700">Porcentaje sobre precio de venta</label>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Base del precio</label>
+                    <select name="base" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                        <option value="venta" @selected(old('base', 'venta') === 'venta')>Precio de venta</option>
+                        <option value="compra" @selected(old('base') === 'compra')>Precio de costo (compra)</option>
+                    </select>
+                    @error('base')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Porcentaje sobre la base</label>
                     <input type="number" step="0.01" name="porcentaje" value="{{ old('porcentaje', 0) }}" required
                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-                    <p class="mt-1 text-xs text-slate-500">10 = +10% de recargo · -5 = 5% de descuento</p>
+                    <p class="mt-1 text-xs text-slate-500">10 = +10% de recargo · -5 = 5% de descuento · 0 sobre costo = al costo</p>
                     @error('porcentaje')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <input type="hidden" name="activa" value="1">
@@ -36,6 +44,7 @@
                     <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                         <tr>
                             <th class="px-4 py-3">Nombre</th>
+                            <th class="px-4 py-3">Base</th>
                             <th class="px-4 py-3 text-right">Ajuste</th>
                             <th class="px-4 py-3">Estado</th>
                             <th class="px-4 py-3 text-right">Acciones</th>
@@ -45,10 +54,17 @@
                         @forelse ($listas as $lista)
                             <tr class="hover:bg-slate-50">
                                 <td class="px-4 py-3 font-medium">{{ $lista->nombre }}</td>
+                                <td class="px-4 py-3 text-slate-600">
+                                    {{ ($lista->base ?? 'venta') === 'compra' ? 'Costo' : 'Venta' }}
+                                </td>
                                 <td class="px-4 py-3 text-right">
-                                    <span class="{{ (float) $lista->porcentaje >= 0 ? 'text-emerald-700' : 'text-red-600' }} font-semibold">
-                                        {{ (float) $lista->porcentaje >= 0 ? '+' : '' }}{{ rtrim(rtrim(number_format((float) $lista->porcentaje, 2, ',', '.'), '0'), ',') }}%
-                                    </span>
+                                    @if (($lista->base ?? 'venta') === 'compra' && (float) $lista->porcentaje == 0)
+                                        <span class="font-semibold text-amber-700">Al costo</span>
+                                    @else
+                                        <span class="{{ (float) $lista->porcentaje >= 0 ? 'text-emerald-700' : 'text-red-600' }} font-semibold">
+                                            {{ (float) $lista->porcentaje >= 0 ? '+' : '' }}{{ rtrim(rtrim(number_format((float) $lista->porcentaje, 2, ',', '.'), '0'), ',') }}%
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="px-4 py-3">
                                     @if ($lista->activa)
@@ -64,6 +80,7 @@
                                                 @csrf @method('PUT')
                                                 <input type="hidden" name="nombre" value="{{ $lista->nombre }}">
                                                 <input type="hidden" name="porcentaje" value="{{ $lista->porcentaje }}">
+                                                <input type="hidden" name="base" value="{{ $lista->base ?? 'venta' }}">
                                                 <input type="hidden" name="activa" value="{{ $lista->activa ? 0 : 1 }}">
                                                 <button class="rounded-lg border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-100">
                                                     {{ $lista->activa ? 'Desactivar' : 'Activar' }}
@@ -79,7 +96,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="px-4 py-8 text-center text-slate-400">No hay listas de precio.</td></tr>
+                            <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">No hay listas de precio.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

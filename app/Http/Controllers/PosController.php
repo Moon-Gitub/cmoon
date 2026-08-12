@@ -106,12 +106,13 @@ class PosController extends Controller
 
         return response()->json([
             'productos' => Producto::where('activo', true)
-                ->get(['id', 'codigo', 'nombre', 'precio_venta', 'alicuota_iva', 'unidad', 'pesable'])
+                ->get(['id', 'codigo', 'nombre', 'precio_venta', 'precio_compra', 'alicuota_iva', 'unidad', 'pesable'])
                 ->map(fn ($p) => [
                     'id' => $p->id,
                     'codigo' => $p->codigo,
                     'nombre' => $p->nombre,
                     'precio' => (float) $p->precio_venta,
+                    'precio_compra' => (float) $p->precio_compra,
                     'iva' => (float) $p->alicuota_iva,
                     'unidad' => $p->unidad,
                     'pesable' => $p->pesable,
@@ -120,11 +121,12 @@ class PosController extends Controller
                 ->orderBy('nombre')
                 ->get(['id', 'nombre', 'documento', 'lista_precio_id']),
             'listas' => ListaPrecio::where('activa', true)
-                ->get(['id', 'nombre', 'porcentaje'])
+                ->get(['id', 'nombre', 'porcentaje', 'base'])
                 ->map(fn ($l) => [
                     'id' => $l->id,
                     'nombre' => $l->nombre,
                     'porcentaje' => (float) $l->porcentaje,
+                    'base' => $l->base ?? 'venta',
                 ]),
             'medios' => $medios
                 ->when(

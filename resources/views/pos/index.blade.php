@@ -170,7 +170,7 @@
                             <p class="px-3 py-2 text-xs text-slate-400" x-show="clientesFiltrados().length === 0">Sin resultados</p>
                         </div>
                     </div>
-                    <p class="mt-1 text-xs text-indigo-600" x-show="listaActiva()" x-text="'Lista: ' + (listaActiva()?.nombre ?? '') + ' (' + (listaActiva()?.porcentaje > 0 ? '+' : '') + (listaActiva()?.porcentaje ?? 0) + '%)'"></p>
+                    <p class="mt-1 text-xs text-indigo-600" x-show="listaActiva()" x-text="etiquetaLista()"></p>
                 </div>
 
                 <div class="mt-auto space-y-2 border-t border-slate-100 pt-3 text-sm">
@@ -617,9 +617,23 @@
                     return this.listas.find(l => l.id == c.lista_precio_id) ?? null;
                 },
 
+                etiquetaLista() {
+                    const lista = this.listaActiva();
+                    if (! lista) return '';
+                    if (lista.base === 'compra') {
+                        const pct = Number(lista.porcentaje) || 0;
+                        if (pct === 0) return 'Lista: ' + lista.nombre + ' (al costo)';
+                        return 'Lista: ' + lista.nombre + ' (costo ' + (pct > 0 ? '+' : '') + pct + '%)';
+                    }
+                    return 'Lista: ' + lista.nombre + ' (' + (lista.porcentaje > 0 ? '+' : '') + lista.porcentaje + '%)';
+                },
+
                 precioDe(prod) {
                     const lista = this.listaActiva();
-                    const precio = lista ? prod.precio * (1 + lista.porcentaje / 100) : prod.precio;
+                    const base = (lista && lista.base === 'compra')
+                        ? (Number(prod.precio_compra) || 0)
+                        : (Number(prod.precio) || 0);
+                    const precio = lista ? base * (1 + (Number(lista.porcentaje) || 0) / 100) : base;
                     return Math.round(precio * 100) / 100;
                 },
 

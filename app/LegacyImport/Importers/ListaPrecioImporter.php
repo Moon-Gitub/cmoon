@@ -41,6 +41,11 @@ class ListaPrecioImporter extends AbstractImporter
                 $porcentaje = -abs((float) ($row->valor_descuento ?? 0));
             }
 
+            $basePrecio = (string) ($row->base_precio ?? 'precio_venta');
+            $base = in_array($basePrecio, ['precio_compra', 'precioCosto', 'costo'], true)
+                ? 'compra'
+                : 'venta';
+
             if ($ctx->dryRun) {
                 $ctx->remember('lista_precio', $row->id, (int) $row->id);
                 continue;
@@ -48,8 +53,16 @@ class ListaPrecioImporter extends AbstractImporter
 
             $lista = ListaPrecio::firstOrCreate(
                 ['empresa_id' => $ctx->empresaId, 'nombre' => $row->nombre],
-                ['porcentaje' => $porcentaje, 'activa' => (bool) ($row->activo ?? true)],
+                [
+                    'porcentaje' => $porcentaje,
+                    'base' => $base,
+                    'activa' => (bool) ($row->activo ?? true),
+                ],
             );
+
+            if ($lista->base !== $base || (float) $lista->porcentaje !== $porcentaje) {
+                $lista->update(['base' => $base, 'porcentaje' => $porcentaje]);
+            }
 
             $ctx->remember('lista_precio', $row->id, $lista->id);
         }

@@ -70,8 +70,22 @@ class ClienteImporter extends AbstractImporter
     private function resolverListaPrecio(LegacyImportContext $ctx, object $row): ?int
     {
         $codigo = trim((string) ($row->tipoPrecio ?? $row->lista_precio ?? ''));
-        if ($codigo === '' || in_array($codigo, ['precio_venta', 'precioCosto', 'precio_compra', '0'], true)) {
+        if ($codigo === '' || $codigo === '0' || $codigo === 'precio_venta') {
             return null;
+        }
+
+        // demonew: tipoPrecio = precioCosto / precio_compra → lista "Precio Costo"
+        if (in_array($codigo, ['precioCosto', 'precio_compra'], true)) {
+            $idCosto = ListaPrecio::query()
+                ->where('empresa_id', $ctx->empresaId)
+                ->where(function ($q) {
+                    $q->where('base', 'compra')
+                        ->orWhere('nombre', 'like', '%Costo%');
+                })
+                ->orderBy('id')
+                ->value('id');
+
+            return $idCosto ? (int) $idCosto : null;
         }
 
         if ($this->tableExists($ctx, 'listas_precio')) {
