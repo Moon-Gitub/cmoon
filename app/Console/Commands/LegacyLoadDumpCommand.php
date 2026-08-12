@@ -12,10 +12,12 @@ class LegacyLoadDumpCommand extends Command
         {--database=jamrod_legacy : Nombre de la BD destino del dump}
         {--force : Reimportar aunque la BD ya tenga tablas}';
 
-    protected $description = 'Descargar dump legacy y cargarlo en MySQL (PDO, sin cliente mysql)';
+    protected $description = 'Descargar dump legacy y cargarlo en MySQL (PDO streaming, sin cliente mysql)';
 
     public function handle(): int
     {
+        @ini_set('memory_limit', '512M');
+
         $url = $this->option('url') ?: env('LEGACY_DUMP_URL');
         $database = (string) $this->option('database');
 
@@ -81,41 +83,27 @@ class LegacyLoadDumpCommand extends Command
             return self::FAILURE;
         }
 
-        $raw = file_get_contents($tmp);
-        @unlink($tmp);
-        if ($raw === false || $raw === '') {
+        if (! is_file($tmp) || filesize($tmp) === 0) {
+            @unlink($tmp);
             $this->error('Dump vacío');
 
             return self::FAILURE;
         }
 
-        if (str_starts_with($raw, "\x1f\x8b")) {
-            $this->info('Descomprimiendo gzip...');
-            $raw = gzdecode($raw);
-            if ($raw === false) {
-                $this->error('gzip inválido');
-
-                return self::FAILURE;
-            }
-        }
-
-        // Normalizar dump: evitar CREATE/USE de la BD original del cliente
-        $raw = preg_replace('/^CREATE DATABASE.*$/mi', '', $raw) ?? $raw;
-        $raw = preg_replace('/^USE [`\'"]?[\w]+[`\'"]?;?\s*$/mi', '', $raw) ?? $raw;
-        $raw = str_replace('`jamrod_db`', "`{$database}`", $raw);
-
-        $this->info('Importando SQL ('.number_format(strlen($raw) / 1024 / 1024, 2).' MB)...');
+        $this->info('Importando SQL en streaming ('.number_format(filesize($tmp) / 1024 / 1024, 2).' MB comprimidos/archivo)...');
 
         try {
             $db = $this->pdo($host, $port, $rootUser, $rootPass, $database);
             $db->setAttribute(\PDO::ATTR_EMULATE_PREPARES, true);
-            // Import por statements (más seguro que multi-query gigante)
-            $this->importSql($db, $raw);
+            $this->importSqlFile($db, $tmp, $database);
         } catch (\Throwable $e) {
+            @unlink($tmp);
             $this->error('Import: '.$e->getMessage());
 
             return self::FAILURE;
         }
+
+        @unlink($tmp);
 
         $productos = $this->countProductos($pdo, $database);
         $ventas = $this->countTable($pdo, $database, 'ventas');
@@ -125,69 +113,122 @@ class LegacyLoadDumpCommand extends Command
         return self::SUCCESS;
     }
 
-    private function importSql(\PDO $pdo, string $sql): void
+    private function importSqlFile(\PDO $pdo, string $path, string $database): void
     {
-        // Quitar comentarios de línea y bloques, respetando strings lo mejor posible de forma simple
-        $sql = preg_replace('/^--.*$/m', '', $sql) ?? $sql;
-        $sql = preg_replace('/\/\*!.*?\*\//s', '', $sql) ?? $sql;
+        $fh = $this->openDumpStream($path);
+        if ($fh === false) {
+            throw new \RuntimeException('No se pudo abrir el dump');
+        }
 
         $statements = 0;
         $buffer = '';
-        $len = strlen($sql);
         $inString = false;
         $stringChar = '';
 
-        for ($i = 0; $i < $len; $i++) {
-            $ch = $sql[$i];
-            $next = $i + 1 < $len ? $sql[$i + 1] : '';
+        while (! feof($fh)) {
+            $chunk = fread($fh, 1024 * 256);
+            if ($chunk === false || $chunk === '') {
+                break;
+            }
 
-            if ($inString) {
-                $buffer .= $ch;
-                if ($ch === '\\' && $next !== '') {
-                    $buffer .= $next;
-                    $i++;
+            $len = strlen($chunk);
+            for ($i = 0; $i < $len; $i++) {
+                $ch = $chunk[$i];
+                $next = $i + 1 < $len ? $chunk[$i + 1] : '';
+
+                if ($inString) {
+                    $buffer .= $ch;
+                    if ($ch === '\\' && $next !== '') {
+                        $buffer .= $next;
+                        $i++;
+
+                        continue;
+                    }
+                    if ($ch === $stringChar) {
+                        $inString = false;
+                    }
 
                     continue;
                 }
-                if ($ch === $stringChar) {
-                    $inString = false;
-                }
 
-                continue;
-            }
-
-            if ($ch === '\'' || $ch === '"') {
-                $inString = true;
-                $stringChar = $ch;
-                $buffer .= $ch;
-
-                continue;
-            }
-
-            if ($ch === ';') {
-                $stmt = trim($buffer);
-                $buffer = '';
-                if ($stmt !== '') {
-                    $pdo->exec($stmt);
-                    $statements++;
-                    if ($statements % 500 === 0) {
-                        $this->line("  ... {$statements} statements");
+                // Comentario de línea -- o #
+                if (($ch === '-' && $next === '-') || $ch === '#') {
+                    while ($i < $len && $chunk[$i] !== "\n") {
+                        $i++;
                     }
+
+                    continue;
                 }
 
-                continue;
-            }
+                if ($ch === '\'' || $ch === '"') {
+                    $inString = true;
+                    $stringChar = $ch;
+                    $buffer .= $ch;
 
-            $buffer .= $ch;
+                    continue;
+                }
+
+                if ($ch === ';') {
+                    $stmt = trim($buffer);
+                    $buffer = '';
+                    if ($stmt !== '' && ($stmt = $this->normalizeStatement($stmt, $database)) !== null) {
+                        $pdo->exec($stmt);
+                        $statements++;
+                        if ($statements % 500 === 0) {
+                            $this->line("  ... {$statements} statements");
+                        }
+                    }
+
+                    continue;
+                }
+
+                $buffer .= $ch;
+            }
         }
 
         $stmt = trim($buffer);
-        if ($stmt !== '') {
+        if ($stmt !== '' && ($stmt = $this->normalizeStatement($stmt, $database)) !== null) {
             $pdo->exec($stmt);
             $statements++;
         }
 
+        fclose($fh);
         $this->line("  Statements ejecutados: {$statements}");
+    }
+
+    /** @return resource|false */
+    private function openDumpStream(string $path)
+    {
+        $probe = fopen($path, 'rb');
+        if ($probe === false) {
+            return false;
+        }
+        $magic = fread($probe, 2);
+        fclose($probe);
+
+        if ($magic === "\x1f\x8b") {
+            $this->info('Descomprimiendo gzip en streaming...');
+
+            return gzopen($path, 'rb');
+        }
+
+        return fopen($path, 'rb');
+    }
+
+    private function normalizeStatement(string $stmt, string $database): ?string
+    {
+        if (preg_match('/^CREATE\s+DATABASE\b/i', $stmt)) {
+            return null;
+        }
+        if (preg_match('/^USE\s+/i', $stmt)) {
+            return null;
+        }
+
+        return str_replace(
+            ['`jamrod_db`', '`cabanasdelcerro_db`', '`cabanas_db`'],
+            "`{$database}`",
+            $stmt
+        );
     }
 
     private function pdo(string $host, string $port, string $user, string $pass, ?string $database = null): \PDO
