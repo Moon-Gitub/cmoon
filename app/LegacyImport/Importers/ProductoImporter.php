@@ -52,6 +52,8 @@ class ProductoImporter extends AbstractImporter
                     ? $ctx->idMap->get('categoria', $row->id_categoria)
                     : null;
 
+                $pesable = $this->esPesable($nombre, $row);
+
                 $payload = [
                     'empresa_id' => $ctx->empresaId,
                     'categoria_id' => $categoriaId,
@@ -61,6 +63,8 @@ class ProductoImporter extends AbstractImporter
                     'precio_compra' => (float) ($row->precio_compra ?? 0),
                     'precio_venta' => $precioVenta,
                     'alicuota_iva' => (float) ($row->tipo_iva ?? 21),
+                    'unidad' => $pesable ? 'KG' : 'UN',
+                    'pesable' => $pesable,
                     'stock_minimo' => (float) ($row->stock_bajo ?? 0),
                     'activo' => (bool) ($row->activo ?? true),
                     'es_combo' => (bool) ($row->es_combo ?? false),
@@ -110,5 +114,21 @@ class ProductoImporter extends AbstractImporter
                 $ctx->remember('producto', $row->id, $producto->id);
             }
         });
+    }
+
+    private function esPesable(string $nombre, object $row): bool
+    {
+        if (isset($row->pesable) && (int) $row->pesable === 1) {
+            return true;
+        }
+
+        $u = strtoupper(trim((string) ($row->unidad ?? $row->unidad_medida ?? '')));
+        if (in_array($u, ['KG', 'KILO', 'KILOS', 'GR', 'G', 'GRAMO', 'GRAMOS'], true)) {
+            return true;
+        }
+
+        $n = mb_strtoupper($nombre);
+
+        return (bool) preg_match('/(?:^|[\s\/xX])KG(?:\b|$)|X\s*KG|POR\s*KG|\/\s*KG/', $n);
     }
 }

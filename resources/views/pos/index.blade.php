@@ -107,8 +107,13 @@
                                         <div class="flex items-center justify-center gap-1">
                                             <button type="button" @click="cambiarCantidad(idx, -1)"
                                                     class="h-7 w-7 rounded-lg border border-slate-300 text-sm font-bold hover:bg-slate-100">−</button>
-                                            <input type="number" step="any" min="0.001" x-model.number="item.cantidad"
-                                                   class="w-16 rounded-lg border border-slate-300 px-1 py-1 text-center text-sm">
+                                            {{-- text + borrador: permite tipar 0.080 / 0,080 sin que Alpine pise el campo --}}
+                                            <input type="text" inputmode="decimal" autocomplete="off"
+                                                   :value="item._cantEdit !== undefined ? item._cantEdit : item.cantidad"
+                                                   @focus="item._cantEdit = String(item.cantidad); $event.target.select()"
+                                                   @input="onCantidadInput(idx, $event.target.value)"
+                                                   @blur="normalizarCantidad(idx, $event.target)"
+                                                   class="w-20 rounded-lg border border-slate-300 px-1 py-1 text-center text-sm">
                                             <button type="button" @click="cambiarCantidad(idx, 1)"
                                                     class="h-7 w-7 rounded-lg border border-slate-300 text-sm font-bold hover:bg-slate-100">+</button>
                                         </div>
@@ -669,6 +674,7 @@
                                 cantidad: gramos / 1000,
                                 precio: this.precioDe(producto),
                                 iva: producto.iva,
+                                pesable: true,
                             });
                             this.busqueda = '';
                             this.sugerencias = [];
@@ -679,6 +685,34 @@
                     const exacto = this.productos.find(p => p.codigo.toLowerCase() === q.toLowerCase());
                     if (exacto) { this.agregar(exacto); return; }
                     if (this.sugerencias.length) this.agregar(this.sugerencias[this.seleccion]);
+                },
+
+                parseCantidad(raw) {
+                    if (raw === null || raw === undefined) return null;
+                    let s = String(raw).trim().replace(/\s/g, '');
+                    if (s === '' || s === '.' || s === ',' || s === '-') return null;
+                    // es-AR: 0,080 o 1.234,5 → punto decimal
+                    if (s.includes(',') && s.includes('.')) {
+                        s = s.replace(/\./g, '').replace(',', '.');
+                    } else if (s.includes(',')) {
+                        s = s.replace(',', '.');
+                    }
+                    const n = Number(s);
+                    return Number.isFinite(n) ? n : null;
+                },
+
+                setCantidad(idx, raw) {
+                    const n = this.parseCantidad(raw);
+                    if (n === null) return; // deja tipar "0." / "0,0" sin pisar
+                    if (n < 0) return;
+                    this.carrito[idx].cantidad = n;
+                },
+
+                normalizarCantidad(idx, el) {
+                    const n = this.parseCantidad(el?.value ?? this.carrito[idx].cantidad);
+                    const valor = (n !== null && n > 0) ? Math.round(n * 1000) / 1000 : 0.001;
+                    this.carrito[idx].cantidad = valor;
+                    if (el) el.value = String(valor);
                 },
 
                 agregar(prod) {
@@ -695,6 +729,7 @@
                             cantidad: 1,
                             precio: precio,
                             iva: prod.iva,
+                            pesable: !! prod.pesable,
                         });
                     }
                     this.busqueda = '';
@@ -704,7 +739,8 @@
 
                 cambiarCantidad(idx, dir) {
                     const item = this.carrito[idx];
-                    item.cantidad = Math.max(0.001, Math.round((item.cantidad + dir) * 1000) / 1000);
+                    const paso = item.pesable ? 0.01 : 1;
+                    item.cantidad = Math.max(0.001, Math.round((Number(item.cantidad) + dir * paso) * 1000) / 1000);
                 },
 
                 redondear(n) { return Math.round(n * 100) / 100; },
