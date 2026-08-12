@@ -39,7 +39,7 @@ async function activate(datos) {
             password: datos.password,
             device_id: deviceId,
             device_name: datos.device_name || 'Caja principal',
-            moon_client_id: parseInt(datos.moon_client_id, 10),
+            moon_client_id: parseInt(datos.moon_client_id, 10) || 1,
         },
     });
 }

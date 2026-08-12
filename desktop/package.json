@@ -1,7 +1,7 @@
 {
   "name": "cmoon-desktop",
-  "version": "1.0.0",
-  "description": "POSMoon — caja offline con licencia Moon",
+  "version": "1.1.0",
+  "description": "POSMoon — caja offline (Windows/Linux) con sync al servidor",
   "main": "electron/main.js",
   "author": "Moon Desarrollos",
   "license": "UNLICENSED",
@@ -10,15 +10,53 @@
     "dev": "electron . --dev --no-sandbox",
     "postinstall": "electron-rebuild -f -w better-sqlite3",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win --x64",
+    "dist:linux": "electron-builder --linux"
   },
   "build": {
     "appId": "com.moon.cmoon.desktop",
-    "productName": "POSMoon",
-    "directories": { "output": "dist" },
-    "files": ["electron/**/*", "renderer/**/*", "package.json"],
-    "linux": { "target": ["AppImage", "deb"], "category": "Office" },
-    "win": { "target": ["nsis"] }
+    "productName": "POSMoon Offline",
+    "copyright": "Copyright © Moon Desarrollos",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**/*"
+    ],
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Office",
+      "artifactName": "POSMoon-Offline-${version}-${arch}.${ext}"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "POSMoon-Offline-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "POSMoon Offline",
+      "installerLanguages": ["es_ES", "en_US"],
+      "language": "3082"
+    }
   },
   "devDependencies": {
     "electron": "^33.2.0",

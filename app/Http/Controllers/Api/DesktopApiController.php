@@ -40,8 +40,10 @@ class DesktopApiController extends Controller
             'password' => ['required', 'string'],
             'device_id' => ['required', 'uuid'],
             'device_name' => ['required', 'string', 'max:100'],
-            'moon_client_id' => ['required', 'integer', 'min:1'],
+            'moon_client_id' => ['nullable', 'integer', 'min:1'],
         ]);
+
+        $datos['moon_client_id'] = (int) ($datos['moon_client_id'] ?? 1);
 
         $user = User::where('usuario', $datos['usuario'])
             ->orWhere('email', $datos['usuario'])
@@ -261,19 +263,25 @@ class DesktopApiController extends Controller
 
         return [
             'productos' => Producto::where('activo', true)
-                ->get(['id', 'codigo', 'nombre', 'precio_venta', 'alicuota_iva', 'unidad', 'pesable', 'es_combo'])
+                ->get(['id', 'codigo', 'nombre', 'precio_venta', 'precio_compra', 'alicuota_iva', 'unidad', 'pesable', 'es_combo'])
                 ->map(fn ($p) => [
                     'id' => $p->id,
                     'codigo' => $p->codigo,
                     'nombre' => $p->nombre,
                     'precio' => (float) $p->precio_venta,
+                    'precio_compra' => (float) $p->precio_compra,
                     'iva' => (float) $p->alicuota_iva,
                     'unidad' => $p->unidad,
                     'pesable' => (bool) $p->pesable,
                 ]),
             'clientes' => $clientes,
-            'listas' => ListaPrecio::where('activa', true)->get(['id', 'nombre', 'porcentaje'])
-                ->map(fn ($l) => ['id' => $l->id, 'nombre' => $l->nombre, 'porcentaje' => (float) $l->porcentaje]),
+            'listas' => ListaPrecio::where('activa', true)->get(['id', 'nombre', 'porcentaje', 'base'])
+                ->map(fn ($l) => [
+                    'id' => $l->id,
+                    'nombre' => $l->nombre,
+                    'porcentaje' => (float) $l->porcentaje,
+                    'base' => $l->base ?? 'venta',
+                ]),
             'medios' => MedioPago::where('activo', true)->orderBy('nombre')
                 ->get(['id', 'nombre', 'tipo', 'recargo_porcentaje'])
                 ->map(fn ($m) => ['id' => $m->id, 'nombre' => $m->nombre, 'tipo' => $m->tipo, 'recargo' => (float) $m->recargo_porcentaje]),

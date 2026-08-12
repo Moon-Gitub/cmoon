@@ -86,7 +86,7 @@ ipcMain.handle('license:refresh', async () => {
     if (! isOnline()) throw new Error('Sin conexión al servidor Moon.');
     const result = await refreshLicense(config);
     if (result.license) saveLicense(result.license);
-    return verifyLicense(result.license, config.device_id);
+    return verifyLicense(result.license, config.device_token);
 });
 
 // --- IPC: catálogo ---

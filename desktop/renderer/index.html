@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POSMoon</title>
+    <title>POSMoon Offline</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -27,14 +27,29 @@
     </div>
 
     <main id="pos" class="pos-grid">
-        <section class="panel">
-            <input type="text" id="buscar" class="search" placeholder="Buscar producto o escanear código…" autofocus>
+        <section class="panel left-panel">
+            <div class="toolbar">
+                <label class="cliente-wrap">Cliente
+                    <select id="cliente">
+                        <option value="">Consumidor final</option>
+                    </select>
+                </label>
+                <p id="lista-label" class="lista-label" hidden></p>
+            </div>
+            <input type="text" id="buscar" class="search"
+                   placeholder="Código, 2*codigo, nombre… o escanear (Enter)" autofocus>
             <div id="sugerencias" class="suggestions"></div>
+            <p class="hint">Atajos: Enter agrega · F12 cobra · cantidad decimal 0,080 · 2*codigo multiplica</p>
         </section>
+
         <section class="panel cart-panel">
             <h2>Carrito</h2>
             <div id="carrito" class="cart-items"></div>
             <div class="totals">
+                <div class="total-line muted-line"><span>Subtotal</span><span id="subtotal">$ 0,00</span></div>
+                <label class="desc-line">Descuento
+                    <input type="text" id="descuento" inputmode="decimal" value="0">
+                </label>
                 <div class="total-line"><span>Total</span><strong id="total">$ 0,00</strong></div>
             </div>
             <div class="actions">
@@ -51,7 +66,11 @@
             <label>Medio de pago
                 <select id="medio"></select>
             </label>
-            <label>Importe<input type="number" id="importe" step="0.01" min="0"></label>
+            <p id="recargo-info" class="muted" hidden></p>
+            <label>Importe recibido
+                <input type="text" id="importe" inputmode="decimal">
+            </label>
+            <p id="vuelto" class="muted" hidden></p>
             <p id="pago-error" class="error" hidden></p>
             <div class="dialog-actions">
                 <button type="button" id="cancel-pago">Cancelar</button>

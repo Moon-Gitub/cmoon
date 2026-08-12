@@ -9,11 +9,11 @@
 <body class="setup-body">
     <div class="setup-card">
         <h1>POSMoon — Activación</h1>
-        <p class="muted">Vincule esta caja con su servidor Moon. Necesita internet solo para activar y renovar la licencia.</p>
+        <p class="muted">Vincule esta caja con su servidor. Necesita internet para activar; después puede vender sin conexión.</p>
 
         <form id="form">
-            <label>Servidor Moon (URL)
-                <input type="url" name="server_url" required placeholder="https://cmoon.aiporvos.com">
+            <label>Servidor (URL)
+                <input type="url" name="server_url" required placeholder="https://cabanasdelcerro.cluna.ar" value="https://cabanasdelcerro.cluna.ar">
             </label>
             <label>Usuario POS
                 <input type="text" name="usuario" required autocomplete="username" placeholder="admin">
@@ -21,11 +21,11 @@
             <label>Contraseña
                 <input type="password" name="password" required autocomplete="current-password">
             </label>
-            <label>ID cliente Moon (cobros)
-                <input type="number" name="moon_client_id" required min="1" placeholder="14">
+            <label>ID cliente Moon (cobros) <span class="muted" style="font-weight:400">— opcional si no usan cobro Moon</span>
+                <input type="number" name="moon_client_id" min="1" placeholder="1" value="1">
             </label>
             <label>Nombre de esta caja
-                <input type="text" name="device_name" value="Caja 1">
+                <input type="text" name="device_name" value="Caja Offline 1">
             </label>
             <p id="error" class="error" hidden></p>
             <button type="submit" id="btn">Activar y entrar al POS</button>

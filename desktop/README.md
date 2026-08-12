@@ -1,35 +1,31 @@
-# POSMoon — App de escritorio (Electron)
+# POSMoon Offline — App de escritorio (Electron)
 
-Caja offline con **licencia Moon**: vende sin internet, pero debe conectarse al VPS periódicamente para renovar la licencia. Si no abona el mes, el sistema de cobros bloquea nuevas ventas.
+Caja para Windows/Linux que vende **sin internet**, con catálogo local (SQLite) y cola de sincronización al servidor POSMoon.
 
-## Requisitos
+## Qué incluye (v1.1)
 
-- Node.js 20+
-- Servidor POSMoon desplegado con API desktop habilitada
+- Activación contra el servidor (usuario POS)
+- Catálogo local: productos, clientes, listas de precio (incl. al costo), medios de pago
+- Venta offline + sync automático al volver internet
+- Cantidad decimal (`0.080` / `0,080`), `2*codigo`, balanza EAN-13
+- Cliente + lista de precio, descuento, recargo de medio, vuelto
+- Licencia Moon con gracia offline (si cobro Moon está habilitado)
 
-## Configuración del servidor (VPS / Dokploy)
+No incluye (usar POS web online): facturación AFIP, Mercado Pago QR, multi-pago avanzado.
 
-En el `.env` del servidor Laravel:
+## Servidor (Dokploy / .env)
 
 ```env
 DESKTOP_LICENSE_SECRET=   # openssl rand -hex 32
 DESKTOP_OFFLINE_GRACE_DAYS=7
-
-MOON_COBRO_ENABLED=true
-MOON_DB_HOST=107.161.23.11
-MOON_DB_DATABASE=cobrosposmooncom_db
-MOON_DB_USERNAME=...
-MOON_DB_PASSWORD=...
-MOON_BLOQUEO_DIA=26
+MOON_COBRO_ENABLED=false  # true solo si usan cobros Moon
 ```
-
-Ejecutar migraciones:
 
 ```bash
 php artisan migrate
 ```
 
-## Instalar y ejecutar (desarrollo)
+## Desarrollo
 
 ```bash
 cd desktop
@@ -39,37 +35,49 @@ npm start
 
 ## Activación (primera vez)
 
-1. URL del servidor: `https://cmoon.aiporvos.com`
-2. Usuario y contraseña POS (con permiso `pos.vender`)
-3. **ID cliente Moon** (`MOON_CLIENTE_ID` del sistema de cobros)
+1. URL: `https://cabanasdelcerro.cluna.ar` (o el dominio del cliente)
+2. Usuario / contraseña con permiso `pos.vender`
+3. ID Moon: `1` si cobro Moon está desactivado
 4. Nombre de la caja
 
-La app descarga catálogo + licencia firmada y queda lista para operar offline.
+## Empaquetar Windows (instalador)
 
-## Comportamiento
+En una máquina **Windows** (recomendado):
+
+```bash
+cd desktop
+npm ci
+npm run dist:win
+```
+
+Desde Linux con Docker (Wine):
+
+```bash
+cd desktop
+docker run --rm -v "$PWD":/project -w /project electronuserland/builder:wine \
+  bash -c "npm ci && npm run dist:win"
+```
+
+Salida en `desktop/dist/`:
+
+- `POSMoon-Offline-1.1.0-x64.exe` — instalador NSIS
+- Portable `.exe` (sin instalar)
+
+## Comportamiento offline
 
 | Situación | Qué pasa |
 |-----------|----------|
-| Abono al día + internet | Licencia renovada, ventas online u offline |
-| Sin internet | Vende usando catálogo local; ventas en cola SQLite |
-| Vuelve internet | Sincroniza ventas y renueva licencia automáticamente |
-| Mora / bloqueo Moon | Pantalla de suspensión; no permite nuevas ventas |
-| Licencia offline vencida (>7 días sin conectar) | Bloqueo hasta reconectar |
+| Con internet | Sync catálogo + ventas + licencia |
+| Sin internet | Vende con SQLite local; ventas en cola |
+| Vuelve internet | Sube cola y renueva licencia |
+| Mora Moon (si cobro on) | Bloquea nuevas ventas |
 
-## API (servidor)
+## API
 
-| Método | Ruta | Uso |
-|--------|------|-----|
-| POST | `/api/desktop/activate` | Primera vinculación |
-| GET | `/api/desktop/license` | Renovar licencia |
-| GET | `/api/desktop/catalog` | Descargar catálogo |
-| POST | `/api/desktop/sync/ventas` | Subir ventas offline |
-| GET | `/api/desktop/status` | Estado dispositivo |
-
-## Empaquetar instalador
-
-```bash
-npm run dist
-```
-
-Genera `.AppImage` / `.deb` (Linux) o `.exe` (Windows) en `desktop/dist/`.
+| Método | Ruta |
+|--------|------|
+| POST | `/api/desktop/activate` |
+| GET | `/api/desktop/license` |
+| GET | `/api/desktop/catalog` |
+| POST | `/api/desktop/sync/ventas` |
+| GET | `/api/desktop/status` |
