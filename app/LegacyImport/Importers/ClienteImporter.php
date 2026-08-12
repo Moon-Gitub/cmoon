@@ -6,6 +6,7 @@ use App\LegacyImport\Mappers\CondicionIvaMapper;
 use App\LegacyImport\Mappers\TipoDocumentoMapper;
 use App\LegacyImport\Support\LegacyImportContext;
 use App\Models\Cliente;
+use App\Models\ListaPrecio;
 
 class ClienteImporter extends AbstractImporter
 {
@@ -51,6 +52,7 @@ class ClienteImporter extends AbstractImporter
                     'domicilio' => ($row->direccion ?? null) ?: null,
                     'observaciones' => ($row->observaciones ?? null) ?: null,
                     'vendedor_id' => $vendedorId,
+                    'lista_precio_id' => $this->resolverListaPrecio($ctx, $row),
                     'activo' => true,
                 ];
 
@@ -63,5 +65,48 @@ class ClienteImporter extends AbstractImporter
                 $ctx->remember('cliente', $row->id, $cliente->id);
             }
         });
+    }
+
+    private function resolverListaPrecio(LegacyImportContext $ctx, object $row): ?int
+    {
+        $codigo = trim((string) ($row->tipoPrecio ?? $row->lista_precio ?? ''));
+        if ($codigo === '' || in_array($codigo, ['precio_venta', 'precioCosto', 'precio_compra', '0'], true)) {
+            return null;
+        }
+
+        if ($this->tableExists($ctx, 'listas_precio')) {
+            $legacyLista = $ctx->legacy('listas_precio')->where('codigo', $codigo)->first();
+            if ($legacyLista) {
+                $mapped = $ctx->idMap->get('lista_precio', $legacyLista->id);
+                if ($mapped) {
+                    return $mapped;
+                }
+
+                $porNombre = ListaPrecio::query()
+                    ->where('empresa_id', $ctx->empresaId)
+                    ->where('nombre', $legacyLista->nombre)
+                    ->value('id');
+                if ($porNombre) {
+                    return (int) $porNombre;
+                }
+            }
+        }
+
+        // Fallback por código conocido (empleados / trabajadores_…)
+        $nombre = match ($codigo) {
+            'empleados' => 'Empleados',
+            'trabajadores_valle_grande' => 'Trabajadores Valle Grande',
+            default => null,
+        };
+        if ($nombre === null) {
+            return null;
+        }
+
+        $id = ListaPrecio::query()
+            ->where('empresa_id', $ctx->empresaId)
+            ->where('nombre', $nombre)
+            ->value('id');
+
+        return $id ? (int) $id : null;
     }
 }

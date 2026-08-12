@@ -36,7 +36,9 @@ class ListaPrecioImporter extends AbstractImporter
 
             $porcentaje = 0.0;
             if (($row->tipo_descuento ?? '') === 'porcentaje') {
-                $porcentaje = (float) ($row->valor_descuento ?? 0);
+                // En demonew valor_descuento es descuento (resta). En cmoon porcentaje
+                // positivo = recargo; negativo = descuento → invertir el signo.
+                $porcentaje = -abs((float) ($row->valor_descuento ?? 0));
             }
 
             if ($ctx->dryRun) {
