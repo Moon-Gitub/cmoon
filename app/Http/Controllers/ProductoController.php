@@ -42,8 +42,13 @@ class ProductoController extends Controller
         abort_unless(auth()->user()->can('productos.crear'), 403);
 
         return view('productos.form', [
-            'producto' => new Producto(['alicuota_iva' => 21, 'unidad' => 'UN']),
+            'producto' => new Producto([
+                'alicuota_iva' => 21,
+                'unidad' => 'UN',
+                'margen_ganancia' => 40,
+            ]),
             'categorias' => Categoria::where('activa', true)->orderBy('nombre')->get(),
+            'cotizacionDolar' => (float) (auth()->user()->empresa?->cotizacion_dolar ?? 0),
         ]);
     }
 
@@ -67,6 +72,7 @@ class ProductoController extends Controller
         return view('productos.form', [
             'producto' => $producto,
             'categorias' => Categoria::where('activa', true)->orderBy('nombre')->get(),
+            'cotizacionDolar' => (float) (auth()->user()->empresa?->cotizacion_dolar ?? 0),
         ]);
     }
 
@@ -147,6 +153,8 @@ class ProductoController extends Controller
             ],
             'unidad' => ['required', 'in:UN,KG,LT,MT'],
             'precio_compra' => ['required', 'numeric', 'min:0'],
+            'precio_compra_dolar' => ['nullable', 'numeric', 'min:0'],
+            'margen_ganancia' => ['nullable', 'numeric', 'min:0', 'max:9999'],
             'precio_venta' => ['required', 'numeric', 'min:0'],
             'alicuota_iva' => ['required', 'numeric', Rule::in([0, 10.5, 21, 27])],
             'stock_minimo' => ['nullable', 'numeric', 'min:0'],
@@ -154,6 +162,8 @@ class ProductoController extends Controller
             'codigo' => 'código',
             'categoria_id' => 'categoría',
             'precio_compra' => 'precio de compra',
+            'precio_compra_dolar' => 'precio de compra en dólares',
+            'margen_ganancia' => 'margen de ganancia',
             'precio_venta' => 'precio de venta',
             'alicuota_iva' => 'alícuota de IVA',
             'stock_minimo' => 'stock mínimo',
@@ -168,6 +178,10 @@ class ProductoController extends Controller
             'publicar_whatsapp' => $request->boolean('publicar_whatsapp'),
             'publicar_tiendanube' => $request->boolean('publicar_tiendanube'),
             'stock_minimo' => isset($datos['stock_minimo']) ? (float) $datos['stock_minimo'] : 0,
+            'precio_compra_dolar' => (float) ($datos['precio_compra_dolar'] ?? 0),
+            'margen_ganancia' => $request->boolean('utilizar_porcentaje')
+                ? (float) ($datos['margen_ganancia'] ?? 0)
+                : 0,
             'alicuota_iva' => (float) $datos['alicuota_iva'],
         ];
     }

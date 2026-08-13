@@ -118,6 +118,20 @@
         </div>
 
         <div class="border-t border-slate-100 pt-4">
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Cotización dólar</h2>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Cotización U$S → $</label>
+                    <input type="number" step="0.01" min="0" name="cotizacion_dolar"
+                           value="{{ old('cotizacion_dolar', $empresa->cotizacion_dolar ?? 0) }}"
+                           class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    <p class="mt-1 text-xs text-slate-400">Se usa al cargar productos con precio de compra en dólares.</p>
+                    @error('cotizacion_dolar')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+            </div>
+        </div>
+
+        <div class="border-t border-slate-100 pt-4">
             <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Personalización visual</h2>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>

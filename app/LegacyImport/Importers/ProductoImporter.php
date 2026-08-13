@@ -61,6 +61,8 @@ class ProductoImporter extends AbstractImporter
                     'nombre' => mb_substr($nombre, 0, 255),
                     'descripcion' => is_numeric($descripcionRaw) ? null : ($descripcionRaw ?: null),
                     'precio_compra' => (float) ($row->precio_compra ?? 0),
+                    'precio_compra_dolar' => (float) ($row->precio_compra_dolar ?? 0),
+                    'margen_ganancia' => (float) ($row->margen_ganancia ?? 0),
                     'precio_venta' => $precioVenta,
                     'alicuota_iva' => (float) ($row->tipo_iva ?? 21),
                     'unidad' => $pesable ? 'KG' : 'UN',

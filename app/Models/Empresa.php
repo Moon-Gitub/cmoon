@@ -24,6 +24,7 @@ class Empresa extends Model
         'email',
         'logo_path',
         'color_primario',
+        'cotizacion_dolar',
         'activa',
         'agente_retencion_iibb',
         'codigo_jurisdiccion_iibb',
@@ -39,6 +40,7 @@ class Empresa extends Model
     {
         return [
             'inicio_actividades' => 'date',
+            'cotizacion_dolar' => 'decimal:2',
             'activa' => 'boolean',
             'agente_retencion_iibb' => 'boolean',
             'codigo_jurisdiccion_iibb' => 'integer',

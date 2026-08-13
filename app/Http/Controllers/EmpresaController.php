@@ -34,6 +34,7 @@ class EmpresaController extends Controller
             'telefono' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'email', 'max:255'],
             'color_primario' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'cotizacion_dolar' => ['nullable', 'numeric', 'min:0'],
             'logo' => ['nullable', 'image', 'max:2048'],
             'agente_retencion_iibb' => ['nullable', 'boolean'],
             'codigo_jurisdiccion_iibb' => ['nullable', 'integer', 'min:1'],
@@ -49,6 +50,7 @@ class EmpresaController extends Controller
         unset($datos['logo']);
 
         $datos['agente_retencion_iibb'] = $request->boolean('agente_retencion_iibb');
+        $datos['cotizacion_dolar'] = (float) ($datos['cotizacion_dolar'] ?? 0);
 
         if ($request->hasFile('logo')) {
             $datos['logo_path'] = $request->file('logo')->store('logos', 'public');

@@ -78,38 +78,120 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-4">
-            <div>
-                <label class="mb-1 block text-sm font-medium text-slate-700">Precio compra *</label>
-                <input type="number" step="0.01" min="0" name="precio_compra"
-                       value="{{ old('precio_compra', $producto->precio_compra) }}" required
-                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-                @error('precio_compra')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+        @php
+            $margenInicial = old('margen_ganancia', $producto->margen_ganancia ?? ($esNuevo ? 40 : 0));
+            $usarPorcentaje = old('utilizar_porcentaje', (float) $margenInicial > 0);
+            $monedaInicial = old('precio_compra_moneda', ((float) old('precio_compra_dolar', $producto->precio_compra_dolar ?? 0) > 0) ? 'dolar' : 'peso');
+            $cotizacion = (float) ($cotizacionDolar ?? 0);
+        @endphp
+
+        <div class="space-y-4 rounded-lg border border-slate-200 p-4"
+             x-data="precioProducto({
+                compra: {{ json_encode((float) old('precio_compra', $producto->precio_compra ?? 0)) }},
+                compraDolar: {{ json_encode((float) old('precio_compra_dolar', $producto->precio_compra_dolar ?? 0)) }},
+                moneda: {{ json_encode($monedaInicial) }},
+                usarPorcentaje: {{ $usarPorcentaje ? 'true' : 'false' }},
+                margen: {{ json_encode((float) $margenInicial) }},
+                iva: {{ json_encode((float) old('alicuota_iva', $producto->alicuota_iva ?? 21)) }},
+                venta: {{ json_encode((float) old('precio_venta', $producto->precio_venta ?? 0)) }},
+                cotizacion: {{ json_encode($cotizacion) }},
+             })">
+
+            <div class="border-b border-slate-200 pb-1 text-sm font-semibold text-slate-700">Compra</div>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <div class="relative flex-1">
+                            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-slate-500">$</span>
+                            <input type="number" step="0.01" min="0" name="precio_compra" required
+                                   x-model.number="compra"
+                                   @input="onCompraPesos()"
+                                   :readonly="moneda === 'dolar'"
+                                   placeholder="Precio compra"
+                                   class="w-full rounded-lg border border-slate-300 py-2 pl-7 pr-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:bg-slate-50">
+                        </div>
+                        <input type="radio" name="precio_compra_moneda" value="peso"
+                               x-model="moneda" @change="onMonedaChange()"
+                               class="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <div class="relative flex-1">
+                            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-slate-500">U$S</span>
+                            <input type="number" step="0.01" min="0" name="precio_compra_dolar"
+                                   x-model.number="compraDolar"
+                                   @input="onCompraDolar()"
+                                   :readonly="moneda !== 'dolar'"
+                                   placeholder="Precio compra dólar"
+                                   class="w-full rounded-lg border border-slate-300 py-2 pl-10 pr-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200 disabled:bg-slate-50">
+                        </div>
+                        <input type="radio" name="precio_compra_moneda" value="dolar"
+                               x-model="moneda" @change="onMonedaChange()"
+                               class="h-4 w-4 border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                    </div>
+                    <p class="text-xs text-slate-500" x-show="cotizacion > 0">
+                        Cotización: $ <span x-text="cotizacion.toFixed(2)"></span>
+                        <a href="{{ route('empresa.edit') }}" class="ml-1 text-indigo-600 hover:underline">cambiar</a>
+                    </p>
+                    <p class="text-xs text-amber-600" x-show="moneda === 'dolar' && cotizacion <= 0">
+                        Configurá la cotización del dólar en Datos de la empresa para convertir U$S a $.
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap items-start gap-3 sm:justify-end">
+                    <label class="flex items-center gap-2 pt-2 text-sm text-slate-700">
+                        <input type="checkbox" name="utilizar_porcentaje" value="1"
+                               x-model="usarPorcentaje" @change="onPorcentajeToggle()"
+                               class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                        Utilizar porcentaje
+                    </label>
+                    <div class="flex items-center gap-1">
+                        <input type="number" step="0.01" min="0" name="margen_ganancia"
+                               x-model.number="margen" @input="recalcular()"
+                               :readonly="!usarPorcentaje"
+                               class="w-20 rounded-lg border border-slate-300 px-2 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                        <span class="text-sm text-slate-600">%</span>
+                    </div>
+                </div>
             </div>
-            <div>
-                <label class="mb-1 block text-sm font-medium text-slate-700">Precio venta *</label>
-                <input type="number" step="0.01" min="0" name="precio_venta"
-                       value="{{ old('precio_venta', $producto->precio_venta) }}" required
-                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-                @error('precio_venta')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+
+            <div class="border-b border-slate-200 pb-1 pt-2 text-sm font-semibold text-slate-700">Venta</div>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">% IVA</label>
+                    <div class="relative">
+                        <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-slate-500">%</span>
+                        <select name="alicuota_iva" required x-model.number="iva" @change="recalcular()"
+                                class="w-full rounded-lg border border-slate-300 py-2 pl-7 pr-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                            @foreach (['21' => '21%', '10.5' => '10,5%', '27' => '27%', '0' => '0% (exento)'] as $valor => $texto)
+                                <option value="{{ $valor }}">{{ $texto }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="sm:col-span-2">
+                    <label class="mb-1 block text-sm font-medium text-slate-700">$ Venta</label>
+                    <div class="relative">
+                        <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-slate-500">$</span>
+                        <input type="number" step="0.01" min="0" name="precio_venta" required
+                               x-model.number="venta"
+                               :readonly="usarPorcentaje"
+                               placeholder="$ publi"
+                               class="w-full rounded-lg border border-slate-300 py-2 pl-7 pr-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">Precio público con IVA incluido.</p>
+                    @error('precio_venta')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    @error('precio_compra')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
             </div>
-            <div>
-                <label class="mb-1 block text-sm font-medium text-slate-700">Alícuota IVA *</label>
-                <select name="alicuota_iva" required
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-                    @foreach (['21' => '21%', '10.5' => '10,5%', '27' => '27%', '0' => '0% (exento)'] as $valor => $texto)
-                        <option value="{{ $valor }}"
-                            {{ rtrim(rtrim((string) old('alicuota_iva', $producto->alicuota_iva), '0'), '.') === rtrim(rtrim($valor, '0'), '.') ? 'selected' : '' }}>
-                            {{ $texto }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
+
             <div>
                 <label class="mb-1 block text-sm font-medium text-slate-700">Stock mínimo</label>
                 <input type="number" step="0.001" min="0" name="stock_minimo"
                        value="{{ old('stock_minimo', $producto->stock_minimo) }}"
-                       class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                       class="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
             </div>
         </div>
 
@@ -154,6 +236,47 @@
         </div>
     </form>
     <script>
+    function precioProducto(init) {
+        const floor2 = (n) => Math.floor((Number(n) || 0) * 100) / 100;
+        return {
+            compra: Number(init.compra) || 0,
+            compraDolar: Number(init.compraDolar) || 0,
+            moneda: init.moneda || 'peso',
+            usarPorcentaje: !!init.usarPorcentaje,
+            margen: Number(init.margen) || 0,
+            iva: Number(init.iva) || 21,
+            venta: Number(init.venta) || 0,
+            cotizacion: Number(init.cotizacion) || 0,
+            onMonedaChange() {
+                if (this.moneda === 'dolar') {
+                    this.onCompraDolar();
+                }
+            },
+            onCompraPesos() {
+                this.recalcular();
+            },
+            onCompraDolar() {
+                if (this.moneda === 'dolar' && this.cotizacion > 0) {
+                    this.compra = floor2(this.compraDolar * this.cotizacion);
+                }
+                this.recalcular();
+            },
+            onPorcentajeToggle() {
+                if (this.usarPorcentaje) {
+                    if (!this.margen) this.margen = 40;
+                } else {
+                    this.margen = 0;
+                }
+                this.recalcular();
+            },
+            recalcular() {
+                if (!this.usarPorcentaje) return;
+                const neto = floor2(this.compra + this.compra * (Number(this.margen) || 0) / 100);
+                this.venta = floor2(neto + neto * (Number(this.iva) || 0) / 100);
+            },
+        };
+    }
+
     document.getElementById('btn-ia-producto')?.addEventListener('click', async () => {
         const msg = document.getElementById('ia-producto-msg');
         msg.classList.remove('hidden');
