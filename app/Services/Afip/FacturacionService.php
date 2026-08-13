@@ -16,7 +16,16 @@ class FacturacionService
 {
     public function __construct(private WsfeService $wsfe) {}
 
-    public function facturarVenta(Venta $venta, Emisor $emisor, PuntoVenta $puntoVenta, int $userId): Comprobante
+    /**
+     * @param  array{
+     *   tipo_comprobante?: int,
+     *   receptor_nombre?: string,
+     *   receptor_condicion_iva?: string,
+     *   doc_tipo?: int,
+     *   doc_numero?: string
+     * }  $opciones
+     */
+    public function facturarVenta(Venta $venta, Emisor $emisor, PuntoVenta $puntoVenta, int $userId, array $opciones = []): Comprobante
     {
         $venta->loadMissing(['items', 'cliente']);
 
@@ -37,9 +46,39 @@ class FacturacionService
         }
 
         $cliente = $venta->cliente;
-        $tipo = $this->tipoComprobante($emisor, $cliente?->condicion_iva);
+        $condicion = $opciones['receptor_condicion_iva']
+            ?? $cliente?->condicion_iva
+            ?? 'CONSUMIDOR_FINAL';
 
-        [$docTipo, $docNumero] = $this->documentoReceptor($cliente, (float) $venta->total);
+        $tipo = isset($opciones['tipo_comprobante'])
+            ? (int) $opciones['tipo_comprobante']
+            : $this->tipoComprobante($emisor, $condicion);
+
+        $this->assertTipoPermitido($emisor, $tipo);
+
+        $receptorNombre = trim((string) ($opciones['receptor_nombre'] ?? ''))
+            ?: ($cliente?->nombre ?? 'Consumidor final');
+
+        if (isset($opciones['doc_tipo'], $opciones['doc_numero'])) {
+            $docTipo = (int) $opciones['doc_tipo'];
+            $docNumero = preg_replace('/\D/', '', (string) $opciones['doc_numero']) ?: '0';
+        } else {
+            [$docTipo, $docNumero] = $this->documentoReceptor($cliente, (float) $venta->total);
+        }
+
+        if (in_array($tipo, [1, 2, 3], true)) {
+            $condicion = $opciones['receptor_condicion_iva'] ?? 'RESPONSABLE_INSCRIPTO';
+            if ($docTipo !== 80 || strlen($docNumero) !== 11) {
+                throw ValidationException::withMessages([
+                    'doc_numero' => 'Factura A requiere CUIT del receptor (11 dígitos).',
+                ]);
+            }
+            if ($receptorNombre === '' || strcasecmp($receptorNombre, 'Consumidor final') === 0) {
+                throw ValidationException::withMessages([
+                    'receptor_nombre' => 'Factura A requiere la razón social del receptor.',
+                ]);
+            }
+        }
 
         // Desglose de IVA por alícuota (precios finales → neto = total / (1 + iva))
         $porAlicuota = [];
@@ -65,8 +104,8 @@ class FacturacionService
             'tipo_comprobante' => $tipo,
             'doc_tipo' => $docTipo,
             'doc_numero' => $docNumero,
-            'receptor_nombre' => $cliente?->nombre ?? 'Consumidor final',
-            'receptor_condicion_iva' => $cliente?->condicion_iva ?? 'CONSUMIDOR_FINAL',
+            'receptor_nombre' => $receptorNombre,
+            'receptor_condicion_iva' => $condicion,
             'neto' => $netoTotal,
             'iva' => $ivaTotal,
             'total' => (float) $venta->total,
@@ -264,6 +303,25 @@ class FacturacionService
         }
 
         return $condicionReceptor === 'RESPONSABLE_INSCRIPTO' ? 1 : 6; // A o B
+    }
+
+    /** @return list<int> */
+    public function tiposDisponibles(Emisor $emisor): array
+    {
+        if ($emisor->esMonotributo()) {
+            return [11];
+        }
+
+        return [6, 1]; // B y A
+    }
+
+    private function assertTipoPermitido(Emisor $emisor, int $tipo): void
+    {
+        if (! in_array($tipo, $this->tiposDisponibles($emisor), true)) {
+            throw ValidationException::withMessages([
+                'tipo_comprobante' => 'Ese tipo de comprobante no está permitido para el emisor seleccionado.',
+            ]);
+        }
     }
 
     private function documentoReceptor(?object $cliente, float $total): array

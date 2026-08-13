@@ -335,12 +335,14 @@
             <div x-show="puedeFacturar && emisores.length && ! ventaOk?.offline && ! ventaOk?.facturada"
                  class="mt-4 space-y-2 border-t border-slate-100 pt-4 text-left">
                 <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Facturar como</p>
+                <label class="block text-xs text-slate-500">Razón social (emisor)</label>
                 <select x-model.number="emisorId" @change="onEmisorChange()"
                         class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <template x-for="e in emisores" :key="e.id">
                         <option :value="e.id" x-text="e.nombre + ' · ' + e.cuit"></option>
                     </template>
                 </select>
+                <label class="block text-xs text-slate-500">Punto de venta</label>
                 <select x-model.number="puntoVentaId"
                         class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <template x-for="pv in (emisorSeleccionado()?.puntos_venta ?? [])" :key="pv.id">
@@ -348,6 +350,30 @@
                                 x-text="'PV ' + String(pv.numero).padStart(4, '0') + (pv.descripcion ? ' — ' + pv.descripcion : '')"></option>
                     </template>
                 </select>
+                <label class="block text-xs text-slate-500">Tipo de factura</label>
+                <select x-model.number="tipoComprobante" @change="onTipoFacturaChange()"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <template x-for="t in tiposFacturaDisponibles()" :key="t.codigo">
+                        <option :value="t.codigo" x-text="t.label"></option>
+                    </template>
+                </select>
+
+                <div x-show="tipoComprobante === 1" class="space-y-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                    <p class="text-xs font-semibold text-amber-800">Datos del receptor (Factura A)</p>
+                    <label class="block text-xs text-slate-500">Razón social</label>
+                    <input type="text" x-model="receptorNombre" placeholder="Razón social del cliente"
+                           class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <label class="block text-xs text-slate-500">CUIT</label>
+                    <input type="text" x-model="receptorCuit" placeholder="20123456789" maxlength="13"
+                           class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <label class="block text-xs text-slate-500">Condición IVA</label>
+                    <select x-model="receptorCondicion"
+                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                        <option value="RESPONSABLE_INSCRIPTO">Responsable Inscripto</option>
+                        <option value="MONOTRIBUTO">Monotributo</option>
+                        <option value="EXENTO">Exento</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
@@ -416,7 +442,8 @@
             return {
                 productos: [], clientes: [], listas: [], medios: [], emisores: [], balanzas_formatos: [],
                 mercadopagoQr: false, puedeFacturar: @json($puedeFacturar ?? false),
-                emisorId: null, puntoVentaId: null,
+                emisorId: null, puntoVentaId: null, tipoComprobante: 6,
+                receptorNombre: '', receptorCuit: '', receptorCondicion: 'RESPONSABLE_INSCRIPTO',
                 carrito: [], busqueda: '', sugerencias: [], seleccion: 0,
                 clienteId: '', clienteBusqueda: '', clienteMenu: false,
                 descuento: 0,
@@ -456,6 +483,7 @@
                         if (this.emisores?.length) {
                             this.emisorId = this.emisores[0].id;
                             this.puntoVentaId = this.emisores[0].puntos_venta?.[0]?.id ?? null;
+                            this.tipoComprobante = this.tiposFacturaDisponibles()[0]?.codigo ?? 6;
                         }
                         localStorage.setItem('pos_catalogo', JSON.stringify(data));
                     } catch {
@@ -864,6 +892,31 @@
                 onEmisorChange() {
                     const e = this.emisorSeleccionado();
                     this.puntoVentaId = e?.puntos_venta?.[0]?.id ?? null;
+                    const tipos = this.tiposFacturaDisponibles();
+                    if (! tipos.some(t => t.codigo === this.tipoComprobante)) {
+                        this.tipoComprobante = tipos[0]?.codigo ?? 6;
+                    }
+                    this.onTipoFacturaChange();
+                },
+
+                tiposFacturaDisponibles() {
+                    const codigos = this.emisorSeleccionado()?.tipos_comprobante ?? [6, 1];
+                    const labels = { 1: 'Factura A', 6: 'Factura B', 11: 'Factura C' };
+                    return codigos.map(c => ({ codigo: c, label: labels[c] ?? `Tipo ${c}` }));
+                },
+
+                onTipoFacturaChange() {
+                    if (Number(this.tipoComprobante) !== 1) return;
+                    const c = this.clientes.find(c => c.id == this.ventaOk?.cliente_id)
+                        || this.clientes.find(c => c.id == this.clienteId);
+                    if (c) {
+                        if (! this.receptorNombre) this.receptorNombre = c.nombre || '';
+                        const doc = String(c.documento || '').replace(/\D/g, '');
+                        if (! this.receptorCuit && doc.length === 11) this.receptorCuit = doc;
+                        if (c.condicion_iva && c.condicion_iva !== 'CONSUMIDOR_FINAL') {
+                            this.receptorCondicion = c.condicion_iva;
+                        }
+                    }
                 },
 
                 medioEfectivo() {
@@ -971,6 +1024,11 @@
                             return;
                         }
                         this.ventaOk = data;
+                        this.receptorNombre = '';
+                        this.receptorCuit = '';
+                        this.receptorCondicion = 'RESPONSABLE_INSCRIPTO';
+                        this.tipoComprobante = this.tiposFacturaDisponibles()[0]?.codigo ?? 6;
+                        this.onTipoFacturaChange();
                         this.finalizarVenta();
                     } catch {
                         this.pendientes.push(payload);
@@ -1085,14 +1143,40 @@
 
                 async facturarVenta() {
                     if (! this.ventaOk?.id || ! this.emisorId || ! this.puntoVentaId) {
-                        this.errorFactura = 'No hay emisor o punto de venta configurado.';
+                        this.errorFactura = 'Elegí razón social y punto de venta.';
                         return;
+                    }
+                    if (! this.tipoComprobante) {
+                        this.errorFactura = 'Elegí el tipo de factura (A o B).';
+                        return;
+                    }
+                    if (Number(this.tipoComprobante) === 1) {
+                        const cuit = String(this.receptorCuit || '').replace(/\D/g, '');
+                        if (! (this.receptorNombre || '').trim()) {
+                            this.errorFactura = 'Factura A: completá la razón social del receptor.';
+                            return;
+                        }
+                        if (cuit.length !== 11) {
+                            this.errorFactura = 'Factura A: el CUIT del receptor debe tener 11 dígitos.';
+                            return;
+                        }
                     }
                     this.facturando = true;
                     this.errorFactura = '';
                     this.observacionesAfip = [];
                     this.explicacionAfip = '';
                     try {
+                        const payload = {
+                            emisor_id: this.emisorId,
+                            punto_venta_id: this.puntoVentaId,
+                            tipo_comprobante: Number(this.tipoComprobante),
+                        };
+                        if (Number(this.tipoComprobante) === 1) {
+                            payload.receptor_nombre = this.receptorNombre.trim();
+                            payload.receptor_condicion_iva = this.receptorCondicion || 'RESPONSABLE_INSCRIPTO';
+                            payload.doc_tipo = 80;
+                            payload.doc_numero = String(this.receptorCuit || '').replace(/\D/g, '');
+                        }
                         const res = await fetch(`{{ url('/pos/ventas') }}/${this.ventaOk.id}/facturar`, {
                             method: 'POST',
                             headers: {
@@ -1100,12 +1184,14 @@
                                 'Accept': 'application/json',
                                 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
                             },
-                            body: JSON.stringify({
-                                emisor_id: this.emisorId,
-                                punto_venta_id: this.puntoVentaId,
-                            }),
+                            body: JSON.stringify(payload),
                         });
-                        const data = await res.json();
+                        const data = await res.json().catch(() => ({}));
+                        if (res.status === 422 && data.errors) {
+                            const first = Object.values(data.errors).flat()[0];
+                            this.errorFactura = first || data.message || 'Datos inválidos para facturar.';
+                            return;
+                        }
                         if (data.estado === 'autorizado') {
                             this.ventaOk.facturada = true;
                             this.ventaOk.factura_url = data.factura_url;

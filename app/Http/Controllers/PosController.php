@@ -102,7 +102,7 @@ class PosController extends Controller
         $emisores = auth()->user()->can('facturacion.emitir')
             ? Emisor::with(['puntosVenta' => fn ($q) => $q->where('activo', true)])
                 ->where('activo', true)
-                ->get(['id', 'razon_social', 'cuit'])
+                ->get(['id', 'razon_social', 'cuit', 'condicion_iva'])
             : collect();
 
         return response()->json([
@@ -120,7 +120,7 @@ class PosController extends Controller
                 ]),
             'clientes' => Cliente::where('activo', true)
                 ->orderBy('nombre')
-                ->get(['id', 'nombre', 'documento', 'lista_precio_id']),
+                ->get(['id', 'nombre', 'documento', 'tipo_documento', 'condicion_iva', 'lista_precio_id']),
             'listas' => ListaPrecio::where('activa', true)
                 ->get(['id', 'nombre', 'porcentaje', 'base'])
                 ->map(fn ($l) => [
@@ -146,6 +146,8 @@ class PosController extends Controller
                 'id' => $e->id,
                 'nombre' => $e->razon_social,
                 'cuit' => $e->cuit,
+                'condicion_iva' => $e->condicion_iva,
+                'tipos_comprobante' => app(FacturacionService::class)->tiposDisponibles($e),
                 'puntos_venta' => $e->puntosVenta->map(fn ($pv) => [
                     'id' => $pv->id,
                     'numero' => $pv->numero,
@@ -237,6 +239,7 @@ class PosController extends Controller
             'id' => $venta->id,
             'numero' => $venta->numero,
             'total' => (float) $venta->total,
+            'cliente_id' => $venta->cliente_id,
             'ticket_url' => route('ventas.ticket', $venta),
         ], 201);
     }
@@ -248,12 +251,25 @@ class PosController extends Controller
         $datos = $request->validate([
             'emisor_id' => ['required', 'exists:emisores,id'],
             'punto_venta_id' => ['required', 'exists:puntos_venta,id'],
+            'tipo_comprobante' => ['required', 'integer', 'in:1,6,11'],
+            'receptor_nombre' => ['nullable', 'string', 'max:255'],
+            'receptor_condicion_iva' => ['nullable', 'in:CONSUMIDOR_FINAL,RESPONSABLE_INSCRIPTO,MONOTRIBUTO,EXENTO'],
+            'doc_tipo' => ['nullable', 'integer', 'in:80,86,96,99'],
+            'doc_numero' => ['nullable', 'string', 'max:20'],
         ]);
 
         $emisor = Emisor::findOrFail($datos['emisor_id']);
         $puntoVenta = $emisor->puntosVenta()->where('activo', true)->findOrFail($datos['punto_venta_id']);
 
-        $comprobante = $servicio->facturarVenta($venta, $emisor, $puntoVenta, auth()->id());
+        $opciones = array_filter([
+            'tipo_comprobante' => (int) $datos['tipo_comprobante'],
+            'receptor_nombre' => $datos['receptor_nombre'] ?? null,
+            'receptor_condicion_iva' => $datos['receptor_condicion_iva'] ?? null,
+            'doc_tipo' => isset($datos['doc_tipo']) ? (int) $datos['doc_tipo'] : null,
+            'doc_numero' => $datos['doc_numero'] ?? null,
+        ], fn ($v) => $v !== null && $v !== '');
+
+        $comprobante = $servicio->facturarVenta($venta, $emisor, $puntoVenta, auth()->id(), $opciones);
 
         $observaciones = $this->observacionesAfip($comprobante);
 
