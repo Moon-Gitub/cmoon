@@ -132,12 +132,20 @@
     }
 
     function buscarPorCodigoProducto(codigoProd) {
-        const raw = String(codigoProd);
-        const stripped = String(parseInt(raw, 10));
-        return productos().find(p => {
-            const c = String(p.codigo);
-            return c === raw || c === stripped || String(parseInt(c, 10)) === stripped || c.padStart(raw.length, '0') === raw;
-        }) || null;
+        // Igual demonew: match exacto (32 ≠ 0032 ≠ 00032)
+        const raw = String(codigoProd ?? '').trim();
+        if (! raw) return null;
+
+        let p = productos().find(x => String(x.codigo) === raw);
+        if (p) return p;
+
+        const stripped = raw.replace(/^0+/, '') || '0';
+        if (stripped !== raw) {
+            p = productos().find(x => String(x.codigo) === stripped);
+            if (p) return p;
+        }
+
+        return productos().find(x => String(x.codigo).toLowerCase() === raw.toLowerCase()) || null;
     }
 
     function fillClientes() {
