@@ -32,8 +32,11 @@
                             @can('cajas.operar')
                                 <form method="POST" action="{{ route('cajas.abrir', $caja) }}" class="flex items-center gap-2">
                                     @csrf
-                                    <input type="number" step="0.01" min="0" name="monto_apertura" placeholder="Monto inicial $" required
-                                           class="w-36 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                                    <input type="number" step="0.01" min="0" name="monto_apertura"
+                                           placeholder="Monto inicial $" required
+                                           value="{{ $aperturasSugeridas[$caja->id] ?? '' }}"
+                                           class="w-36 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                                           title="{{ isset($aperturasSugeridas[$caja->id]) && $aperturasSugeridas[$caja->id] > 0 ? 'Sugerido del cierre anterior (cambio próximo turno)' : 'Monto inicial' }}">
                                     <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
                                         Abrir caja
                                     </button>
@@ -80,7 +83,7 @@
             <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Últimos cierres</h2>
             <div class="space-y-2">
                 @forelse ($sesionesPrevias as $sesion)
-                    @php($diferencia = (float) $sesion->monto_cierre_declarado - (float) $sesion->monto_cierre_sistema)
+                    @php($diferencia = (float) $sesion->monto_cierre_sistema - (float) $sesion->monto_cierre_declarado)
                     <a href="{{ route('cajas.sesion', $sesion) }}"
                        class="block rounded-lg border border-slate-100 px-3 py-2 text-sm hover:bg-slate-50">
                         <div class="flex justify-between">

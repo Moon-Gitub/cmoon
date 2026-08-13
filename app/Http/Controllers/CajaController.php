@@ -15,12 +15,22 @@ class CajaController extends Controller
 {
     public function index(): View
     {
+        $cajas = Caja::with(['sucursal', 'sesionAbierta.usuario'])
+            ->where('activa', true)
+            ->whereHas('sucursal')
+            ->orderBy('nombre')
+            ->get();
+
+        $aperturasSugeridas = [];
+        foreach ($cajas as $caja) {
+            if (! $caja->sesionAbierta) {
+                $aperturasSugeridas[$caja->id] = CajaSesion::ultimaAperturaSugerida($caja->id);
+            }
+        }
+
         return view('cajas.index', [
-            'cajas' => Caja::with(['sucursal', 'sesionAbierta.usuario'])
-                ->where('activa', true)
-                ->whereHas('sucursal')
-                ->orderBy('nombre')
-                ->get(),
+            'cajas' => $cajas,
+            'aperturasSugeridas' => $aperturasSugeridas,
             'sucursales' => Sucursal::where('activa', true)->orderBy('nombre')->get(),
             'sesionesPrevias' => CajaSesion::with(['caja', 'usuario'])
                 ->whereHas('caja.sucursal')
@@ -77,20 +87,35 @@ class CajaController extends Controller
             return back()->with('error', 'La sesión ya está cerrada.');
         }
 
+        $sesion->load(['caja.sucursal', 'usuario']);
+
         $datos = $request->validate([
-            'monto_cierre_declarado' => ['required', 'numeric', 'min:0'],
+            'declarado' => ['required', 'array'],
+            'declarado.*' => ['nullable', 'numeric', 'min:0'],
+            'apertura_siguiente_monto' => ['nullable', 'numeric', 'min:0'],
             'observaciones' => ['nullable', 'string'],
-        ], [], ['monto_cierre_declarado' => 'monto contado']);
+        ], [], [
+            'declarado' => 'recuento manual',
+            'apertura_siguiente_monto' => 'cambio próximo turno',
+        ]);
+
+        $cierre = $sesion->armarCierreCiego($datos['declarado'] ?? []);
 
         $sesion->update([
-            'monto_cierre_declarado' => $datos['monto_cierre_declarado'],
-            'monto_cierre_sistema' => $sesion->efectivoEsperado(),
+            'monto_cierre_declarado' => $cierre['efectivo_declarado'],
+            'monto_cierre_sistema' => $cierre['efectivo_sistema'],
+            'detalle_sistema' => $cierre['sistema'],
+            'detalle_declarado' => $cierre['declarado'],
+            'detalle_diferencias' => $cierre['diferencias'],
+            'apertura_siguiente_monto' => $datos['apertura_siguiente_monto'] ?? 0,
             'observaciones' => $datos['observaciones'] ?? null,
             'estado' => 'cerrada',
             'cerrada_at' => now(),
         ]);
 
-        return redirect()->route('cajas.sesion', $sesion)->with('ok', 'Caja cerrada.');
+        return redirect()
+            ->route('cajas.sesion', $sesion)
+            ->with('ok', 'Caja cerrada. Revisá el recuento vs sistema abajo.');
     }
 
     public function movimiento(Request $request, CajaSesion $sesion): RedirectResponse
@@ -118,10 +143,19 @@ class CajaController extends Controller
 
     public function sesion(CajaSesion $sesion): View
     {
+        $sesion->load(['caja.sucursal', 'usuario', 'movimientos.usuario']);
+
         return view('cajas.sesion', [
-            'sesion' => $sesion->load(['caja.sucursal', 'usuario', 'movimientos.usuario']),
+            'sesion' => $sesion,
             'ventas' => $sesion->ventas()->with('pagos.medioPago')->orderByDesc('fecha')->get(),
-            'efectivoEsperado' => $sesion->efectivoEsperado(),
+            // Solo exponer esperados si ya cerró (cierre ciego).
+            'mediosCierre' => $sesion->estado === 'abierta'
+                ? collect($sesion->resumenPorMedio())->map(fn ($m) => [
+                    'medio_pago_id' => $m['medio_pago_id'],
+                    'nombre' => $m['nombre'],
+                    'tipo' => $m['tipo'],
+                ])->all()
+                : $sesion->detalle_sistema ?? $sesion->resumenPorMedio(),
         ]);
     }
 
