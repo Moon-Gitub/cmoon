@@ -699,15 +699,21 @@
                 },
 
                 buscarPorCodigoProducto(codigoProd) {
-                    const raw = String(codigoProd);
-                    const stripped = String(parseInt(raw, 10));
-                    return this.productos.find(p => {
-                        const c = String(p.codigo);
-                        return c === raw
-                            || c === stripped
-                            || String(parseInt(c, 10)) === stripped
-                            || c.padStart(raw.length, '0') === raw;
-                    }) || null;
+                    // Igual demonew: match exacto de codigo (32 ≠ 0032 ≠ 00032)
+                    const raw = String(codigoProd ?? '').trim();
+                    if (! raw) return null;
+
+                    let p = this.productos.find(x => String(x.codigo) === raw);
+                    if (p) return p;
+
+                    // Si el PLU vino con ceros a la izquierda, probar sin ellos (solo exacto)
+                    const stripped = raw.replace(/^0+/, '') || '0';
+                    if (stripped !== raw) {
+                        p = this.productos.find(x => String(x.codigo) === stripped);
+                        if (p) return p;
+                    }
+
+                    return this.productos.find(x => String(x.codigo).toLowerCase() === raw.toLowerCase()) || null;
                 },
 
                 agregarPorEnter() {
