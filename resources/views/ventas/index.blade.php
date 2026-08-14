@@ -27,14 +27,23 @@
                 <select name="estado" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <option value="">Todas</option>
                     <option value="completada" {{ request('estado') === 'completada' ? 'selected' : '' }}>Completadas</option>
+                    <option value="facturada" {{ request('estado') === 'facturada' ? 'selected' : '' }}>Facturadas</option>
                     <option value="anulada" {{ request('estado') === 'anulada' ? 'selected' : '' }}>Anuladas</option>
+                </select>
+                <select name="medio_pago_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <option value="">Todos los medios</option>
+                    @foreach ($mediosPago as $medio)
+                        <option value="{{ $medio->id }}" {{ (string) request('medio_pago_id') === (string) $medio->id ? 'selected' : '' }}>
+                            {{ $medio->nombre }}
+                        </option>
+                    @endforeach
                 </select>
                 <button class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50">Filtrar</button>
             </form>
 
             <div class="flex flex-wrap items-center gap-3">
                 <div class="rounded-lg bg-emerald-50 px-4 py-2 text-sm">
-                    <span class="text-emerald-600">Total del período:</span>
+                    <span class="text-emerald-600">Acumulado ({{ $cantidadPeriodo }}):</span>
                     <span class="font-bold text-emerald-700">$ {{ number_format((float) $totalPeriodo, 2, ',', '.') }}</span>
                 </div>
                 @if ($puedeFacturarLote)
@@ -126,6 +135,26 @@
                         </tr>
                     @endforelse
                 </tbody>
+                @if ($ventas->isNotEmpty())
+                    <tfoot class="border-t-2 border-slate-200 bg-slate-50">
+                        <tr>
+                            <td colspan="{{ ($puedeFacturarLote ? 7 : 6) }}" class="px-4 py-3 text-sm font-semibold text-slate-700">
+                                Acumulado
+                                @if ($porMedio->isNotEmpty())
+                                    <span class="ml-2 font-normal text-slate-500">
+                                        @foreach ($porMedio as $fila)
+                                            {{ $fila->nombre }} $ {{ number_format((float) $fila->total, 2, ',', '.') }}@if (! $loop->last) · @endif
+                                        @endforeach
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-right text-sm font-bold text-slate-900">
+                                $ {{ number_format((float) $totalPeriodo, 2, ',', '.') }}
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                @endif
             </table>
         </div>
 
