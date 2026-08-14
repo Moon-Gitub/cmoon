@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\MedioPago;
 use App\Models\Venta;
-use App\Models\VentaPago;
 use App\Services\VentaService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -18,6 +17,8 @@ class VentaController extends Controller
     {
         $desde = $request->date('desde') ?? now()->startOfDay();
         $hasta = $request->date('hasta')?->endOfDay() ?? now()->endOfDay();
+        $estado = (string) $request->input('estado', '');
+        $medioPagoId = $request->filled('medio_pago_id') ? $request->integer('medio_pago_id') : null;
 
         $filtradas = $this->filtrarVentas(Venta::query(), $request, $desde, $hasta);
 
@@ -28,20 +29,15 @@ class VentaController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        $acumulado = (clone $filtradas);
-        if ($request->input('estado') !== 'anulada') {
-            $acumulado->where('estado', 'completada');
+        $statsQuery = (clone $filtradas);
+        if ($estado !== 'anulada') {
+            $statsQuery->where('ventas.estado', 'completada');
         }
-        $totalPeriodo = (float) $acumulado->sum('total');
-        $cantidadPeriodo = (clone $acumulado)->count();
+        $stats = $statsQuery->toBase()
+            ->selectRaw('COUNT(*) as cantidad, COALESCE(SUM(ventas.total), 0) as total')
+            ->first();
 
-        $porMedio = VentaPago::query()
-            ->join('medios_pago', 'medios_pago.id', '=', 'venta_pagos.medio_pago_id')
-            ->whereIn('venta_pagos.venta_id', (clone $acumulado)->select('id'))
-            ->select('medios_pago.nombre', DB::raw('SUM(venta_pagos.importe) as total'))
-            ->groupBy('medios_pago.nombre')
-            ->orderByDesc('total')
-            ->get();
+        $porMedio = $this->acumuladoPorMedio($request, $desde, $hasta, $estado, $medioPagoId);
 
         $emisores = auth()->user()->can('facturacion.emitir')
             ? \App\Models\Emisor::with(['puntosVenta' => fn ($q) => $q->where('activo', true)])
@@ -52,10 +48,14 @@ class VentaController extends Controller
 
         return view('ventas.index', [
             'ventas' => $ventas,
-            'totalPeriodo' => $totalPeriodo,
-            'cantidadPeriodo' => $cantidadPeriodo,
+            'totalPeriodo' => (float) ($stats->total ?? 0),
+            'cantidadPeriodo' => (int) ($stats->cantidad ?? 0),
             'porMedio' => $porMedio,
-            'mediosPago' => MedioPago::query()->orderByRaw("CASE WHEN tipo = 'efectivo' THEN 0 ELSE 1 END")->orderBy('nombre')->get(),
+            'mediosPago' => MedioPago::query()
+                ->where('activo', true)
+                ->orderByRaw("CASE WHEN tipo = 'efectivo' THEN 0 ELSE 1 END")
+                ->orderBy('nombre')
+                ->get(['id', 'nombre', 'tipo']),
             'desde' => $desde,
             'hasta' => $hasta,
             'emisores' => $emisores,
@@ -64,24 +64,71 @@ class VentaController extends Controller
 
     private function filtrarVentas(Builder $query, Request $request, $desde, $hasta): Builder
     {
-        $query->whereBetween('fecha', [$desde, $hasta]);
+        $query->whereBetween('ventas.fecha', [$desde, $hasta]);
 
         $estado = (string) $request->input('estado', '');
         if ($estado === 'facturada') {
-            $query->where('estado', 'completada')
-                ->whereHas('comprobantes', fn ($q) => $q->whereIn('estado', ['autorizado', 'pendiente']));
+            $query->where('ventas.estado', 'completada')
+                ->whereExists(fn ($q) => $this->existeComprobanteFiscal($q));
         } elseif ($estado === 'completada') {
-            $query->where('estado', 'completada')
-                ->whereDoesntHave('comprobantes', fn ($q) => $q->whereIn('estado', ['autorizado', 'pendiente']));
+            $query->where('ventas.estado', 'completada')
+                ->whereNotExists(fn ($q) => $this->existeComprobanteFiscal($q));
         } elseif ($estado === 'anulada') {
-            $query->where('estado', 'anulada');
+            $query->where('ventas.estado', 'anulada');
         }
 
         if ($request->filled('medio_pago_id')) {
-            $query->whereHas('pagos', fn ($q) => $q->where('medio_pago_id', $request->integer('medio_pago_id')));
+            $medioId = $request->integer('medio_pago_id');
+            $query->whereExists(function ($q) use ($medioId) {
+                $q->selectRaw('1')
+                    ->from('venta_pagos')
+                    ->whereColumn('venta_pagos.venta_id', 'ventas.id')
+                    ->where('venta_pagos.medio_pago_id', $medioId);
+            });
         }
 
         return $query;
+    }
+
+    private function existeComprobanteFiscal($q): void
+    {
+        $q->selectRaw('1')
+            ->from('comprobantes')
+            ->whereColumn('comprobantes.venta_id', 'ventas.id')
+            ->whereIn('comprobantes.estado', ['autorizado', 'pendiente']);
+    }
+
+    private function acumuladoPorMedio(Request $request, $desde, $hasta, string $estado, ?int $medioPagoId)
+    {
+        $query = DB::table('venta_pagos')
+            ->join('ventas', 'ventas.id', '=', 'venta_pagos.venta_id')
+            ->join('medios_pago', 'medios_pago.id', '=', 'venta_pagos.medio_pago_id')
+            ->where('ventas.empresa_id', auth()->user()->empresa_id)
+            ->whereBetween('ventas.fecha', [$desde, $hasta]);
+
+        if ($estado === 'anulada') {
+            $query->where('ventas.estado', 'anulada');
+        } else {
+            $query->where('ventas.estado', 'completada');
+        }
+
+        if ($estado === 'facturada') {
+            $query->whereExists(fn ($q) => $this->existeComprobanteFiscal($q));
+        } elseif ($estado === 'completada') {
+            $query->whereNotExists(fn ($q) => $this->existeComprobanteFiscal($q));
+        }
+
+        if ($medioPagoId) {
+            $query->where('venta_pagos.medio_pago_id', $medioPagoId);
+        }
+
+        return $query
+            ->groupBy('medios_pago.nombre')
+            ->orderByDesc('total')
+            ->get([
+                'medios_pago.nombre',
+                DB::raw('SUM(venta_pagos.importe) as total'),
+            ]);
     }
 
     public function show(Venta $venta): View
