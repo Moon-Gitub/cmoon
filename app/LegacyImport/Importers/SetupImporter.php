@@ -131,7 +131,7 @@ class SetupImporter extends AbstractImporter
             'nombre_fantasia' => $legacy->titular,
             'condicion_iva' => CondicionIvaMapper::toCmoon($legacy->condicion_iva),
             'ingresos_brutos' => $legacy->numero_iibb,
-            'inicio_actividades' => $legacy->inicio_actividades ? \Carbon\Carbon::parse($legacy->inicio_actividades)->toDateString() : null,
+            'inicio_actividades' => (new self)->parseDate($legacy->inicio_actividades),
             'domicilio' => $legacy->domicilio,
             'localidad' => $legacy->localidad,
             'codigo_postal' => $legacy->codigo_postal,

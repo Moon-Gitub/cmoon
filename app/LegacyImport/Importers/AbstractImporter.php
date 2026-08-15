@@ -12,6 +12,18 @@ abstract class AbstractImporter implements LegacyImporterInterface
             return null;
         }
 
+        $value = trim((string) $value);
+
+        foreach (['d/m/Y', 'd-m-Y', 'Y-m-d', 'd/m/Y H:i:s', 'Y-m-d H:i:s'] as $fmt) {
+            try {
+                $dt = \Carbon\Carbon::createFromFormat($fmt, $value);
+                if ($dt !== false) {
+                    return $dt->toDateString();
+                }
+            } catch (\Throwable) {
+            }
+        }
+
         try {
             return \Carbon\Carbon::parse($value)->toDateString();
         } catch (\Throwable) {
