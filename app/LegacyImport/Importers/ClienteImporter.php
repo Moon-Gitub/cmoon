@@ -45,7 +45,7 @@ class ClienteImporter extends AbstractImporter
                     'empresa_id' => $ctx->empresaId,
                     'nombre' => $nombre,
                     'tipo_documento' => TipoDocumentoMapper::toCmoon($row->tipo_documento ?? null),
-                    'documento' => ($row->documento ?? null) ?: null,
+                    'documento' => $this->sanitizeDocumento($row->documento ?? null),
                     'condicion_iva' => CondicionIvaMapper::toCmoon($row->condicion_iva ?? null),
                     'email' => ($row->email ?? null) ?: null,
                     'telefono' => is_string($row->telefono ?? null) ? $row->telefono : null,

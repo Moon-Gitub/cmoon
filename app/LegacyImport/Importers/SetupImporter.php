@@ -125,7 +125,7 @@ class SetupImporter extends AbstractImporter
 
     public static function createEmpresaFromLegacy(object $legacy): Empresa
     {
-        $cuit = $legacy->cuit ?: null;
+        $cuit = (new self)->sanitizeCuit($legacy->cuit ?? null);
         $attrs = [
             'razon_social' => $legacy->razon_social ?: 'Empresa importada',
             'nombre_fantasia' => $legacy->titular,

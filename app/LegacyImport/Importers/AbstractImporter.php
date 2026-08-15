@@ -44,6 +44,53 @@ abstract class AbstractImporter implements LegacyImporterInterface
         }
     }
 
+    /**
+     * Normaliza CUIT/CUIL legacy a varchar(13): dígitos y guiones, recortado.
+     * Datos basura (p.ej. 16 dígitos) se truncan para no tumbar el import.
+     */
+    protected function sanitizeCuit(mixed $value, int $maxLen = 13): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $raw = trim((string) $value);
+        if ($raw === '' || $raw === '0' || $raw === '00000000000') {
+            return null;
+        }
+
+        // Conservar formato con guiones si cabe; si no, solo dígitos.
+        $clean = preg_replace('/[^0-9\-]/', '', $raw) ?? '';
+        if ($clean === '') {
+            return null;
+        }
+
+        if (strlen($clean) > $maxLen) {
+            $digits = preg_replace('/\D/', '', $clean) ?? '';
+            $clean = $digits !== '' ? $digits : $clean;
+        }
+
+        if ($clean === '') {
+            return null;
+        }
+
+        return substr($clean, 0, $maxLen);
+    }
+
+    protected function sanitizeDocumento(mixed $value, int $maxLen = 20): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $raw = trim(strip_tags((string) $value));
+        if ($raw === '' || $raw === '0') {
+            return null;
+        }
+
+        return mb_substr($raw, 0, $maxLen);
+    }
+
     protected function skipIfMapped(LegacyImportContext $ctx, string $entity, int|string $legacyId): ?int
     {
         return $ctx->mappedOrSkip($entity, $legacyId);

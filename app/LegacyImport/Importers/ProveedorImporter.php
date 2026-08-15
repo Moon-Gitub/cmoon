@@ -40,7 +40,7 @@ class ProveedorImporter extends AbstractImporter
             $prov = Proveedor::create([
                 'empresa_id' => $ctx->empresaId,
                 'razon_social' => $nombre,
-                'cuit' => $row->cuit ?: null,
+                'cuit' => $this->sanitizeCuit($row->cuit ?? null),
                 'condicion_iva' => CondicionIvaMapper::toCmoon($row->tipo_documento ?? 1),
                 'email' => $row->email ?: null,
                 'telefono' => $row->telefono ?: null,
