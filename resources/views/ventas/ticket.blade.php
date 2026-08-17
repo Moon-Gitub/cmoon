@@ -5,30 +5,33 @@
     <title>{{ $venta->esDevolucion() ? 'Devolución X' : 'Ticket' }} #{{ $venta->numero }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
+        @page { size: 80mm auto; margin: 0; }
+        html, body {
             width: 80mm;
-            margin: 0 auto;
-            padding: 4mm;
+            max-width: 80mm;
+            margin: 0;
+            padding: 3mm;
             color: #000;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.25;
         }
         .centro { text-align: center; }
         .negrita { font-weight: bold; }
         .linea { border-top: 1px dashed #000; margin: 6px 0; }
         table { width: 100%; border-collapse: collapse; }
-        td { padding: 1px 0; vertical-align: top; }
+        td { padding: 2px 0; vertical-align: top; }
         .der { text-align: right; }
-        .total { font-size: 16px; font-weight: bold; }
+        .total { font-size: 18px; font-weight: bold; }
         @media print {
-            body { width: auto; }
-            .no-print { display: none; }
+            html, body { width: 80mm !important; max-width: 80mm !important; margin: 0 !important; }
+            .no-print { display: none !important; }
         }
     </style>
 </head>
 <body>
     <div class="centro">
-        <p class="negrita" style="font-size:14px">{{ $empresa?->nombre_fantasia ?? $empresa?->razon_social ?? 'POSMoon' }}</p>
+        <p class="negrita" style="font-size:16px">{{ $empresa?->nombre_fantasia ?? $empresa?->razon_social ?? 'POSMoon' }}</p>
         @if ($empresa?->razon_social && $empresa?->nombre_fantasia)
             <p>{{ $empresa->razon_social }}</p>
         @endif
