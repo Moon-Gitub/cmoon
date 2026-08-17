@@ -1,6 +1,12 @@
 @extends('layouts.app')
 
-@php($esNuevo = ! $producto->exists)
+@php
+    $esNuevo = ! $producto->exists;
+    $margenInicial = old('margen_ganancia', $producto->margen_ganancia ?? ($esNuevo ? 40 : 0));
+    $usarPorcentaje = old('utilizar_porcentaje', (float) $margenInicial > 0);
+    $monedaInicial = old('precio_compra_moneda', ((float) old('precio_compra_dolar', $producto->precio_compra_dolar ?? 0) > 0) ? 'dolar' : 'peso');
+    $cotizacion = (float) ($cotizacionDolar ?? 0);
+@endphp
 
 @section('titulo', $esNuevo ? 'Nuevo producto' : "Editar: {$producto->nombre}")
 
@@ -77,13 +83,6 @@
                 </label>
             </div>
         </div>
-
-        @php
-            $margenInicial = old('margen_ganancia', $producto->margen_ganancia ?? ($esNuevo ? 40 : 0));
-            $usarPorcentaje = old('utilizar_porcentaje', (float) $margenInicial > 0);
-            $monedaInicial = old('precio_compra_moneda', ((float) old('precio_compra_dolar', $producto->precio_compra_dolar ?? 0) > 0) ? 'dolar' : 'peso');
-            $cotizacion = (float) ($cotizacionDolar ?? 0);
-        @endphp
 
         <div class="space-y-4 rounded-lg border border-slate-200 p-4"
              x-data="precioProducto({
