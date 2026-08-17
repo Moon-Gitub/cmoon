@@ -13,8 +13,9 @@ class VentaObserver
             'id' => $venta->id,
             'numero' => $venta->numero,
             'total' => $venta->total,
-            'origen' => $venta->origen,
-            'cliente_id' => $venta->cliente_id,
+                    'origen' => $venta->origen,
+                    'tipo' => $venta->tipo,
+                    'cliente_id' => $venta->cliente_id,
         ]);
     }
 }

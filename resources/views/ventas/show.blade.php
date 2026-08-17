@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('titulo', 'Venta #'.str_pad($venta->numero, 6, '0', STR_PAD_LEFT))
+@section('titulo', ($venta->esDevolucion() ? 'Devolución X #' : 'Venta #').str_pad($venta->numero, 6, '0', STR_PAD_LEFT))
 
 @section('contenido')
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -41,7 +41,9 @@
                         @endif
                         <tr>
                             <td colspan="4" class="px-4 py-3 text-right text-base font-bold">TOTAL</td>
-                            <td class="px-4 py-3 text-right text-base font-bold text-indigo-600">$ {{ number_format((float) $venta->total, 2, ',', '.') }}</td>
+                            <td class="px-4 py-3 text-right text-base font-bold {{ $venta->esDevolucion() ? 'text-amber-600' : 'text-indigo-600' }}">
+                                $ {{ number_format($venta->totalConSigno(), 2, ',', '.') }}
+                            </td>
                         </tr>
                     </tfoot>
                 </table>
@@ -66,6 +68,9 @@
                 <dl class="space-y-2 text-sm">
                     <div class="flex justify-between"><dt class="text-slate-500">Estado</dt>
                         <dd>
+                            @if ($venta->esDevolucion())
+                                <span class="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Devolución X</span>
+                            @endif
                             @if ($venta->estado === 'completada')
                                 <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Completada</span>
                             @else
@@ -91,6 +96,19 @@
                     <div class="flex justify-between"><dt class="text-slate-500">Sucursal</dt><dd class="font-medium">{{ $venta->sucursal->nombre }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">Vendedor</dt><dd class="font-medium">{{ $venta->vendedor->name }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">Cliente</dt><dd class="font-medium">{{ $venta->cliente?->nombre ?? 'Consumidor final' }}</dd></div>
+                    @if ($venta->venta_origen_numero)
+                        <div class="flex justify-between"><dt class="text-slate-500">Venta original</dt>
+                            <dd class="font-medium">
+                                @if ($venta->ventaOrigen)
+                                    <a href="{{ route('ventas.show', $venta->ventaOrigen) }}" class="text-indigo-600 hover:underline">
+                                        #{{ str_pad($venta->venta_origen_numero, 6, '0', STR_PAD_LEFT) }}
+                                    </a>
+                                @else
+                                    #{{ str_pad($venta->venta_origen_numero, 6, '0', STR_PAD_LEFT) }}
+                                @endif
+                            </dd>
+                        </div>
+                    @endif
                     <div class="flex justify-between"><dt class="text-slate-500">Origen</dt><dd class="font-medium uppercase">{{ $venta->origen }}</dd></div>
                 </dl>
 
@@ -124,7 +142,7 @@
                         </a>
                     @endif
                 </div>
-            @elseif ($venta->estado === 'completada' && $emisores->isNotEmpty())
+            @elseif ($venta->estado === 'completada' && ! $venta->esDevolucion() && $emisores->isNotEmpty())
                 @can('facturacion.emitir')
                     <form method="POST" action="{{ route('ventas.facturar', $venta) }}"
                           class="space-y-2 rounded-xl border border-indigo-200 bg-indigo-50 p-4"
@@ -154,15 +172,15 @@
             @if ($venta->estado === 'completada')
                 @can('ventas.anular')
                     <form method="POST" action="{{ route('ventas.anular', $venta) }}"
-                          onsubmit="return confirm('¿Anular esta venta? Se repone el stock y se revierte la cta. cte.')"
+                          onsubmit="return confirm(@js($venta->esDevolucion() ? '¿Anular esta devolución? Se vuelve a descontar el stock y se revierte la cta. cte.' : '¿Anular esta venta? Se repone el stock y se revierte la cta. cte.'))"
                           class="space-y-2 rounded-xl border border-red-200 bg-red-50 p-4">
                         @csrf
-                        <p class="text-sm font-semibold text-red-700">Anular venta</p>
+                        <p class="text-sm font-semibold text-red-700">{{ $venta->esDevolucion() ? 'Anular devolución' : 'Anular venta' }}</p>
                         <input type="text" name="motivo" placeholder="Motivo de anulación" required
                                class="w-full rounded-lg border border-red-200 px-3 py-2 text-sm focus:border-red-400 focus:outline-none">
                         @error('motivo')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
                         <button class="w-full rounded-lg bg-red-600 py-2 text-sm font-semibold text-white hover:bg-red-700">
-                            Anular venta
+                            Anular {{ $venta->esDevolucion() ? 'devolución' : 'venta' }}
                         </button>
                     </form>
                 @endcan

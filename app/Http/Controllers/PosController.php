@@ -210,6 +210,9 @@ class PosController extends Controller
             'pagos' => ['required', 'array', 'min:1'],
             'pagos.*.medio_pago_id' => ['required', 'exists:medios_pago,id'],
             'pagos.*.importe' => ['required', 'numeric', 'gt:0'],
+            'tipo' => ['nullable', 'in:venta,devolucion'],
+            'es_devolucion' => ['nullable', 'boolean'],
+            'venta_origen_numero' => ['nullable', 'integer', 'min:1'],
         ]);
 
         if (! empty($datos['caja_sesion_id'])) {
@@ -229,7 +232,7 @@ class PosController extends Controller
 
         $venta = $ventaService->crear($datos, auth()->id());
 
-        if (! empty($datos['presupuesto_id'])) {
+        if (! empty($datos['presupuesto_id']) && ! $venta->esDevolucion()) {
             \App\Models\Presupuesto::where('id', $datos['presupuesto_id'])
                 ->whereIn('estado', ['pendiente', 'aprobado'])
                 ->update(['estado' => 'convertido', 'venta_id' => $venta->id]);
@@ -239,6 +242,8 @@ class PosController extends Controller
             'id' => $venta->id,
             'numero' => $venta->numero,
             'total' => (float) $venta->total,
+            'tipo' => $venta->tipo,
+            'es_devolucion' => $venta->esDevolucion(),
             'cliente_id' => $venta->cliente_id,
             'ticket_url' => route('ventas.ticket', $venta),
         ], 201);
@@ -247,6 +252,10 @@ class PosController extends Controller
     public function facturar(Request $request, Venta $venta, FacturacionService $servicio): JsonResponse
     {
         abort_unless(auth()->user()->can('facturacion.emitir'), 403);
+
+        if ($venta->esDevolucion()) {
+            return response()->json(['message' => 'La Devolución X no se factura en AFIP.'], 422);
+        }
 
         $datos = $request->validate([
             'emisor_id' => ['required', 'exists:emisores,id'],

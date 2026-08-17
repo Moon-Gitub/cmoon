@@ -34,7 +34,7 @@ class VentaController extends Controller
             $statsQuery->where('ventas.estado', 'completada');
         }
         $stats = $statsQuery->toBase()
-            ->selectRaw('COUNT(*) as cantidad, COALESCE(SUM(ventas.total), 0) as total')
+            ->selectRaw('COUNT(*) as cantidad, COALESCE(SUM('.Venta::sqlTotalConSigno().'), 0) as total')
             ->first();
 
         $porMedio = $this->acumuladoPorMedio($request, $desde, $hasta, $estado, $medioPagoId);
@@ -75,6 +75,8 @@ class VentaController extends Controller
                 ->whereNotExists(fn ($q) => $this->existeComprobanteFiscal($q));
         } elseif ($estado === 'anulada') {
             $query->where('ventas.estado', 'anulada');
+        } elseif ($estado === 'devolucion') {
+            $query->where('ventas.tipo', Venta::TIPO_DEVOLUCION);
         }
 
         if ($request->filled('medio_pago_id')) {
@@ -116,6 +118,8 @@ class VentaController extends Controller
             $query->whereExists(fn ($q) => $this->existeComprobanteFiscal($q));
         } elseif ($estado === 'completada') {
             $query->whereNotExists(fn ($q) => $this->existeComprobanteFiscal($q));
+        } elseif ($estado === 'devolucion') {
+            $query->where('ventas.tipo', Venta::TIPO_DEVOLUCION);
         }
 
         if ($medioPagoId) {
@@ -127,14 +131,14 @@ class VentaController extends Controller
             ->orderByDesc('total')
             ->get([
                 'medios_pago.nombre',
-                DB::raw('SUM(venta_pagos.importe) as total'),
+                DB::raw('SUM('.Venta::sqlImportePagoConSigno().') as total'),
             ]);
     }
 
     public function show(Venta $venta): View
     {
         return view('ventas.show', [
-            'venta' => $venta->load(['items.producto', 'pagos.medioPago', 'cliente', 'vendedor', 'sucursal', 'anuladaPor']),
+            'venta' => $venta->load(['items.producto', 'pagos.medioPago', 'cliente', 'vendedor', 'sucursal', 'anuladaPor', 'ventaOrigen']),
             'comprobante' => \App\Models\Comprobante::with('puntoVenta')
                 ->where('venta_id', $venta->id)
                 ->whereIn('estado', ['autorizado', 'pendiente'])

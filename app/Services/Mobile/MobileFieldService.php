@@ -53,7 +53,7 @@ class MobileFieldService
             ->where('estado', 'completada')
             ->orderByDesc('fecha')
             ->limit(8)
-            ->get(['id', 'numero', 'total', 'fecha']);
+            ->get(['id', 'numero', 'total', 'fecha', 'tipo']);
 
         $presupuestos = Presupuesto::where('cliente_id', $cliente->id)
             ->orderByDesc('fecha')
@@ -65,7 +65,8 @@ class MobileFieldService
             'ventas_recientes' => $ventas->map(fn ($v) => [
                 'id' => $v->id,
                 'numero' => $v->numero,
-                'total' => (float) $v->total,
+                'tipo' => $v->tipo,
+                'total' => $v->totalConSigno(),
                 'fecha' => $v->fecha->toIso8601String(),
             ]),
             'presupuestos_recientes' => $presupuestos->map(fn ($p) => [
@@ -241,7 +242,8 @@ class MobileFieldService
                 'numero' => $v->numero,
                 'cliente_id' => $v->cliente_id,
                 'cliente_nombre' => $v->cliente?->nombre,
-                'total' => (float) $v->total,
+                'es_devolucion' => $v->esDevolucion(),
+                'total' => $v->totalConSigno(),
                 'fecha' => $v->fecha->toIso8601String(),
             ]);
         }
@@ -286,7 +288,7 @@ class MobileFieldService
             ],
             'ventas' => [
                 'cantidad' => $ventas->count(),
-                'total' => round((float) $ventas->sum('total'), 2),
+                'total' => round($ventas->sum(fn ($v) => $v->totalConSigno()), 2),
             ],
             'cobranzas' => [
                 'cantidad' => $cobranzas->count(),

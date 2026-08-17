@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Ticket #{{ $venta->numero }}</title>
+    <title>{{ $venta->esDevolucion() ? 'Devolución X' : 'Ticket' }} #{{ $venta->numero }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -38,7 +38,7 @@
 
     <div class="linea"></div>
 
-    <p>Comprobante: <span class="negrita">#{{ str_pad($venta->numero, 8, '0', STR_PAD_LEFT) }}</span>
+    <p>Comprobante: <span class="negrita">{{ $venta->esDevolucion() ? 'DEVOLUCION X' : '' }} #{{ str_pad($venta->numero, 8, '0', STR_PAD_LEFT) }}</span>
         @if ($venta->estado === 'anulada') <span class="negrita">** ANULADA **</span> @endif
     </p>
     <p>Fecha: {{ $venta->fecha->format('d/m/Y H:i') }}</p>
@@ -46,6 +46,9 @@
     <p>Atendió: {{ $venta->vendedor->name }}</p>
     @if ($venta->cliente)
         <p>Cliente: {{ $venta->cliente->nombre }}{{ $venta->cliente->documento ? ' ('.$venta->cliente->documento.')' : '' }}</p>
+    @endif
+    @if ($venta->venta_origen_numero)
+        <p>Venta original: #{{ str_pad($venta->venta_origen_numero, 8, '0', STR_PAD_LEFT) }}</p>
     @endif
 
     <div class="linea"></div>
@@ -72,7 +75,7 @@
         @if ((float) $venta->recargo > 0)
             <tr><td>Recargo</td><td class="der">$ {{ number_format((float) $venta->recargo, 2, ',', '.') }}</td></tr>
         @endif
-        <tr class="total"><td>TOTAL</td><td class="der total">$ {{ number_format((float) $venta->total, 2, ',', '.') }}</td></tr>
+        <tr class="total"><td>{{ $venta->esDevolucion() ? 'TOTAL A DEVOLVER' : 'TOTAL' }}</td><td class="der total">$ {{ number_format($venta->totalConSigno(), 2, ',', '.') }}</td></tr>
     </table>
 
     <div class="linea"></div>
@@ -88,8 +91,8 @@
 
     <div class="linea"></div>
 
-    <p class="centro">¡Gracias por su compra!</p>
-    <p class="centro" style="font-size:10px; margin-top:4px">Comprobante no válido como factura</p>
+    <p class="centro">{{ $venta->esDevolucion() ? 'Devolución registrada' : '¡Gracias por su compra!' }}</p>
+    <p class="centro" style="font-size:10px; margin-top:4px">{{ $venta->esDevolucion() ? 'Devolución X — comprobante no fiscal' : 'Comprobante no válido como factura' }}</p>
 
     <div class="no-print centro" style="margin-top:12px">
         <button onclick="window.print()" style="padding:8px 24px; font-size:14px; cursor:pointer">Imprimir</button>

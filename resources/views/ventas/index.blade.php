@@ -4,7 +4,7 @@
 
 @section('contenido')
     @php
-        $idsFacturables = $ventas->filter(fn ($v) => $v->estado === 'completada' && ! $v->facturada)->pluck('id')->values();
+        $idsFacturables = $ventas->filter(fn ($v) => $v->estado === 'completada' && ! $v->facturada && ! $v->esDevolucion())->pluck('id')->values();
         $puedeFacturarLote = auth()->user()->can('facturacion.emitir') && $emisores->isNotEmpty();
     @endphp
 
@@ -29,6 +29,7 @@
                     <option value="completada" {{ request('estado') === 'completada' ? 'selected' : '' }}>Completadas</option>
                     <option value="facturada" {{ request('estado') === 'facturada' ? 'selected' : '' }}>Facturadas</option>
                     <option value="anulada" {{ request('estado') === 'anulada' ? 'selected' : '' }}>Anuladas</option>
+                    <option value="devolucion" {{ request('estado') === 'devolucion' ? 'selected' : '' }}>Devoluciones X</option>
                 </select>
                 <select name="medio_pago_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <option value="">Todos los medios</option>
@@ -92,7 +93,7 @@
                         <tr class="hover:bg-slate-50 {{ $v->estado === 'anulada' ? 'opacity-60' : '' }}">
                             @if ($puedeFacturarLote)
                                 <td class="px-3 py-3">
-                                    @if ($v->estado === 'completada' && ! $v->facturada)
+                                    @if ($v->estado === 'completada' && ! $v->facturada && ! $v->esDevolucion())
                                         <input type="checkbox" value="{{ $v->id }}"
                                                @change="toggleVenta({{ $v->id }}, $event.target.checked)"
                                                :checked="seleccionadas.includes({{ $v->id }})"
@@ -100,7 +101,12 @@
                                     @endif
                                 </td>
                             @endif
-                            <td class="px-4 py-3 font-mono font-semibold">#{{ str_pad($v->numero, 6, '0', STR_PAD_LEFT) }}</td>
+                            <td class="px-4 py-3 font-mono font-semibold">
+                                #{{ str_pad($v->numero, 6, '0', STR_PAD_LEFT) }}
+                                @if ($v->esDevolucion())
+                                    <span class="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">Dev. X</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3 text-slate-600">{{ $v->fecha->format('d/m/Y H:i') }}</td>
                             <td class="px-4 py-3">{{ $v->cliente?->nombre ?? 'Consumidor final' }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ $v->vendedor->name }}</td>
@@ -108,17 +114,19 @@
                                 {{ $v->pagos->map(fn ($p) => $p->medioPago->nombre)->unique()->implode(', ') }}
                             </td>
                             <td class="px-4 py-3">
-                                @if ($v->estado === 'completada')
-                                    @if ($v->facturada)
-                                        <span class="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">Facturada</span>
-                                    @else
-                                        <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Completada</span>
-                                    @endif
-                                @else
+                                @if ($v->estado === 'anulada')
                                     <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600">Anulada</span>
+                                @elseif ($v->esDevolucion())
+                                    <span class="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Devolución X</span>
+                                @elseif ($v->facturada)
+                                    <span class="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">Facturada</span>
+                                @else
+                                    <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Completada</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-right font-semibold">$ {{ number_format((float) $v->total, 2, ',', '.') }}</td>
+                            <td class="px-4 py-3 text-right font-semibold {{ $v->esDevolucion() ? 'text-amber-700' : '' }}">
+                                $ {{ number_format($v->totalConSigno(), 2, ',', '.') }}
+                            </td>
                             <td class="px-4 py-3 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     <a href="{{ route('ventas.show', $v) }}"

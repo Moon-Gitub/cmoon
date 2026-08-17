@@ -21,19 +21,22 @@ class InformeController extends Controller
 
         $totales = [
             'cantidad' => (clone $base)->count(),
-            'total' => (float) (clone $base)->sum('total'),
+            'total' => (float) (clone $base)->sum(DB::raw(Venta::sqlTotalConSigno())),
             'descuentos' => (float) (clone $base)->sum('descuento'),
         ];
         $totales['promedio'] = $totales['cantidad'] > 0 ? $totales['total'] / $totales['cantidad'] : 0;
 
         $porDia = (clone $base)
-            ->select(DB::raw('DATE(fecha) as dia'), DB::raw('COUNT(*) as cantidad'), DB::raw('SUM(total) as total'))
+            ->select(DB::raw('DATE(fecha) as dia'), DB::raw('COUNT(*) as cantidad'), DB::raw('SUM('.Venta::sqlTotalConSigno().') as total'))
             ->groupBy('dia')->orderBy('dia')->get();
 
-        $porMedio = VentaPago::whereHas('venta', fn ($q) => $q->where('estado', 'completada')
-                ->whereBetween('fecha', [$desde, $hasta]))
+        $porMedio = VentaPago::query()
+            ->join('ventas', 'ventas.id', '=', 'venta_pagos.venta_id')
             ->join('medios_pago', 'medios_pago.id', '=', 'venta_pagos.medio_pago_id')
-            ->select('medios_pago.nombre', DB::raw('SUM(venta_pagos.importe) as total'))
+            ->where('ventas.empresa_id', auth()->user()->empresa_id)
+            ->where('ventas.estado', 'completada')
+            ->whereBetween('ventas.fecha', [$desde, $hasta])
+            ->select('medios_pago.nombre', DB::raw('SUM('.Venta::sqlImportePagoConSigno().') as total'))
             ->groupBy('medios_pago.nombre')->orderByDesc('total')->get();
 
         $topProductos = DB::table('venta_items')
@@ -41,14 +44,14 @@ class InformeController extends Controller
             ->where('ventas.estado', 'completada')
             ->whereBetween('ventas.fecha', [$desde, $hasta])
             ->select('venta_items.descripcion',
-                DB::raw('SUM(venta_items.cantidad) as cantidad'),
-                DB::raw('SUM(venta_items.total) as total'))
+                DB::raw('SUM('.Venta::sqlCantidadItemConSigno().') as cantidad'),
+                DB::raw('SUM('.Venta::sqlTotalItemConSigno().') as total'))
             ->groupBy('venta_items.descripcion')
             ->orderByDesc('total')->limit(15)->get();
 
         $porVendedor = (clone $base)
             ->join('users', 'users.id', '=', 'ventas.user_id')
-            ->select('users.name', DB::raw('COUNT(*) as cantidad'), DB::raw('SUM(ventas.total) as total'))
+            ->select('users.name', DB::raw('COUNT(*) as cantidad'), DB::raw('SUM('.Venta::sqlTotalConSigno().') as total'))
             ->groupBy('users.name')->orderByDesc('total')->get();
 
         return view('informes.ventas', compact('desde', 'hasta', 'totales', 'porDia', 'porMedio', 'topProductos', 'porVendedor'));
@@ -133,7 +136,12 @@ class InformeController extends Controller
         $sesiones = \App\Models\CajaSesion::with(['caja', 'usuario'])
             ->whereBetween('abierta_at', [$desde, $hasta])
             ->withCount(['ventas as ventas_count' => fn ($q) => $q->where('estado', 'completada')])
-            ->withSum(['ventas as ventas_total' => fn ($q) => $q->where('estado', 'completada')], 'total')
+            ->addSelect([
+                'ventas_total' => Venta::query()
+                    ->selectRaw('COALESCE(SUM('.Venta::sqlTotalConSigno().'), 0)')
+                    ->whereColumn('ventas.caja_sesion_id', 'caja_sesiones.id')
+                    ->where('ventas.estado', 'completada'),
+            ])
             ->orderByDesc('abierta_at')
             ->paginate(25)
             ->withQueryString();
@@ -143,7 +151,7 @@ class InformeController extends Controller
             'ventas' => (float) \App\Models\Venta::where('estado', 'completada')
                 ->whereBetween('fecha', [$desde, $hasta])
                 ->whereNotNull('caja_sesion_id')
-                ->sum('total'),
+                ->sum(DB::raw(Venta::sqlTotalConSigno())),
         ];
 
         return view('informes.cajas', compact('sesiones', 'totales', 'desde', 'hasta'));

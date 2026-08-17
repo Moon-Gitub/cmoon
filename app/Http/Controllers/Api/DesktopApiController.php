@@ -139,6 +139,9 @@ class DesktopApiController extends Controller
             'ventas.*.sucursal_id' => ['required', 'integer'],
             'ventas.*.items' => ['required', 'array', 'min:1'],
             'ventas.*.pagos' => ['required', 'array', 'min:1'],
+            'ventas.*.tipo' => ['nullable', 'in:venta,devolucion'],
+            'ventas.*.es_devolucion' => ['nullable', 'boolean'],
+            'ventas.*.venta_origen_numero' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $resultados = [];

@@ -33,6 +33,10 @@ class FacturacionService
             throw ValidationException::withMessages(['venta' => 'Solo se pueden facturar ventas completadas.']);
         }
 
+        if ($venta->esDevolucion()) {
+            throw ValidationException::withMessages(['venta' => 'La Devolución X no se factura en AFIP.']);
+        }
+
         if ($venta->items->isEmpty()) {
             throw ValidationException::withMessages(['venta' => 'La venta no tiene ítems para facturar.']);
         }

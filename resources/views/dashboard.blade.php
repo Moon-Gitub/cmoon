@@ -82,8 +82,8 @@
                             </td>
                             <td class="px-2 py-2.5">{{ $venta->cliente?->nombre ?? 'Consumidor final' }}</td>
                             <td class="px-2 py-2.5 text-xs text-slate-400">{{ $venta->fecha->format('d/m H:i') }}</td>
-                            <td class="px-5 py-2.5 text-right font-semibold {{ $venta->estado === 'anulada' ? 'text-red-400 line-through' : '' }}">
-                                $ {{ number_format((float) $venta->total, 2, ',', '.') }}
+                            <td class="px-5 py-2.5 text-right font-semibold {{ $venta->estado === 'anulada' ? 'text-red-400 line-through' : ($venta->esDevolucion() ? 'text-amber-700' : '') }}">
+                                $ {{ number_format($venta->totalConSigno(), 2, ',', '.') }}
                             </td>
                         </tr>
                     @empty

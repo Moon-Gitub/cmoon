@@ -39,7 +39,7 @@ class FacturacionController extends Controller
     {
         abort_unless(auth()->user()->can('facturacion.emitir'), 403);
 
-        if ($venta->estado !== 'completada' || $venta->yaFacturada()) {
+        if ($venta->estado !== 'completada' || $venta->yaFacturada() || $venta->esDevolucion()) {
             return back()->with('error', 'Esta venta no se puede facturar.');
         }
 
@@ -80,6 +80,12 @@ class FacturacionController extends Controller
 
             if (! $venta || $venta->estado !== 'completada') {
                 $errores[] = "Venta #{$ventaId} no válida o no completada.";
+
+                continue;
+            }
+
+            if ($venta->esDevolucion()) {
+                $errores[] = "Venta #{$venta->numero} es Devolución X (no fiscal).";
 
                 continue;
             }

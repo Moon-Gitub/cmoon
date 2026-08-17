@@ -73,6 +73,9 @@ class VentaApiController extends Controller
             'descuento' => ['nullable', 'numeric'],
             'recargo' => ['nullable', 'numeric'],
             'origen' => ['nullable', 'string', 'max:20'],
+            'tipo' => ['nullable', 'in:venta,devolucion'],
+            'es_devolucion' => ['nullable', 'boolean'],
+            'venta_origen_numero' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $datos['uuid'] = $datos['uuid'] ?? (string) \Illuminate\Support\Str::uuid();

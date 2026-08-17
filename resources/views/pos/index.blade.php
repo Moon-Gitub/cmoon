@@ -9,19 +9,22 @@
     <title>Punto de venta — POSMoon</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen overflow-x-hidden bg-slate-100 text-slate-900 lg:h-screen lg:overflow-hidden"
+<body class="min-h-screen overflow-x-hidden text-slate-900 lg:h-screen lg:overflow-hidden"
+      :class="esDevolucion ? 'bg-amber-50' : 'bg-slate-100'"
       x-data="posApp()" x-init="init()" x-cloak>
 
     <div class="flex min-h-screen flex-col lg:h-full">
 
         {{-- Barra superior --}}
-        <header class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-900 px-3 py-2 text-white sm:px-4">
+        <header class="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2 text-white sm:px-4"
+                :class="esDevolucion ? 'border-amber-800 bg-amber-950' : 'border-slate-200 bg-slate-900'">
             <div class="flex min-w-0 items-center gap-2 sm:gap-4">
                 <a href="{{ route('dashboard') }}" class="flex shrink-0 items-center gap-2 text-sm text-slate-300 hover:text-white">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
                     <span class="hidden sm:inline">Volver</span>
                 </a>
-                <h1 class="truncate text-sm font-bold tracking-tight sm:text-base">Punto de venta</h1>
+                <h1 class="truncate text-sm font-bold tracking-tight sm:text-base"
+                    x-text="esDevolucion ? 'Devolución X' : 'Punto de venta'"></h1>
                 <span class="hidden rounded-full bg-slate-700 px-2.5 py-0.5 text-xs sm:inline">{{ $sucursal?->nombre ?? 'Sin sucursal' }}</span>
             </div>
             <div class="flex flex-wrap items-center justify-end gap-2 text-xs">
@@ -145,6 +148,28 @@
             {{-- Columna derecha: cliente + totales + cobrar --}}
             <aside class="flex w-full shrink-0 flex-col gap-3 border-t border-slate-200 bg-white p-3 sm:p-4 lg:w-80 lg:border-l lg:border-t-0">
                 <div>
+                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Comprobante</label>
+                    <div class="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1">
+                        <button type="button" @click="esDevolucion = false"
+                                class="rounded-md px-2 py-1.5 text-xs font-semibold"
+                                :class="! esDevolucion ? 'bg-white text-slate-900 shadow' : 'text-slate-500 hover:text-slate-700'">
+                            Venta
+                        </button>
+                        <button type="button" @click="esDevolucion = true"
+                                class="rounded-md px-2 py-1.5 text-xs font-semibold"
+                                :class="esDevolucion ? 'bg-amber-500 text-white shadow' : 'text-slate-500 hover:text-slate-700'">
+                            Devolución X
+                        </button>
+                    </div>
+                    <p class="mt-1 text-[11px] text-amber-700" x-show="esDevolucion" x-cloak>
+                        Suma stock, egreso de caja, no va a AFIP.
+                    </p>
+                    <input type="number" min="1" x-show="esDevolucion" x-cloak x-model="ventaOrigenNumero"
+                           placeholder="N° venta original (opcional)"
+                           class="mt-2 w-full rounded-lg border border-amber-200 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none">
+                </div>
+
+                <div>
                     <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Cliente</label>
                     <div class="relative" @click.outside="clienteMenu = false">
                         <div class="flex gap-1">
@@ -189,14 +214,15 @@
                                class="w-28 rounded-lg border border-slate-300 px-2 py-1 text-right text-sm">
                     </div>
                     <div class="flex justify-between border-t border-slate-200 pt-2 text-2xl font-bold">
-                        <span>TOTAL</span>
-                        <span class="text-indigo-600" x-text="fmt(total())"></span>
+                        <span x-text="esDevolucion ? 'A DEVOLVER' : 'TOTAL'"></span>
+                        <span :class="esDevolucion ? 'text-amber-600' : 'text-indigo-600'" x-text="fmt(total())"></span>
                     </div>
                 </div>
 
                 <button type="button" @click="abrirPago()" :disabled="! carrito.length"
-                        class="w-full rounded-xl bg-indigo-600 py-4 text-lg font-bold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">
-                    COBRAR (F12)
+                        class="w-full rounded-xl py-4 text-lg font-bold text-white shadow-lg transition disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+                        :class="esDevolucion ? 'bg-amber-600 shadow-amber-200 hover:bg-amber-700' : 'bg-indigo-600 shadow-indigo-200 hover:bg-indigo-700'"
+                        x-text="esDevolucion ? 'DEVOLVER (F12)' : 'COBRAR (F12)'">
                 </button>
                 <button type="button" @click="vaciar()" x-show="carrito.length"
                         class="w-full rounded-xl border border-red-200 py-2 text-sm font-medium text-red-600 hover:bg-red-50">
@@ -212,8 +238,8 @@
          @keydown.escape.window="modalPago = false">
         <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" @click.outside="modalPago = false">
             <div class="mb-4 flex items-center justify-between">
-                <h2 class="text-lg font-bold">Cobrar venta</h2>
-                <p class="text-2xl font-bold text-indigo-600" x-text="fmt(total())"></p>
+                <h2 class="text-lg font-bold" x-text="esDevolucion ? 'Devolver' : 'Cobrar venta'"></h2>
+                <p class="text-2xl font-bold" :class="esDevolucion ? 'text-amber-600' : 'text-indigo-600'" x-text="fmt(total())"></p>
             </div>
 
             <div class="space-y-2">
@@ -221,7 +247,7 @@
                     <div class="flex items-center gap-2">
                         <select x-model.number="pago.medio_pago_id" @change="onCambioMedio(idx)"
                                 class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                            <template x-for="m in medios" :key="m.id">
+                            <template x-for="m in mediosDisponibles()" :key="m.id">
                                 <option :value="m.id" x-text="m.nombre + (m.recargo ? ' (' + (m.recargo > 0 ? '+' : '') + m.recargo + '%)' : '')"></option>
                             </template>
                         </select>
@@ -252,7 +278,7 @@
                     <span class="font-semibold text-red-600" x-text="fmt(Math.abs(redondear(sumaPagos() - total())))"></span>
                 </div>
                 <div class="flex items-center justify-between border-t border-slate-200 pt-2">
-                    <span class="text-slate-500">Paga con (efectivo)</span>
+                    <span class="text-slate-500" x-text="esDevolucion ? 'Devuelve con (efectivo)' : 'Paga con (efectivo)'"></span>
                     <input type="number" step="0.01" min="0" x-model.number="recibido"
                            class="w-28 rounded-lg border border-slate-300 px-2 py-1 text-right text-sm">
                 </div>
@@ -287,7 +313,9 @@
                 <svg x-show="! ventaOk?.offline" class="h-9 w-9 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
                 <svg x-show="ventaOk?.offline" class="h-9 w-9 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008zM21.75 12a9.75 9.75 0 11-19.5 0 9.75 9.75 0 0119.5 0z"/></svg>
             </div>
-            <h2 class="text-xl font-bold" x-text="ventaOk?.offline ? 'Venta guardada sin conexión' : 'Venta registrada'"></h2>
+            <h2 class="text-xl font-bold" x-text="ventaOk?.offline
+                ? (ventaOk?.es_devolucion ? 'Devolución guardada sin conexión' : 'Venta guardada sin conexión')
+                : (ventaOk?.es_devolucion ? 'Devolución registrada' : 'Venta registrada')"></h2>
             <p class="mt-1 text-slate-500" x-show="! ventaOk?.offline">Comprobante <span class="font-semibold" x-text="'#' + (ventaOk?.numero ?? '')"></span> · <span x-text="fmt(ventaOk?.total ?? 0)"></span></p>
             <p class="mt-1 text-sm text-amber-600" x-show="ventaOk?.offline">
                 Total <span class="font-semibold" x-text="fmt(ventaOk?.total ?? 0)"></span>.
@@ -299,7 +327,7 @@
                     Imprimir ticket
                 </button>
                 <button type="button" @click="facturarVenta()"
-                        x-show="puedeFacturar && emisores.length && ! ventaOk?.offline && ! ventaOk?.facturada"
+                        x-show="puedeFacturar && emisores.length && ! ventaOk?.offline && ! ventaOk?.facturada && ! ventaOk?.es_devolucion"
                         :disabled="facturando"
                         class="flex-1 rounded-xl border border-indigo-300 bg-indigo-50 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50">
                     <span x-show="! facturando">Facturar (AFIP)</span>
@@ -313,9 +341,9 @@
                    class="flex-1 rounded-xl border border-slate-300 bg-white py-2.5 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">
                     Ticket fiscal
                 </a>
-                <button type="button" @click="ventaOk = null; $refs.buscador.focus()"
+                    <button type="button" @click="ventaOk = null; $refs.buscador.focus()"
                         class="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">
-                    Nueva venta (Esc)
+                    <span x-text="ventaOk?.es_devolucion ? 'Nueva devolución (Esc)' : 'Nueva venta (Esc)'"></span>
                 </button>
             </div>
             <p class="mt-3 text-xs text-red-600" x-show="errorFactura" x-text="errorFactura"></p>
@@ -332,7 +360,7 @@
             <p class="mt-2 whitespace-pre-wrap text-left text-xs text-slate-600" x-show="explicacionAfip" x-text="explicacionAfip"></p>
             <p class="mt-2 text-xs text-emerald-700" x-show="ventaOk?.facturada" x-text="ventaOk?.factura_msg"></p>
 
-            <div x-show="puedeFacturar && emisores.length && ! ventaOk?.offline && ! ventaOk?.facturada"
+            <div x-show="puedeFacturar && emisores.length && ! ventaOk?.offline && ! ventaOk?.facturada && ! ventaOk?.es_devolucion"
                  class="mt-4 space-y-2 border-t border-slate-100 pt-4 text-left">
                 <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Facturar como</p>
                 <label class="block text-xs text-slate-500">Razón social (emisor)</label>
@@ -447,6 +475,8 @@
                 carrito: [], busqueda: '', sugerencias: [], seleccion: 0,
                 clienteId: '', clienteBusqueda: '', clienteMenu: false,
                 descuento: 0,
+                esDevolucion: false,
+                ventaOrigenNumero: '',
                 modalPago: false, pagos: [], recibido: 0, errorPago: '',
                 modalQr: false, qrSvg: '', qrReferencia: '', qrTotal: 0, qrEsperando: false,
                 qrPollTimer: null, errorQr: '',
@@ -506,6 +536,13 @@
                         return;
                     }
                     this.medios = this.medios.filter(m => m.tipo !== 'qr');
+                },
+
+                mediosDisponibles() {
+                    if (! this.esDevolucion) {
+                        return this.medios;
+                    }
+                    return this.medios.filter(m => m.tipo !== 'qr');
                 },
 
                 syncClienteBusqueda() {
@@ -949,8 +986,9 @@
 
                 agregarMedioPago() {
                     const efectivo = this.medioEfectivo();
+                    const medios = this.mediosDisponibles();
                     this.pagos.push({
-                        medio_pago_id: efectivo?.id ?? this.medios[0]?.id,
+                        medio_pago_id: efectivo?.id ?? medios[0]?.id,
                         importe: Math.max(0, this.redondear(this.total() - this.sumaPagos())),
                     });
                 },
@@ -964,7 +1002,8 @@
 
                 abrirPago() {
                     const efectivo = this.medioEfectivo();
-                    this.pagos = [{ medio_pago_id: efectivo?.id ?? this.medios[0]?.id, importe: this.total() }];
+                    const medios = this.mediosDisponibles();
+                    this.pagos = [{ medio_pago_id: efectivo?.id ?? medios[0]?.id, importe: this.total() }];
                     this.recibido = 0;
                     this.errorPago = '';
                     this.modalPago = true;
@@ -983,6 +1022,10 @@
                         this.errorPago = 'La suma de los pagos tiene que coincidir con el total.';
                         return;
                     }
+                    if (this.esDevolucion && this.usaQrMercadoPago()) {
+                        this.errorPago = 'La Devolución X no admite cobro por QR.';
+                        return;
+                    }
                     if (this.usaQrMercadoPago()) {
                         await this.iniciarCobroQr();
                         return;
@@ -998,6 +1041,10 @@
                         caja_sesion_id: this.cajaSesionId,
                         cliente_id: this.clienteId ? Number(this.clienteId) : null,
                         descuento: this.descuento || 0,
+                        tipo: this.esDevolucion ? 'devolucion' : 'venta',
+                        es_devolucion: this.esDevolucion,
+                        venta_origen_numero: this.esDevolucion && this.ventaOrigenNumero
+                            ? Number(this.ventaOrigenNumero) : null,
                         // Fecha: la define el servidor (APP_TIMEZONE). Evita UTC de toISOString().
                         origen: 'pos',
                         items: this.carrito.map(i => ({
@@ -1033,7 +1080,7 @@
                     } catch {
                         this.pendientes.push(payload);
                         this.guardarPendientes();
-                        this.ventaOk = { offline: true, total: this.total() };
+                        this.ventaOk = { offline: true, total: this.total(), es_devolucion: this.esDevolucion };
                         this.finalizarVenta();
                     } finally {
                         this.procesando = false;
@@ -1217,6 +1264,7 @@
                     this.clienteId = '';
                     this.clienteBusqueda = '';
                     this.presupuestoId = null;
+                    this.ventaOrigenNumero = '';
                     this.observacionesAfip = [];
                 },
 

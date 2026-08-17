@@ -71,6 +71,7 @@ class VentaImporter extends AbstractImporter
                 $subtotal = (float) ($row->neto ?? $row->total ?? 0);
                 $total = (float) ($row->total ?? $subtotal);
                 $uuid = Str::isUuid($row->uuid ?? '') ? $row->uuid : (string) Str::uuid();
+                $tipo = $this->mapTipo($row);
 
                 if ($ctx->dryRun) {
                     $ctx->remember('venta', $row->id, (int) $row->id);
@@ -97,6 +98,7 @@ class VentaImporter extends AbstractImporter
                         'numero' => $numero,
                         'estado' => $this->mapEstado($row->estado ?? 1),
                         'origen' => 'pos',
+                        'tipo' => $tipo,
                         'subtotal' => $subtotal,
                         'descuento' => 0,
                         'recargo' => 0,
@@ -114,6 +116,7 @@ class VentaImporter extends AbstractImporter
                         'numero' => $numero,
                         'estado' => $this->mapEstado($row->estado ?? 1),
                         'origen' => 'pos',
+                        'tipo' => $tipo,
                         'subtotal' => $subtotal,
                         'descuento' => 0,
                         'recargo' => 0,
@@ -238,5 +241,17 @@ class VentaImporter extends AbstractImporter
     private function mapEstado(mixed $legacy): string
     {
         return 'completada';
+    }
+
+    private function mapTipo(object $row): string
+    {
+        $cbte = 0;
+        if (isset($row->cbte_tipo) && is_numeric($row->cbte_tipo)) {
+            $cbte = (int) $row->cbte_tipo;
+        } elseif (isset($row->codigo) && is_numeric($row->codigo)) {
+            $cbte = (int) $row->codigo;
+        }
+
+        return $cbte === 999 ? Venta::TIPO_DEVOLUCION : Venta::TIPO_VENTA;
     }
 }

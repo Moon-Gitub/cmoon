@@ -13,6 +13,10 @@ class Venta extends Model
 
     protected $table = 'ventas';
 
+    public const TIPO_VENTA = 'venta';
+
+    public const TIPO_DEVOLUCION = 'devolucion';
+
     protected $fillable = [
         'uuid',
         'empresa_id',
@@ -23,6 +27,9 @@ class Venta extends Model
         'numero',
         'estado',
         'origen',
+        'tipo',
+        'venta_origen_id',
+        'venta_origen_numero',
         'tn_order_id',
         'tn_order_number',
         'shopify_order_id',
@@ -77,6 +84,43 @@ class Venta extends Model
     public function cajaSesion(): BelongsTo
     {
         return $this->belongsTo(CajaSesion::class);
+    }
+
+    public function ventaOrigen(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'venta_origen_id');
+    }
+
+    public function esDevolucion(): bool
+    {
+        return $this->tipo === self::TIPO_DEVOLUCION;
+    }
+
+    public function totalConSigno(): float
+    {
+        $total = (float) $this->total;
+
+        return $this->esDevolucion() ? -abs($total) : $total;
+    }
+
+    public static function sqlTotalConSigno(string $tabla = 'ventas'): string
+    {
+        return "CASE WHEN {$tabla}.tipo = 'devolucion' THEN -ABS({$tabla}.total) ELSE {$tabla}.total END";
+    }
+
+    public static function sqlImportePagoConSigno(string $ventas = 'ventas', string $pagos = 'venta_pagos'): string
+    {
+        return "CASE WHEN {$ventas}.tipo = 'devolucion' THEN -ABS({$pagos}.importe) ELSE {$pagos}.importe END";
+    }
+
+    public static function sqlCantidadItemConSigno(string $ventas = 'ventas', string $items = 'venta_items'): string
+    {
+        return "CASE WHEN {$ventas}.tipo = 'devolucion' THEN -ABS({$items}.cantidad) ELSE {$items}.cantidad END";
+    }
+
+    public static function sqlTotalItemConSigno(string $ventas = 'ventas', string $items = 'venta_items'): string
+    {
+        return "CASE WHEN {$ventas}.tipo = 'devolucion' THEN -ABS({$items}.total) ELSE {$items}.total END";
     }
 
     public function comprobantes(): HasMany

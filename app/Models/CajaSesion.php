@@ -62,7 +62,7 @@ class CajaSesion extends Model
     }
 
     /**
-     * Efectivo esperado en caja: apertura + ventas en efectivo + ingresos - egresos.
+     * Efectivo esperado en caja: apertura + ventas en efectivo + ingresos - egresos - devoluciones.
      */
     public function efectivoEsperado(): float
     {
@@ -101,14 +101,29 @@ class CajaSesion extends Model
             ->selectRaw('medio_pago_id, SUM(importe) as total')
             ->whereHas('venta', fn ($q) => $q
                 ->where('caja_sesion_id', $this->id)
-                ->where('estado', 'completada'))
+                ->where('estado', 'completada')
+                ->where('tipo', '!=', Venta::TIPO_DEVOLUCION))
+            ->groupBy('medio_pago_id')
+            ->pluck('total', 'medio_pago_id');
+
+        $devoluciones = VentaPago::query()
+            ->selectRaw('medio_pago_id, SUM(importe) as total')
+            ->whereHas('venta', fn ($q) => $q
+                ->where('caja_sesion_id', $this->id)
+                ->where('estado', 'completada')
+                ->where('tipo', Venta::TIPO_DEVOLUCION))
             ->groupBy('medio_pago_id')
             ->pluck('total', 'medio_pago_id');
 
         $ingresosManual = (float) $this->movimientos()->where('tipo', 'ingreso')->sum('importe');
         $egresosManual = (float) $this->movimientos()->where('tipo', 'egreso')->sum('importe');
 
-        $idsUsados = $pagos->keys()->map(fn ($id) => (int) $id)->all();
+        $idsUsados = $pagos->keys()
+            ->merge($devoluciones->keys())
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
         $medios = $medios->filter(fn (MedioPago $m) => $m->activo || in_array($m->id, $idsUsados, true))->values();
 
         // Si hubo pagos de un medio inactivo/borrado no listado, agregar fila genérica.
@@ -124,13 +139,13 @@ class CajaSesion extends Model
         $filas = [];
         foreach ($medios as $medio) {
             $ingresos = round((float) ($pagos[$medio->id] ?? 0), 2);
-            $egresos = 0.0;
+            $egresos = round((float) ($devoluciones[$medio->id] ?? 0), 2);
             $apertura = 0.0;
 
             if ($medio->tipo === 'efectivo') {
                 $apertura = round((float) $this->monto_apertura, 2);
                 $ingresos = round($ingresos + $ingresosManual, 2);
-                $egresos = round($egresosManual, 2);
+                $egresos = round($egresos + $egresosManual, 2);
             }
 
             $esperado = round($apertura + $ingresos - $egresos, 2);

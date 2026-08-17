@@ -24,6 +24,7 @@ class VentaService
      *
      * Estructura esperada de $datos:
      *  uuid, sucursal_id, caja_sesion_id?, cliente_id?, descuento?, origen?, fecha?
+     *  tipo?: venta|devolucion, es_devolucion?: bool, venta_origen_numero?: int
      *  items: [{producto_id?, descripcion?, cantidad, precio_unitario, alicuota_iva?}]
      *  pagos: [{medio_pago_id, importe}]
      */
@@ -36,6 +37,7 @@ class VentaService
 
         return DB::transaction(function () use ($datos, $userId) {
             $empresaId = auth()->user()->empresa_id;
+            $esDevolucion = $this->esDevolucion($datos);
 
             // Ítems: el total se calcula siempre del lado del servidor
             $items = [];
@@ -87,11 +89,26 @@ class VentaService
             }
             if ($importeCtaCte > 0 && ! $cliente) {
                 throw ValidationException::withMessages([
-                    'cliente_id' => 'Para vender en cuenta corriente hay que seleccionar un cliente.',
+                    'cliente_id' => $esDevolucion
+                        ? 'Para devolver en cuenta corriente hay que seleccionar un cliente.'
+                        : 'Para vender en cuenta corriente hay que seleccionar un cliente.',
                 ]);
             }
 
+            if ($esDevolucion) {
+                foreach ($datos['pagos'] as $pago) {
+                    $medio = MedioPago::find($pago['medio_pago_id']);
+                    if ($medio?->tipo === 'qr') {
+                        throw ValidationException::withMessages([
+                            'pagos' => 'La Devolución X no admite cobro por QR.',
+                        ]);
+                    }
+                }
+            }
+
             $numero = (int) Venta::where('empresa_id', $empresaId)->lockForUpdate()->max('numero') + 1;
+            [$ventaOrigenId, $ventaOrigenNumero] = $this->resolverVentaOrigen($datos, $empresaId);
+            $rotulo = $esDevolucion ? "Devolución #{$numero}" : "Venta #{$numero}";
 
             $venta = Venta::create([
                 'uuid' => $datos['uuid'],
@@ -103,6 +120,9 @@ class VentaService
                 'numero' => $numero,
                 'estado' => 'completada',
                 'origen' => $datos['origen'] ?? 'pos',
+                'tipo' => $esDevolucion ? Venta::TIPO_DEVOLUCION : Venta::TIPO_VENTA,
+                'venta_origen_id' => $ventaOrigenId,
+                'venta_origen_numero' => $ventaOrigenNumero,
                 'subtotal' => $subtotal,
                 'descuento' => $descuento,
                 'recargo' => $recargo,
@@ -125,9 +145,9 @@ class VentaService
                     $this->moverStockVenta(
                         $item['producto'],
                         (int) $datos['sucursal_id'],
-                        -$item['cantidad'],
-                        'venta',
-                        "Venta #{$numero}",
+                        $esDevolucion ? $item['cantidad'] : -$item['cantidad'],
+                        $esDevolucion ? 'devolucion' : 'venta',
+                        $rotulo,
                         $venta,
                         $userId,
                     );
@@ -146,9 +166,13 @@ class VentaService
                 MovimientoCuenta::create([
                     'titular_type' => $cliente->getMorphClass(),
                     'titular_id' => $cliente->id,
-                    'tipo' => 'venta',
-                    'concepto' => "Venta #{$numero} en cuenta corriente",
-                    'importe' => round($importeCtaCte, 2),
+                    'tipo' => $esDevolucion ? 'devolucion' : 'venta',
+                    'concepto' => $esDevolucion
+                        ? "Devolución #{$numero}"
+                        : "Venta #{$numero} en cuenta corriente",
+                    'importe' => $esDevolucion
+                        ? -round($importeCtaCte, 2)
+                        : round($importeCtaCte, 2),
                     'referencia_type' => $venta->getMorphClass(),
                     'referencia_id' => $venta->id,
                     'user_id' => $userId,
@@ -211,14 +235,19 @@ class VentaService
         }
 
         return DB::transaction(function () use ($venta, $motivo, $userId) {
+            $esDevolucion = $venta->esDevolucion();
+            $rotuloAnulacion = $esDevolucion
+                ? "Anulación devolución #{$venta->numero}"
+                : "Anulación venta #{$venta->numero}";
+
             foreach ($venta->items as $item) {
                 if ($item->producto_id && $item->producto) {
                     $this->moverStockVenta(
                         $item->producto,
                         $venta->sucursal_id,
-                        (float) $item->cantidad,
+                        $esDevolucion ? -(float) $item->cantidad : (float) $item->cantidad,
                         'anulacion',
-                        "Anulación venta #{$venta->numero}",
+                        $rotuloAnulacion,
                         $venta,
                         $userId,
                     );
@@ -227,7 +256,7 @@ class VentaService
 
             $movimientoCta = MovimientoCuenta::where('referencia_type', $venta->getMorphClass())
                 ->where('referencia_id', $venta->id)
-                ->where('tipo', 'venta')
+                ->whereIn('tipo', ['venta', 'devolucion'])
                 ->first();
 
             if ($movimientoCta) {
@@ -235,7 +264,7 @@ class VentaService
                     'titular_type' => $movimientoCta->titular_type,
                     'titular_id' => $movimientoCta->titular_id,
                     'tipo' => 'ajuste',
-                    'concepto' => "Anulación venta #{$venta->numero}",
+                    'concepto' => $rotuloAnulacion,
                     'importe' => -(float) $movimientoCta->importe,
                     'referencia_type' => $venta->getMorphClass(),
                     'referencia_id' => $venta->id,
@@ -303,5 +332,36 @@ class VentaService
         ]);
 
         return $venta->fresh();
+    }
+
+    private function esDevolucion(array $datos): bool
+    {
+        if (! empty($datos['es_devolucion'])) {
+            return true;
+        }
+
+        return ($datos['tipo'] ?? Venta::TIPO_VENTA) === Venta::TIPO_DEVOLUCION;
+    }
+
+    /**
+     * @return array{0: int|null, 1: int|null}
+     */
+    private function resolverVentaOrigen(array $datos, int $empresaId): array
+    {
+        $numero = isset($datos['venta_origen_numero']) && $datos['venta_origen_numero'] !== ''
+            ? (int) $datos['venta_origen_numero']
+            : 0;
+
+        if ($numero <= 0) {
+            return [null, null];
+        }
+
+        $origen = Venta::query()
+            ->where('empresa_id', $empresaId)
+            ->where('numero', $numero)
+            ->where('tipo', Venta::TIPO_VENTA)
+            ->first();
+
+        return [$origen?->id, $numero];
     }
 }

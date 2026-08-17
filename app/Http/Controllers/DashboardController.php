@@ -23,12 +23,12 @@ class DashboardController extends Controller
 
         $ultimos7 = Venta::where('estado', 'completada')
             ->where('fecha', '>=', now()->subDays(6)->startOfDay())
-            ->select(DB::raw('DATE(fecha) as dia'), DB::raw('SUM(total) as total'))
+            ->select(DB::raw('DATE(fecha) as dia'), DB::raw('SUM('.Venta::sqlTotalConSigno().') as total'))
             ->groupBy('dia')->orderBy('dia')
             ->pluck('total', 'dia');
 
         return view('dashboard', [
-            'ventasHoyTotal' => (float) (clone $hoy)->sum('total'),
+            'ventasHoyTotal' => (float) (clone $hoy)->sum(DB::raw(Venta::sqlTotalConSigno())),
             'ventasHoyCantidad' => (clone $hoy)->count(),
             'sesionAbierta' => $sesionAbierta,
             'productosActivos' => Producto::where('activo', true)->count(),
