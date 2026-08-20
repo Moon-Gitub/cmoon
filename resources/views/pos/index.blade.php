@@ -103,8 +103,20 @@
                             <template x-for="(item, idx) in carrito" :key="idx">
                                 <tr>
                                     <td class="px-4 py-2">
-                                        <p class="font-medium" x-text="item.nombre"></p>
-                                        <p class="font-mono text-[11px] text-slate-400" x-text="item.codigo"></p>
+                                        <template x-if="item.varios">
+                                            <div>
+                                                <input type="text" x-model="item.nombre"
+                                                       class="w-full rounded-lg border border-slate-300 px-2 py-1 text-sm font-medium"
+                                                       placeholder="Descripción (ej. pan, medialunas)">
+                                                <p class="mt-0.5 font-mono text-[11px] text-slate-400" x-text="item.codigo"></p>
+                                            </div>
+                                        </template>
+                                        <template x-if="! item.varios">
+                                            <div>
+                                                <p class="font-medium" x-text="item.nombre"></p>
+                                                <p class="font-mono text-[11px] text-slate-400" x-text="item.codigo"></p>
+                                            </div>
+                                        </template>
                                     </td>
                                     <td class="px-2 py-2">
                                         <div class="flex items-center justify-center gap-1">
@@ -426,6 +438,33 @@
         </div>
     </div>
 
+    {{-- Códigos reservados 1–10 (Varios / Pan / Leña…): pedir importe como demonew --}}
+    <div x-show="modalVarios" x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+         @keydown.escape.window="modalVarios && cerrarModalVarios()">
+        <div class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl" @click.outside="cerrarModalVarios()">
+            <h2 class="text-lg font-bold text-slate-800">Ingresá el importe</h2>
+            <p class="mt-1 text-sm text-slate-500"
+               x-text="(variosBorrador?.codigo ?? '') + ' — ' + (variosBorrador?.nombreCatalogo ?? '')"></p>
+            <label class="mt-4 block text-xs font-medium text-slate-600">Descripción
+                <input type="text" x-model="variosBorrador.nombre" x-ref="variosNombre"
+                       class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                       placeholder="Ej. pan, tortitas, medialunas">
+            </label>
+            <label class="mt-3 block text-xs font-medium text-slate-600">Importe ($)
+                <input type="number" step="0.01" min="0" x-model.number="variosBorrador.precio" x-ref="variosImporte"
+                       @keydown.enter.prevent="confirmarVarios()"
+                       class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-right">
+            </label>
+            <div class="mt-5 flex gap-2">
+                <button type="button" @click="cerrarModalVarios()"
+                        class="flex-1 rounded-xl border border-slate-300 py-2.5 text-sm font-medium text-slate-700">Cancelar</button>
+                <button type="button" @click="confirmarVarios()"
+                        class="flex-1 rounded-xl bg-indigo-600 py-2.5 text-sm font-bold text-white">Agregar</button>
+            </div>
+        </div>
+    </div>
+
     {{-- Modal alta rápida de cliente --}}
     <div x-show="modalCliente" x-transition.opacity
          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
@@ -482,6 +521,9 @@
                 qrPollTimer: null, errorQr: '',
                 modalCliente: false, guardandoCliente: false, errorCliente: '',
                 nuevoCliente: { nombre: '', tipo_documento: 'DNI', documento: '', condicion_iva: 'CONSUMIDOR_FINAL', telefono: '' },
+                modalVarios: false,
+                variosBorrador: { codigo: '', nombreCatalogo: '', nombre: '', precio: null, producto: null },
+                variosCantidadPendiente: 1,
                 procesando: false, ventaOk: null, facturando: false, errorFactura: '', observacionesAfip: [], explicacionAfip: '',
                 online: navigator.onLine, pendientes: [], sincronizando: false,
                 sucursalId: {{ $sucursal?->id ?? 'null' }},
@@ -588,6 +630,8 @@
                 recalcularPreciosCarrito() {
                     if (! this.carrito.length) return;
                     for (const item of this.carrito) {
+                        // Varios (códigos 1–10): el importe lo tipó el cajero; no pisar.
+                        if (item.varios) continue;
                         const prod = this.productos.find(p => Number(p.id) === Number(item.producto_id));
                         if (prod) {
                             item.precio = this.precioDe(prod);
@@ -791,17 +835,7 @@
                         const cant = this.parseCantidad?.(mult[1]) ?? Number(String(mult[1]).replace(',', '.'));
                         const prod = this.buscarPorCodigoProducto(mult[2].trim());
                         if (prod && cant > 0) {
-                            this.carrito.push({
-                                producto_id: prod.id,
-                                codigo: prod.codigo,
-                                nombre: prod.nombre,
-                                cantidad: Math.round(cant * 1000) / 1000,
-                                precio: this.precioDe(prod),
-                                iva: prod.iva,
-                                pesable: !! prod.pesable,
-                            });
-                            this.busqueda = '';
-                            this.sugerencias = [];
+                            this.agregar(prod, cant);
                             return;
                         }
                     }
@@ -884,26 +918,94 @@
                     if (el) el.value = String(valor);
                 },
 
-                agregar(prod) {
-                    const existente = this.carrito.find(i => i.producto_id === prod.id);
+                agregar(prod, cantidad = 1) {
+                    const cant = Math.max(0.001, Math.round((Number(cantidad) || 1) * 1000) / 1000);
                     const precio = this.precioDe(prod);
+
+                    // demonew: códigos 1–10 (Varios/Pan/Leña…) siempre suman una línea nueva,
+                    // no fusionan cantidad; descripción editable e importe si precio 0.
+                    if (this.esCodigoReservado(prod)) {
+                        if (! precio || precio <= 0) {
+                            this.abrirModalVarios(prod, cant);
+                            return;
+                        }
+                        this.pushItemCarrito(prod, cant, precio, prod.nombre, true);
+                        return;
+                    }
+
+                    const existente = this.carrito.find(i => i.producto_id === prod.id && ! i.varios);
                     if (existente && ! prod.pesable) {
-                        existente.cantidad += 1;
+                        existente.cantidad = Math.round((Number(existente.cantidad) + cant) * 1000) / 1000;
                         existente.precio = precio;
                     } else {
-                        this.carrito.push({
-                            producto_id: prod.id,
-                            codigo: prod.codigo,
-                            nombre: prod.nombre,
-                            cantidad: 1,
-                            precio: precio,
-                            iva: prod.iva,
-                            pesable: !! prod.pesable,
-                        });
+                        this.pushItemCarrito(prod, cant, precio, prod.nombre, false);
                     }
                     this.busqueda = '';
                     this.sugerencias = [];
                     this.$refs.buscador.focus();
+                },
+
+                /** Códigos 1–10 reservados (igual demonew) para productos sin barra. */
+                esCodigoReservado(prod) {
+                    const c = String(prod?.codigo ?? '').trim();
+                    return /^(?:[1-9]|10)$/.test(c);
+                },
+
+                pushItemCarrito(prod, cantidad, precio, nombre, varios) {
+                    this.carrito.push({
+                        producto_id: prod.id,
+                        codigo: prod.codigo,
+                        nombre: nombre || prod.nombre,
+                        cantidad,
+                        precio: Number(precio) || 0,
+                        iva: prod.iva,
+                        pesable: !! prod.pesable,
+                        varios: !! varios,
+                    });
+                    this.busqueda = '';
+                    this.sugerencias = [];
+                    this.$nextTick(() => this.$refs.buscador?.focus());
+                },
+
+                abrirModalVarios(prod, cantidad = 1) {
+                    this.variosCantidadPendiente = cantidad;
+                    this.variosBorrador = {
+                        producto: prod,
+                        codigo: prod.codigo,
+                        nombreCatalogo: prod.nombre,
+                        nombre: prod.nombre,
+                        precio: null,
+                    };
+                    this.modalVarios = true;
+                    this.busqueda = '';
+                    this.sugerencias = [];
+                    this.$nextTick(() => this.$refs.variosImporte?.focus());
+                },
+
+                cerrarModalVarios() {
+                    this.modalVarios = false;
+                    this.variosBorrador = { codigo: '', nombreCatalogo: '', nombre: '', precio: null, producto: null };
+                    this.$nextTick(() => this.$refs.buscador?.focus());
+                },
+
+                confirmarVarios() {
+                    const b = this.variosBorrador;
+                    if (! b?.producto) return;
+                    const precio = Number(b.precio);
+                    if (! Number.isFinite(precio) || precio < 0) {
+                        this.$refs.variosImporte?.focus();
+                        return;
+                    }
+                    const nombre = String(b.nombre || b.nombreCatalogo || b.producto.nombre).trim()
+                        || b.producto.nombre;
+                    this.pushItemCarrito(
+                        b.producto,
+                        this.variosCantidadPendiente || 1,
+                        precio,
+                        nombre,
+                        true,
+                    );
+                    this.cerrarModalVarios();
                 },
 
                 cambiarCantidad(idx, dir) {
