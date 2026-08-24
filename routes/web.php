@@ -33,6 +33,7 @@ use App\Http\Controllers\YcloudWebhookController;
 use App\Http\Controllers\N8nController;
 use App\Http\Controllers\N8nWebhookController;
 use App\Http\Controllers\AsistenteController;
+use App\Http\Controllers\DescargasController;
 use App\Http\Controllers\IaOperativaController;
 use App\Http\Controllers\VentaController;
 use App\Services\Afip\AfipSoap;
@@ -89,6 +90,11 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+    Route::get('/descargas', [DescargasController::class, 'index'])->name('descargas.index');
+    Route::get('/descargas/{platform}', [DescargasController::class, 'download'])
+        ->whereIn('platform', ['windows', 'linux', 'android'])
+        ->name('descargas.download');
 
     Route::get('/asistente', [AsistenteController::class, 'index'])->name('asistente.index');
     Route::post('/asistente/preguntar', [AsistenteController::class, 'preguntar'])->name('asistente.preguntar');

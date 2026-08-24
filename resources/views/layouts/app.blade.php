@@ -264,6 +264,14 @@
                 @endcan
             @endif
 
+            <p class="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Apps</p>
+
+            <a href="{{ route('descargas.index') }}"
+               class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('descargas.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7.5 11.25L12 15.75m0 0l4.5-4.5M12 15.75V3"/></svg>
+                Descargar apps
+            </a>
+
             <a href="{{ route('asistente.index') }}"
                class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('asistente.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg>
@@ -366,6 +374,7 @@
             </div>
             <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4 text-sm">
                 <a href="{{ route('dashboard') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Inicio</a>
+                <a href="{{ route('descargas.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Descargar apps</a>
                 <a href="{{ route('asistente.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Asistente IA</a>
                 @can('pos.vender')<a href="{{ route('pos') }}" class="block rounded-lg px-3 py-2 text-emerald-300 hover:bg-slate-800">Punto de venta</a>@endcan
                 @can('ventas.ver')<a href="{{ route('ventas.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Ventas</a>@endcan

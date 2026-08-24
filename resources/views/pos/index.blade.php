@@ -34,6 +34,10 @@
                 <span x-show="! online" class="flex items-center gap-1.5 rounded-full bg-red-500/20 px-2.5 py-1 text-red-300">
                     <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400"></span> Sin conexión
                 </span>
+                <a x-show="! online" href="{{ route('descargas.index') }}"
+                   class="hidden rounded-full bg-slate-700 px-2.5 py-1 text-slate-200 hover:bg-slate-600 sm:inline">
+                    POSMoon Offline
+                </a>
                 <span x-show="pendientes.length" x-cloak
                       class="flex items-center gap-1.5 rounded-full bg-amber-500/20 px-2.5 py-1 text-amber-300"
                       x-text="pendientes.length + (pendientes.length === 1 ? ' venta por sincronizar' : ' ventas por sincronizar')"></span>
@@ -58,6 +62,12 @@
                 <span class="text-slate-400">{{ auth()->user()->name }}</span>
             </div>
         </header>
+
+        <div x-show="! online" x-cloak
+             class="border-b border-amber-300 bg-amber-50 px-4 py-2 text-center text-sm text-amber-900">
+            No hay conexión. Para vender sin internet, usá
+            <a href="{{ route('descargas.index') }}" class="font-semibold underline hover:text-amber-950">POSMoon Offline (escritorio)</a>.
+        </div>
 
         <div class="flex min-h-0 flex-1 flex-col lg:flex-row">
 
@@ -321,25 +331,25 @@
          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
         <div class="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-2xl">
             <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
-                 :class="ventaOk?.offline ? 'bg-amber-100' : 'bg-emerald-100'">
-                <svg x-show="! ventaOk?.offline" class="h-9 w-9 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
-                <svg x-show="ventaOk?.offline" class="h-9 w-9 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008zM21.75 12a9.75 9.75 0 11-19.5 0 9.75 9.75 0 0119.5 0z"/></svg>
+                 :class="ventaOk?.sin_conexion ? 'bg-amber-100' : 'bg-emerald-100'">
+                <svg x-show="! ventaOk?.sin_conexion" class="h-9 w-9 text-emerald-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                <svg x-show="ventaOk?.sin_conexion" class="h-9 w-9 text-amber-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008zM21.75 12a9.75 9.75 0 11-19.5 0 9.75 9.75 0 0119.5 0z"/></svg>
             </div>
-            <h2 class="text-xl font-bold" x-text="ventaOk?.offline
-                ? (ventaOk?.es_devolucion ? 'Devolución guardada sin conexión' : 'Venta guardada sin conexión')
+            <h2 class="text-xl font-bold" x-text="ventaOk?.sin_conexion
+                ? 'Sin conexión'
                 : (ventaOk?.es_devolucion ? 'Devolución registrada' : 'Venta registrada')"></h2>
-            <p class="mt-1 text-slate-500" x-show="! ventaOk?.offline">Comprobante <span class="font-semibold" x-text="'#' + (ventaOk?.numero ?? '')"></span> · <span x-text="fmt(ventaOk?.total ?? 0)"></span></p>
-            <p class="mt-1 text-sm text-amber-600" x-show="ventaOk?.offline">
-                Total <span class="font-semibold" x-text="fmt(ventaOk?.total ?? 0)"></span>.
-                Se va a sincronizar sola cuando vuelva internet.
+            <p class="mt-1 text-slate-500" x-show="! ventaOk?.sin_conexion">Comprobante <span class="font-semibold" x-text="'#' + (ventaOk?.numero ?? '')"></span> · <span x-text="fmt(ventaOk?.total ?? 0)"></span></p>
+            <p class="mt-3 text-sm text-amber-700" x-show="ventaOk?.sin_conexion">
+                No hay conexión. Para vender sin internet, usá
+                <a href="{{ route('descargas.index') }}" class="font-semibold underline">POSMoon Offline (escritorio)</a>.
             </p>
             <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <button type="button" @click="imprimirTicket()" x-show="! ventaOk?.offline && ! ventaOk?.factura_url"
+                <button type="button" @click="imprimirTicket()" x-show="! ventaOk?.sin_conexion && ! ventaOk?.factura_url"
                         class="flex-1 rounded-xl border border-slate-300 py-2.5 text-sm font-medium hover:bg-slate-50">
                     Imprimir ticket
                 </button>
                 <button type="button" @click="facturarVenta()"
-                        x-show="puedeFacturar && emisores.length && ! ventaOk?.offline && ! ventaOk?.facturada && ! ventaOk?.es_devolucion"
+                        x-show="puedeFacturar && emisores.length && ! ventaOk?.sin_conexion && ! ventaOk?.facturada && ! ventaOk?.es_devolucion"
                         :disabled="facturando"
                         class="flex-1 rounded-xl border border-indigo-300 bg-indigo-50 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50">
                     <span x-show="! facturando">Facturar (AFIP)</span>
@@ -372,7 +382,7 @@
             <p class="mt-2 whitespace-pre-wrap text-left text-xs text-slate-600" x-show="explicacionAfip" x-text="explicacionAfip"></p>
             <p class="mt-2 text-xs text-emerald-700" x-show="ventaOk?.facturada" x-text="ventaOk?.factura_msg"></p>
 
-            <div x-show="puedeFacturar && emisores.length && ! ventaOk?.offline && ! ventaOk?.facturada && ! ventaOk?.es_devolucion"
+            <div x-show="puedeFacturar && emisores.length && ! ventaOk?.sin_conexion && ! ventaOk?.facturada && ! ventaOk?.es_devolucion"
                  class="mt-4 space-y-2 border-t border-slate-100 pt-4 text-left">
                 <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Facturar como</p>
                 <label class="block text-xs text-slate-500">Razón social (emisor)</label>
@@ -1180,10 +1190,11 @@
                         this.onTipoFacturaChange();
                         this.finalizarVenta();
                     } catch {
-                        this.pendientes.push(payload);
-                        this.guardarPendientes();
-                        this.ventaOk = { offline: true, total: this.total(), es_devolucion: this.esDevolucion };
-                        this.finalizarVenta();
+                        if (! navigator.onLine) {
+                            this.errorPago = 'No hay conexión. Para vender sin internet, usá POSMoon Offline (escritorio).';
+                            return;
+                        }
+                        this.errorPago = 'No se pudo registrar la venta. Reintentá en unos segundos.';
                     } finally {
                         this.procesando = false;
                     }
