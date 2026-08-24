@@ -40,17 +40,19 @@ class ProveedorCuentaCorrienteImporter extends AbstractImporter
                 continue;
             }
 
-            // En demonew, tipo 4 ("COMPRA DE MERCADERIA") suele guardar el monto
-            // en total_compra con importe=0; los pagos (tipo 1) usan importe.
+            // Esquemas demonew varían: importe / total_compra (tipo 4) / total.
             $importe = (float) ($row->importe ?? 0);
             if ($importe == 0.0) {
                 $importe = (float) ($row->total_compra ?? 0);
             }
             if ($importe == 0.0) {
+                $importe = (float) ($row->total ?? 0);
+            }
+            if ($importe == 0.0) {
                 continue;
             }
 
-            // Legacy tipo: interpretamos positivo como deuda con proveedor
+            // Legacy tipo: 1 = pago; resto (2/4/…) = deuda / factura
             $tipoLegacy = (int) ($row->tipo ?? 0);
             if ($tipoLegacy === 1) {
                 $importe = -abs($importe);
@@ -65,6 +67,10 @@ class ProveedorCuentaCorrienteImporter extends AbstractImporter
                 continue;
             }
 
+            $fecha = $this->parseDate($row->fecha_movimiento ?? null)
+                ?? $this->parseDate($row->fecha ?? null)
+                ?? now()->toDateString();
+
             $mov = MovimientoCuenta::create([
                 'titular_type' => $proveedor->getMorphClass(),
                 'titular_id' => $proveedor->id,
@@ -72,7 +78,7 @@ class ProveedorCuentaCorrienteImporter extends AbstractImporter
                 'concepto' => $row->descripcion ?: 'Import legacy CC proveedor',
                 'importe' => $importe,
                 'user_id' => $ctx->defaultUserId,
-                'fecha' => $this->parseDate($row->fecha_movimiento ?? null) ?? now()->toDateString(),
+                'fecha' => $fecha,
             ]);
 
             $ctx->remember('cc_proveedor', $row->id, $mov->id);
