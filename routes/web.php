@@ -91,8 +91,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-    Route::get('/descargas', [DescargasController::class, 'index'])->name('descargas.index');
-    Route::get('/descargas/{platform}', [DescargasController::class, 'download'])
+    Route::get('/apps/descargar', [DescargasController::class, 'index'])->name('descargas.index');
+    Route::get('/apps/descargar/{platform}', [DescargasController::class, 'download'])
         ->whereIn('platform', ['windows', 'linux', 'android'])
         ->name('descargas.download');
 
