@@ -40,7 +40,12 @@ class ProveedorCuentaCorrienteImporter extends AbstractImporter
                 continue;
             }
 
+            // En demonew, tipo 4 ("COMPRA DE MERCADERIA") suele guardar el monto
+            // en total_compra con importe=0; los pagos (tipo 1) usan importe.
             $importe = (float) ($row->importe ?? 0);
+            if ($importe == 0.0) {
+                $importe = (float) ($row->total_compra ?? 0);
+            }
             if ($importe == 0.0) {
                 continue;
             }
@@ -60,7 +65,7 @@ class ProveedorCuentaCorrienteImporter extends AbstractImporter
                 continue;
             }
 
-            MovimientoCuenta::create([
+            $mov = MovimientoCuenta::create([
                 'titular_type' => $proveedor->getMorphClass(),
                 'titular_id' => $proveedor->id,
                 'tipo' => $tipo,
@@ -70,7 +75,7 @@ class ProveedorCuentaCorrienteImporter extends AbstractImporter
                 'fecha' => $this->parseDate($row->fecha_movimiento ?? null) ?? now()->toDateString(),
             ]);
 
-            $ctx->remember('cc_proveedor', $row->id, $proveedorId);
+            $ctx->remember('cc_proveedor', $row->id, $mov->id);
         }
     }
 }
