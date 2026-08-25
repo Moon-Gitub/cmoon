@@ -19,13 +19,17 @@ class VentaController extends Controller
         $hasta = $request->date('hasta')?->endOfDay() ?? now()->endOfDay();
         $estado = (string) $request->input('estado', '');
         $medioPagoId = $request->filled('medio_pago_id') ? $request->integer('medio_pago_id') : null;
+        [$sort, $dir] = $this->resolverOrden($request);
 
         $filtradas = $this->filtrarVentas(Venta::query(), $request, $desde, $hasta);
 
         $ventas = (clone $filtradas)
             ->with(['cliente', 'vendedor', 'pagos.medioPago'])
-            ->withExists(['comprobantes as facturada' => fn ($q) => $q->whereIn('estado', ['autorizado', 'pendiente'])])
-            ->orderByDesc('fecha')
+            ->withExists(['comprobantes as facturada' => fn ($q) => $q->whereIn('estado', ['autorizado', 'pendiente'])]);
+
+        $this->aplicarOrden($ventas, $sort, $dir);
+
+        $ventas = $ventas
             ->paginate(25)
             ->withQueryString();
 
@@ -59,7 +63,55 @@ class VentaController extends Controller
             'desde' => $desde,
             'hasta' => $hasta,
             'emisores' => $emisores,
+            'sort' => $sort,
+            'dir' => $dir,
         ]);
+    }
+
+    /** @return array{0: string, 1: string} */
+    private function resolverOrden(Request $request): array
+    {
+        $sort = (string) $request->input('sort', 'fecha');
+        $dir = strtolower((string) $request->input('dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+
+        $permitidas = ['numero', 'fecha', 'cliente', 'vendedor', 'pago', 'estado', 'total'];
+        if (! in_array($sort, $permitidas, true)) {
+            $sort = 'fecha';
+        }
+
+        return [$sort, $dir];
+    }
+
+    private function aplicarOrden(Builder $query, string $sort, string $dir): void
+    {
+        match ($sort) {
+            'numero' => $query->orderBy('ventas.numero', $dir),
+            'cliente' => $query
+                ->leftJoin('clientes', 'clientes.id', '=', 'ventas.cliente_id')
+                ->orderBy('clientes.nombre', $dir)
+                ->select('ventas.*'),
+            'vendedor' => $query
+                ->leftJoin('users', 'users.id', '=', 'ventas.user_id')
+                ->orderBy('users.name', $dir)
+                ->select('ventas.*'),
+            'pago' => $query->orderBy(
+                DB::table('venta_pagos')
+                    ->join('medios_pago', 'medios_pago.id', '=', 'venta_pagos.medio_pago_id')
+                    ->whereColumn('venta_pagos.venta_id', 'ventas.id')
+                    ->orderBy('medios_pago.nombre')
+                    ->limit(1)
+                    ->select('medios_pago.nombre'),
+                $dir
+            ),
+            'estado' => $query->orderBy('ventas.estado', $dir)->orderBy('ventas.tipo', $dir),
+            'total' => $query->orderBy('ventas.total', $dir),
+            default => $query->orderBy('ventas.fecha', $dir),
+        };
+
+        // Desempate estable al paginar
+        if ($sort !== 'numero') {
+            $query->orderByDesc('ventas.id');
+        }
     }
 
     private function filtrarVentas(Builder $query, Request $request, $desde, $hasta): Builder
