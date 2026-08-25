@@ -14,6 +14,9 @@ class CategoriaController extends Controller
 {
     public function index(Request $request): View
     {
+        $empresa = Empresa::findOrFail(auth()->user()->empresa_id);
+        CatalogoCategoriaController::asegurarToken($empresa);
+
         $query = Categoria::withCount('productos');
 
         [$sort, $dir] = TableSort::apply($query, $request, [
@@ -24,6 +27,7 @@ class CategoriaController extends Controller
 
         return view('categorias.index', [
             'categorias' => $query->get(),
+            'empresa' => $empresa->fresh(),
             'sort' => $sort,
             'dir' => $dir,
         ]);

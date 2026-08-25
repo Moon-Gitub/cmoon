@@ -18,7 +18,22 @@ class PresupuestoController extends Controller
     public function index(Request $request): View
     {
         $query = Presupuesto::with(['cliente', 'usuario'])
-            ->when($request->input('estado'), fn ($q, $estado) => $q->where('estado', $estado));
+            ->when($request->input('estado'), fn ($q, $estado) => $q->where('estado', $estado))
+            ->when($request->filled('buscar'), function ($q) use ($request) {
+                $buscar = trim((string) $request->input('buscar'));
+                $numero = (int) preg_replace('/\D/', '', $buscar);
+                $q->where(function ($outer) use ($buscar, $numero) {
+                    if ($numero > 0) {
+                        $outer->where('presupuestos.id', $numero)
+                            ->orWhere('presupuestos.numero', $numero);
+                    }
+                    $outer->orWhereHas('cliente', function ($c) use ($buscar) {
+                        app(\App\Services\BusquedaService::class)->aplicarTerminos(
+                            $c, $buscar, ['nombre', 'documento'], preferExact: ['documento']
+                        );
+                    });
+                });
+            });
 
         [$sort, $dir] = TableSort::apply($query, $request, [
             'numero' => 'id',
@@ -44,11 +59,7 @@ class PresupuestoController extends Controller
 
     public function create(): View
     {
-        return view('presupuestos.create', [
-            'clientes' => \App\Models\Cliente::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
-            'productos' => Producto::where('activo', true)->orderBy('nombre')
-                ->get(['id', 'codigo', 'nombre', 'precio_venta']),
-        ]);
+        return view('presupuestos.create', []);
     }
 
     public function store(Request $request): RedirectResponse

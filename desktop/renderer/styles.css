@@ -48,7 +48,13 @@ button { cursor: pointer; border: none; border-radius: .5rem; padding: .65rem 1r
 .total-line { display: flex; justify-content: space-between; font-size: 1.25rem; margin-top: .35rem; }
 .muted-line { font-size: .95rem; color: #64748b; }
 .desc-line { display: flex; justify-content: space-between; align-items: center; gap: 1rem; font-size: .85rem; margin: .5rem 0; }
-.desc-line input { width: 7rem; margin: 0; text-align: right; }
+.desc-line input, .desc-line select { width: 11rem; margin: 0; text-align: right; }
+.desc-dual { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin: .5rem 0; }
+.desc-dual label { margin: 0; font-size: .8rem; }
+.desc-dual input { width: 100%; margin-top: .25rem; text-align: right; }
+.quick-disc { display: flex; gap: .35rem; margin-bottom: .35rem; }
+.quick-disc button { flex: 1; background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; font-size: .75rem; padding: .3rem; }
+.quick-disc button:hover { border-color: #a5b4fc; background: #eef2ff; }
 .actions { display: flex; gap: .5rem; margin-top: 1rem; }
 .btn-primary { flex: 1; background: #4f46e5; color: #fff; padding: .85rem; font-size: 1rem; }
 .btn-primary:disabled { opacity: .5; cursor: not-allowed; }

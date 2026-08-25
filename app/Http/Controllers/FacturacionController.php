@@ -23,7 +23,28 @@ class FacturacionController extends Controller
 
         $query = Comprobante::with(['venta', 'emisor', 'puntoVenta'])
             ->whereBetween('fecha_emision', [$desde->toDateString(), $hasta->toDateString()])
-            ->when($request->input('estado'), fn ($q, $estado) => $q->where('estado', $estado));
+            ->when($request->input('estado'), fn ($q, $estado) => $q->where('estado', $estado))
+            ->when($request->filled('buscar'), function ($q) use ($request) {
+                $buscar = trim((string) $request->input('buscar'));
+                $numero = (int) preg_replace('/\D/', '', $buscar);
+                $q->where(function ($outer) use ($buscar, $numero) {
+                    if ($numero > 0) {
+                        $outer->where(function ($n) use ($numero) {
+                            $n->where('numero', $numero)
+                                ->orWhere('numero', 'like', $numero.'%')
+                                ->orWhere('doc_numero', 'like', '%'.$numero.'%');
+                        });
+                    }
+                    $outer->orWhere(function ($text) use ($buscar) {
+                        app(\App\Services\BusquedaService::class)->aplicarTerminos(
+                            $text,
+                            $buscar,
+                            ['receptor_nombre', 'cae', 'doc_numero'],
+                            preferExact: ['cae']
+                        );
+                    });
+                });
+            });
 
         [$sort, $dir] = TableSort::apply($query, $request, [
             'fecha' => 'fecha_emision',
@@ -172,8 +193,6 @@ class FacturacionController extends Controller
     {
         return view('facturacion.manual', [
             'emisores' => Emisor::with('puntosVenta')->where('activo', true)->get(),
-            'clientes' => \App\Models\Cliente::where('activo', true)->orderBy('nombre')
-                ->get(['id', 'nombre', 'tipo_documento', 'documento', 'condicion_iva']),
         ]);
     }
 

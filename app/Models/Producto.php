@@ -58,7 +58,7 @@ class Producto extends Model
             'margen_ganancia' => 'decimal:2',
             'precio_venta' => 'decimal:2',
             'alicuota_iva' => 'decimal:2',
-            'stock_minimo' => 'decimal:3',
+            'stock_minimo' => 'decimal:2',
         ];
     }
 

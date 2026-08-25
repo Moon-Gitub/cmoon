@@ -56,16 +56,21 @@ class RetencionController extends Controller
 
         $retenciones = $query->paginate(25)->withQueryString();
 
+        $proveedorFormId = old('proveedor_id', $proveedorId);
+        $proveedorSeleccionado = $proveedorFormId
+            ? Proveedor::query()->find($proveedorFormId)
+            : null;
+
         return view('retenciones.index', [
             'retenciones' => $retenciones,
             'totalPeriodo' => $totalPeriodo,
             'desde' => $desde,
             'hasta' => $hasta,
             'proveedorId' => $proveedorId,
+            'proveedorSeleccionado' => $proveedorId ? Proveedor::query()->find($proveedorId) : null,
+            'proveedorForm' => $proveedorSeleccionado,
             'empresa' => $empresa,
             'defaults' => $this->retenciones->defaultsEmpresa($empresa),
-            'proveedores' => Proveedor::where('activo', true)->orderBy('razon_social')
-                ->get(['id', 'razon_social', 'cuit', 'alicuota_retencion_iibb']),
             'sort' => $sort,
             'dir' => $dir,
         ]);

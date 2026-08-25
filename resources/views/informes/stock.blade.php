@@ -54,7 +54,7 @@
                         <td class="px-4 py-2.5 text-right font-semibold {{ $total <= (float) $producto->stock_minimo ? 'text-red-600' : '' }}">
                             {{ rtrim(rtrim(number_format($total, 3, ',', '.'), '0'), ',') }}
                         </td>
-                        <td class="px-4 py-2.5 text-right text-slate-400">{{ rtrim(rtrim(number_format((float) $producto->stock_minimo, 3, ',', '.'), '0'), ',') }}</td>
+                        <td class="px-4 py-2.5 text-right text-slate-400">{{ \App\Support\Cantidad::format($producto->stock_minimo) }}</td>
                         <td class="px-4 py-2.5 text-right">$ {{ number_format($total * (float) $producto->precio_compra, 2, ',', '.') }}</td>
                     </tr>
                 @empty

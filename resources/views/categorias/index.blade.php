@@ -57,8 +57,27 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-2 text-right">
-                                    @can('categorias.gestionar')
-                                        <div class="flex items-center justify-end gap-2">
+                                    <div class="flex flex-wrap items-center justify-end gap-2">
+                                        @php
+                                            $urlPdf = route('categorias.pdf', $cat);
+                                            $urlPublica = route('catalogo.categoria.publico', [
+                                                'token' => $empresa->catalogo_share_token,
+                                                'categoria' => $cat->id,
+                                            ]);
+                                            $wa = 'https://wa.me/?text='.rawurlencode('Lista de precios — '.$cat->nombre."\n".$urlPublica);
+                                        @endphp
+                                        <a href="{{ $urlPdf }}" target="_blank" rel="noopener"
+                                           class="rounded-lg border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-100"
+                                           title="Abrir PDF">PDF</a>
+                                        <button type="button"
+                                                data-url="{{ $urlPublica }}"
+                                                onclick="navigator.clipboard.writeText(this.dataset.url); this.textContent='¡Copiado!'; setTimeout(() => this.textContent='Copiar link', 1500)"
+                                                class="rounded-lg border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-100"
+                                                title="Copiar link público para compartir">Copiar link</button>
+                                        <a href="{{ $wa }}" target="_blank" rel="noopener"
+                                           class="rounded-lg border border-emerald-200 px-2.5 py-1 text-xs text-emerald-700 hover:bg-emerald-50"
+                                           title="Compartir por WhatsApp">WhatsApp</a>
+                                        @can('categorias.gestionar')
                                             <form method="POST" action="{{ route('categorias.update', $cat) }}">
                                                 @csrf @method('PUT')
                                                 <input type="hidden" name="nombre" value="{{ $cat->nombre }}">
@@ -72,8 +91,8 @@
                                                 @csrf @method('DELETE')
                                                 <button class="rounded-lg border border-red-200 px-2.5 py-1 text-xs text-red-600 hover:bg-red-50">Eliminar</button>
                                             </form>
-                                        </div>
-                                    @endcan
+                                        @endcan
+                                    </div>
                                 </td>
                             </tr>
                         @empty

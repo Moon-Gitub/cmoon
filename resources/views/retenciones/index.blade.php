@@ -14,22 +14,22 @@
         <details class="mb-4 rounded-xl border border-slate-200 bg-white shadow-sm" {{ $errors->any() ? 'open' : '' }}>
             <summary class="cursor-pointer px-5 py-3 text-sm font-semibold text-indigo-700">+ Registrar retención manual</summary>
             <form method="POST" action="{{ route('retenciones.store') }}"
-                  x-data="{ neto: {{ old('factura_neto', 0) }}, alicuota: {{ old('alicuota', 1.25) }} }"
+                  x-data="{ neto: {{ old('factura_neto', 0) }}, alicuota: {{ old('alicuota', $proveedorForm?->alicuota_retencion_iibb ?? 1.25) }} }"
+                  @buscador-seleccionado="if ($event.detail.name === 'proveedor_id' && $event.detail.item?.alicuota_retencion_iibb) alicuota = $event.detail.item.alicuota_retencion_iibb"
                   class="grid grid-cols-1 gap-4 border-t border-slate-100 p-5 sm:grid-cols-2 lg:grid-cols-4">
                 @csrf
                 <div class="sm:col-span-2">
-                    <label class="mb-1 block text-sm font-medium text-slate-700">Proveedor *</label>
-                    <select name="proveedor_id" required
-                            @change="alicuota = $event.target.selectedOptions[0]?.dataset.alicuota || alicuota"
-                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                        <option value="">Seleccionar…</option>
-                        @foreach ($proveedores as $proveedor)
-                            <option value="{{ $proveedor->id }}" data-alicuota="{{ $proveedor->alicuota_retencion_iibb }}"
-                                {{ (string) old('proveedor_id', $proveedorId) === (string) $proveedor->id ? 'selected' : '' }}>
-                                {{ $proveedor->razon_social }} {{ $proveedor->cuit ? "({$proveedor->cuit})" : '' }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <x-buscador
+                        :url="route('busqueda.proveedores')"
+                        name="proveedor_id"
+                        label="Proveedor"
+                        placeholder="Razón social o CUIT…"
+                        :value="old('proveedor_id', $proveedorId)"
+                        :value-label="$proveedorForm?->razon_social"
+                        :required="true"
+                        hint="Predictivo · al elegir carga la alícuota del proveedor"
+                    />
+                    @error('proveedor_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="mb-1 block text-sm font-medium text-slate-700">Factura proveedor *</label>
@@ -87,16 +87,17 @@
             <input type="date" name="hasta" value="{{ $hasta->format('Y-m-d') }}"
                    class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
         </div>
-        <div>
-            <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Proveedor</label>
-            <select name="proveedor_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <option value="">Todos</option>
-                @foreach ($proveedores as $proveedor)
-                    <option value="{{ $proveedor->id }}" {{ (string) $proveedorId === (string) $proveedor->id ? 'selected' : '' }}>
-                        {{ $proveedor->razon_social }}
-                    </option>
-                @endforeach
-            </select>
+        <div class="min-w-[16rem] flex-1 sm:max-w-xs">
+            <x-buscador
+                :url="route('busqueda.proveedores')"
+                name="proveedor_id"
+                label="Proveedor"
+                placeholder="Todos · buscá por nombre o CUIT…"
+                :value="$proveedorId"
+                :value-label="$proveedorSeleccionado?->razon_social"
+                :required="false"
+                hint="Vacío = todos"
+            />
         </div>
         <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Filtrar</button>
         <a href="{{ route('retenciones.txt', request()->only(['desde', 'hasta', 'proveedor_id'])) }}"

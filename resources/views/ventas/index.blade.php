@@ -21,6 +21,13 @@
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <form method="GET" class="flex flex-wrap items-center gap-2">
                 <x-sort-hidden :sort="$sort" :dir="$dir" />
+                <x-filtro-busqueda
+                    :url="route('busqueda.ventas')"
+                    name="buscar"
+                    placeholder="Nº, cliente o vendedor…"
+                    :value="request('buscar')"
+                    goto-key="url"
+                />
                 <input type="date" name="desde" value="{{ $desde->format('Y-m-d') }}"
                        class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <input type="date" name="hasta" value="{{ $hasta->format('Y-m-d') }}"

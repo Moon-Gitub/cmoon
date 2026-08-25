@@ -4,10 +4,15 @@
 
 @section('contenido')
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <form method="GET" class="flex items-center gap-2">
-                <x-sort-hidden :sort="$sort ?? null" :dir="$dir ?? null" />
-<input type="text" name="buscar" value="{{ request('buscar') }}" placeholder="Buscar por nombre, usuario o email"
-                   class="w-72 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+        <form method="GET" class="flex flex-wrap items-end gap-2">
+            <x-sort-hidden :sort="$sort ?? null" :dir="$dir ?? null" />
+            <x-filtro-busqueda
+                :url="route('busqueda.usuarios')"
+                name="buscar"
+                placeholder="Nombre, usuario o email…"
+                :value="request('buscar')"
+                hint="Predictivo · Enter para filtrar"
+            />
             <button class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50">Buscar</button>
         </form>
 

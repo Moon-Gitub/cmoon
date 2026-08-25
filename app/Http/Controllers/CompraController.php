@@ -24,7 +24,18 @@ class CompraController extends Controller
         $hasta = $request->date('hasta') ?? now();
 
         $query = Compra::with(['proveedor', 'sucursal', 'usuario'])
-            ->whereBetween('fecha', [$desde->toDateString(), $hasta->toDateString()]);
+            ->whereBetween('fecha', [$desde->toDateString(), $hasta->toDateString()])
+            ->when($request->filled('buscar'), function ($q) use ($request) {
+                $buscar = trim((string) $request->input('buscar'));
+                $q->where(function ($outer) use ($buscar) {
+                    $outer->where('factura_numero', 'like', '%'.$buscar.'%')
+                        ->orWhereHas('proveedor', function ($p) use ($buscar) {
+                            app(\App\Services\BusquedaService::class)->aplicarTerminos(
+                                $p, $buscar, ['razon_social', 'cuit'], preferExact: ['cuit']
+                            );
+                        });
+                });
+            });
 
         [$sort, $dir] = TableSort::apply($query, $request, [
             'numero' => 'id',
@@ -55,11 +66,7 @@ class CompraController extends Controller
     public function create(): View
     {
         return view('compras.create', [
-            'proveedores' => Proveedor::where('activo', true)->orderBy('razon_social')->get(['id', 'razon_social', 'cuit']),
             'sucursales' => Sucursal::where('activa', true)->get(['id', 'nombre']),
-            'productos' => Producto::where('activo', true)->where('es_combo', false)
-                ->orderBy('nombre')
-                ->get(['id', 'codigo', 'nombre', 'precio_compra']),
         ]);
     }
 

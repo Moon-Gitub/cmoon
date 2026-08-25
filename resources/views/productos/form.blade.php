@@ -188,8 +188,8 @@
 
             <div>
                 <label class="mb-1 block text-sm font-medium text-slate-700">Stock mínimo</label>
-                <input type="number" step="0.001" min="0" name="stock_minimo"
-                       value="{{ old('stock_minimo', $producto->stock_minimo) }}"
+                <input type="number" step="0.01" min="0" name="stock_minimo"
+                       value="{{ \App\Support\Cantidad::input(old('stock_minimo', $producto->stock_minimo ?? 0)) }}"
                        class="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
             </div>
         </div>

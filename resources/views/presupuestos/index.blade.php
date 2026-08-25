@@ -11,6 +11,17 @@
     @endif
 
     <form method="GET" class="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <x-sort-hidden :sort="$sort ?? null" :dir="$dir ?? null" />
+        <div class="min-w-[16rem] flex-1 sm:max-w-xs">
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Buscar</label>
+            <x-filtro-busqueda
+                :url="route('busqueda.clientes')"
+                name="buscar"
+                placeholder="Nº o cliente…"
+                :value="request('buscar')"
+                :navigate="false"
+            />
+        </div>
         <div>
             <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Estado</label>
             <select name="estado" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">

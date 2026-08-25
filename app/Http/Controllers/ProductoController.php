@@ -20,10 +20,8 @@ class ProductoController extends Controller
         $query = Producto::with(['categoria', 'stocks'])
             ->withSum('stocks as stock_total', 'cantidad')
             ->when($request->filled('buscar'), function ($query) use ($request) {
-                $buscar = $request->string('buscar');
-                $query->where(fn ($q) => $q
-                    ->where('nombre', 'like', "%{$buscar}%")
-                    ->orWhere('codigo', 'like', "%{$buscar}%"));
+                app(\App\Services\BusquedaService::class)
+                    ->aplicarTerminos($query, (string) $request->input('buscar'), ['nombre', 'codigo'], preferExact: ['codigo']);
             })
             ->when($request->filled('categoria'), fn ($q) => $q->where('categoria_id', $request->integer('categoria')))
             ->when($request->input('estado') === 'inactivos', fn ($q) => $q->where('activo', false))
@@ -208,10 +206,12 @@ class ProductoController extends Controller
 
         $productos = Producto::with(['categoria', 'stocks'])
             ->when($request->filled('buscar'), function ($query) use ($request) {
-                $buscar = $request->string('buscar');
-                $query->where(fn ($q) => $q
-                    ->where('nombre', 'like', "%{$buscar}%")
-                    ->orWhere('codigo', 'like', "%{$buscar}%"));
+                app(\App\Services\BusquedaService::class)->aplicarTerminos(
+                    $query,
+                    (string) $request->input('buscar'),
+                    ['nombre', 'codigo'],
+                    preferExact: ['codigo']
+                );
             })
             ->when($request->filled('categoria'), fn ($q) => $q->where('categoria_id', $request->integer('categoria')))
             ->when($request->filled('canal'), fn ($q) => $q->publicarEn((string) $request->input('canal')))

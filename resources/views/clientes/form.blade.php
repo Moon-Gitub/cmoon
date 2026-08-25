@@ -89,10 +89,19 @@
                     @foreach ($listas as $lista)
                         <option value="{{ $lista->id }}"
                             {{ (string) old('lista_precio_id', $cliente->lista_precio_id) === (string) $lista->id ? 'selected' : '' }}>
-                            {{ $lista->nombre }} ({{ (float) $lista->porcentaje >= 0 ? '+' : '' }}{{ rtrim(rtrim(number_format((float) $lista->porcentaje, 2, ',', '.'), '0'), ',') }}%)
+                            {{ $lista->nombre }}
+                            @if (($lista->base ?? 'venta') === 'compra')
+                                — costo {{ (float) $lista->porcentaje == 0 ? 'sin ajuste' : ((float) $lista->porcentaje >= 0 ? '+' : '').rtrim(rtrim(number_format((float) $lista->porcentaje, 2, ',', '.'), '0'), ',').'%' }}
+                            @else
+                                — venta {{ (float) $lista->porcentaje >= 0 ? '+' : '' }}{{ rtrim(rtrim(number_format((float) $lista->porcentaje, 2, ',', '.'), '0'), ',') }}%
+                            @endif
                         </option>
                     @endforeach
                 </select>
+                <p class="mt-1 text-xs text-slate-500">
+                    Se aplica automáticamente en el POS al venderle a este cliente. “General” = precio de venta del producto.
+                    Las listas se gestionan en <a href="{{ route('listas-precio.index') }}" class="text-indigo-600 underline">Listas de precio</a>.
+                </p>
             </div>
             <div>
                 <label class="mb-1 block text-sm font-medium text-slate-700">Límite de crédito cta. cte.</label>

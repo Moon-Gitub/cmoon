@@ -216,13 +216,24 @@
                                     <span x-text="c.nombre + (c.documento ? ' (' + c.documento + ')' : '')"></span>
                                     <span class="ml-1 text-xs text-indigo-600"
                                           x-show="c.lista_precio_id"
-                                          x-text="etiquetaLista(c.lista_precio_id)"></span>
+                                          x-text="badgeLista(c.lista_precio_id)"></span>
                                 </button>
                             </template>
                             <p class="px-3 py-2 text-xs text-slate-400" x-show="clientesFiltrados().length === 0">Sin resultados</p>
                         </div>
                     </div>
-                    <p class="mt-1 text-xs text-indigo-600" x-show="listaActiva()" x-text="etiquetaLista()"></p>
+                </div>
+
+                <div>
+                    <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Lista de precios</label>
+                    <select x-model="listaPrecioId" @change="recalcularPreciosCarrito()"
+                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+                        <option value="">General (precio de venta del producto)</option>
+                        <template x-for="l in listas" :key="l.id">
+                            <option :value="String(l.id)" x-text="opcionLista(l)"></option>
+                        </template>
+                    </select>
+                    <p class="mt-1 text-[11px] text-slate-500" x-text="ayudaLista()"></p>
                 </div>
 
                 <div class="mt-auto space-y-2 border-t border-slate-100 pt-3 text-sm">
@@ -230,10 +241,35 @@
                         <span>Subtotal</span>
                         <span x-text="fmt(subtotal())"></span>
                     </div>
-                    <div class="flex items-center justify-between text-slate-600">
-                        <span>Descuento $</span>
-                        <input type="number" step="0.01" min="0" x-model.number="descuento"
-                               class="w-28 rounded-lg border border-slate-300 px-2 py-1 text-right text-sm">
+                    <div>
+                        <div class="mb-1 flex items-center justify-between">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Descuento</span>
+                            <button type="button" x-show="descuento > 0 || descuentoPorcentaje > 0" x-cloak
+                                    @click="limpiarDescuento()"
+                                    class="text-[11px] text-red-500 hover:underline">Quitar</button>
+                        </div>
+                        <div class="flex gap-2">
+                            <label class="flex flex-1 items-center gap-1 rounded-lg border border-slate-300 px-2 py-1">
+                                <span class="text-xs text-slate-500">%</span>
+                                <input type="number" step="0.01" min="0" max="100" x-model.number="descuentoPorcentaje"
+                                       @input="sincronizarDescuentoDesdePct()"
+                                       class="w-full border-0 bg-transparent p-0 text-right text-sm focus:outline-none focus:ring-0">
+                            </label>
+                            <label class="flex flex-1 items-center gap-1 rounded-lg border border-slate-300 px-2 py-1">
+                                <span class="text-xs text-slate-500">$</span>
+                                <input type="number" step="0.01" min="0" x-model.number="descuento"
+                                       @input="sincronizarDescuentoDesdeMonto()"
+                                       class="w-full border-0 bg-transparent p-0 text-right text-sm focus:outline-none focus:ring-0">
+                            </label>
+                        </div>
+                        <div class="mt-1.5 flex flex-wrap gap-1">
+                            <template x-for="pct in [5, 10, 15, 20]" :key="pct">
+                                <button type="button" @click="aplicarDescuentoPct(pct)"
+                                        class="rounded-md border border-slate-200 px-2 py-0.5 text-[11px] text-slate-600 hover:border-indigo-300 hover:bg-indigo-50"
+                                        :class="descuentoPorcentaje == pct && 'border-indigo-400 bg-indigo-50 text-indigo-700'"
+                                        x-text="pct + '%'"></button>
+                            </template>
+                        </div>
                     </div>
                     <div class="flex justify-between border-t border-slate-200 pt-2 text-2xl font-bold">
                         <span x-text="esDevolucion ? 'A DEVOLVER' : 'TOTAL'"></span>
@@ -261,7 +297,14 @@
         <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" @click.outside="modalPago = false">
             <div class="mb-4 flex items-center justify-between">
                 <h2 class="text-lg font-bold" x-text="esDevolucion ? 'Devolver' : 'Cobrar venta'"></h2>
-                <p class="text-2xl font-bold" :class="esDevolucion ? 'text-amber-600' : 'text-indigo-600'" x-text="fmt(total())"></p>
+                <div class="text-right">
+                    <p class="text-xs text-slate-500" x-show="descuento > 0" x-cloak>
+                        Subtotal <span x-text="fmt(subtotal())"></span>
+                        − desc. <span x-text="fmt(descuento)"></span>
+                        <span x-show="descuentoPorcentaje > 0" x-text="'(' + descuentoPorcentaje + '%)'"></span>
+                    </p>
+                    <p class="text-2xl font-bold" :class="esDevolucion ? 'text-amber-600' : 'text-indigo-600'" x-text="fmt(total())"></p>
+                </div>
             </div>
 
             <div class="space-y-2">
@@ -448,7 +491,7 @@
         </div>
     </div>
 
-    {{-- Códigos reservados 1–10 (Varios / Pan / Leña…): pedir importe como demonew --}}
+    {{-- Producto a precio 0 (o códigos 1–10): pedir importe como demonew --}}
     <div x-show="modalVarios" x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
          @keydown.escape.window="modalVarios && cerrarModalVarios()">
@@ -456,13 +499,17 @@
             <h2 class="text-lg font-bold text-slate-800">Ingresá el importe</h2>
             <p class="mt-1 text-sm text-slate-500"
                x-text="(variosBorrador?.codigo ?? '') + ' — ' + (variosBorrador?.nombreCatalogo ?? '')"></p>
-            <label class="mt-4 block text-xs font-medium text-slate-600">Descripción
+            <p class="mt-2 text-xs text-amber-700" x-show="! (variosBorrador?.precioCatalogo > 0)">
+                Este producto no tiene precio de lista. Ingresá el importe para venderlo.
+            </p>
+            <label class="mt-4 block text-xs font-medium text-slate-600" x-show="variosBorrador?.editableNombre">
+                Descripción
                 <input type="text" x-model="variosBorrador.nombre" x-ref="variosNombre"
                        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                        placeholder="Ej. pan, tortitas, medialunas">
             </label>
-            <label class="mt-3 block text-xs font-medium text-slate-600">Importe ($)
-                <input type="number" step="0.01" min="0" x-model.number="variosBorrador.precio" x-ref="variosImporte"
+            <label class="mt-3 block text-xs font-medium text-slate-600">Importe unitario ($)
+                <input type="number" step="0.01" min="0.01" x-model.number="variosBorrador.precio" x-ref="variosImporte"
                        @keydown.enter.prevent="confirmarVarios()"
                        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-right">
             </label>
@@ -523,7 +570,9 @@
                 receptorNombre: '', receptorCuit: '', receptorCondicion: 'RESPONSABLE_INSCRIPTO',
                 carrito: [], busqueda: '', sugerencias: [], seleccion: 0,
                 clienteId: '', clienteBusqueda: '', clienteMenu: false,
+                listaPrecioId: '',
                 descuento: 0,
+                descuentoPorcentaje: 0,
                 esDevolucion: false,
                 ventaOrigenNumero: '',
                 modalPago: false, pagos: [], recibido: 0, errorPago: '',
@@ -532,7 +581,10 @@
                 modalCliente: false, guardandoCliente: false, errorCliente: '',
                 nuevoCliente: { nombre: '', tipo_documento: 'DNI', documento: '', condicion_iva: 'CONSUMIDOR_FINAL', telefono: '' },
                 modalVarios: false,
-                variosBorrador: { codigo: '', nombreCatalogo: '', nombre: '', precio: null, producto: null },
+                variosBorrador: {
+                    codigo: '', nombreCatalogo: '', nombre: '', precio: null,
+                    producto: null, precioCatalogo: 0, editableNombre: false,
+                },
                 variosCantidadPendiente: 1,
                 procesando: false, ventaOk: null, facturando: false, errorFactura: '', observacionesAfip: [], explicacionAfip: '',
                 online: navigator.onLine, pendientes: [], sincronizando: false,
@@ -545,6 +597,10 @@
                         if (e.key === 'F12') { e.preventDefault(); if (this.carrito.length) this.abrirPago(); }
                         if (e.key === 'Enter' && this.modalPago && ! this.procesando) { e.preventDefault(); this.confirmar(); }
                         if (e.key === 'Escape' && this.ventaOk) { this.ventaOk = null; this.$refs.buscador.focus(); }
+                    });
+
+                    this.$watch('carrito', () => {
+                        if (Number(this.descuentoPorcentaje) > 0) this.sincronizarDescuentoDesdePct();
                     });
 
                     // Modo offline: service worker + cola de ventas pendientes
@@ -607,13 +663,16 @@
                 },
 
                 clientesFiltrados() {
-                    const q = (this.clienteBusqueda || '').trim().toLowerCase();
-                    if (! q || (this.clienteId && this.clienteBusqueda === this.etiquetaCliente(this.clienteId))) {
+                    const raw = (this.clienteBusqueda || '').trim().toLowerCase();
+                    if (! raw || (this.clienteId && this.clienteBusqueda === this.etiquetaCliente(this.clienteId))) {
                         return this.clientes.slice(0, 40);
                     }
+                    const tokens = raw.split(/\s+/).filter(Boolean);
                     return this.clientes
-                        .filter(c => (c.nombre || '').toLowerCase().includes(q)
-                            || (c.documento || '').toLowerCase().includes(q))
+                        .filter(c => {
+                            const hay = ((c.nombre || '') + ' ' + (c.documento || '')).toLowerCase();
+                            return tokens.every(t => hay.includes(t));
+                        })
                         .slice(0, 40);
                 },
 
@@ -622,11 +681,35 @@
                     return c ? (c.nombre + (c.documento ? ' (' + c.documento + ')' : '')) : '';
                 },
 
-                etiquetaLista(listaId) {
+                badgeLista(listaId) {
                     const l = this.listas.find(x => Number(x.id) === Number(listaId));
                     if (! l) return '';
-                    const signo = l.porcentaje > 0 ? '+' : '';
-                    return '(' + l.nombre + ' ' + signo + l.porcentaje + '%)';
+                    return '(' + l.nombre + ')';
+                },
+
+                opcionLista(l) {
+                    if (l.base === 'compra') {
+                        const pct = Number(l.porcentaje) || 0;
+                        if (pct === 0) return l.nombre + ' — al costo';
+                        return l.nombre + ' — costo ' + (pct > 0 ? '+' : '') + pct + '%';
+                    }
+                    const pct = Number(l.porcentaje) || 0;
+                    return l.nombre + ' — venta ' + (pct > 0 ? '+' : '') + pct + '%';
+                },
+
+                ayudaLista() {
+                    const lista = this.listaActiva();
+                    if (! lista) {
+                        return 'Sin lista: se usa el precio de venta cargado en el producto.';
+                    }
+                    if (lista.base === 'compra') {
+                        const pct = Number(lista.porcentaje) || 0;
+                        if (pct === 0) return 'Cada ítem se cobra al precio de costo del producto.';
+                        return 'Cada ítem = costo del producto ' + (pct > 0 ? '+' : '') + pct + '%.';
+                    }
+                    const pct = Number(lista.porcentaje) || 0;
+                    if (pct === 0) return 'Misma base que el precio de venta (sin ajuste).';
+                    return 'Cada ítem = precio de venta ' + (pct > 0 ? '+' : '') + pct + '%.';
                 },
 
                 elegirCliente(id) {
@@ -634,6 +717,8 @@
                     this.syncClienteBusqueda();
                     this.clienteMenu = false;
                     this.errorPago = '';
+                    const c = this.clientes.find(x => x.id == this.clienteId);
+                    this.listaPrecioId = c?.lista_precio_id ? String(c.lista_precio_id) : '';
                     this.recalcularPreciosCarrito();
                 },
 
@@ -647,6 +732,32 @@
                             item.precio = this.precioDe(prod);
                         }
                     }
+                    if (Number(this.descuentoPorcentaje) > 0) this.sincronizarDescuentoDesdePct();
+                },
+
+                aplicarDescuentoPct(pct) {
+                    this.descuentoPorcentaje = pct;
+                    this.sincronizarDescuentoDesdePct();
+                },
+
+                sincronizarDescuentoDesdePct() {
+                    const pct = Math.max(0, Math.min(100, Number(this.descuentoPorcentaje) || 0));
+                    this.descuentoPorcentaje = pct;
+                    const sub = this.subtotal();
+                    this.descuento = this.redondear(sub * pct / 100);
+                },
+
+                sincronizarDescuentoDesdeMonto() {
+                    const sub = this.subtotal();
+                    let monto = Math.max(0, Number(this.descuento) || 0);
+                    if (sub > 0 && monto > sub) monto = sub;
+                    this.descuento = this.redondear(monto);
+                    this.descuentoPorcentaje = sub > 0 ? this.redondear(100 * monto / sub) : 0;
+                },
+
+                limpiarDescuento() {
+                    this.descuento = 0;
+                    this.descuentoPorcentaje = 0;
                 },
 
                 async cambiarCaja() {
@@ -736,20 +847,8 @@
                 },
 
                 listaActiva() {
-                    const c = this.clientes.find(c => c.id == this.clienteId);
-                    if (! c || ! c.lista_precio_id) return null;
-                    return this.listas.find(l => l.id == c.lista_precio_id) ?? null;
-                },
-
-                etiquetaLista() {
-                    const lista = this.listaActiva();
-                    if (! lista) return '';
-                    if (lista.base === 'compra') {
-                        const pct = Number(lista.porcentaje) || 0;
-                        if (pct === 0) return 'Lista: ' + lista.nombre + ' (al costo)';
-                        return 'Lista: ' + lista.nombre + ' (costo ' + (pct > 0 ? '+' : '') + pct + '%)';
-                    }
-                    return 'Lista: ' + lista.nombre + ' (' + (lista.porcentaje > 0 ? '+' : '') + lista.porcentaje + '%)';
+                    if (! this.listaPrecioId) return null;
+                    return this.listas.find(l => Number(l.id) === Number(this.listaPrecioId)) ?? null;
                 },
 
                 precioDe(prod) {
@@ -762,12 +861,24 @@
                 },
 
                 filtrar() {
-                    const q = this.busqueda.trim().toLowerCase();
+                    const raw = this.busqueda.trim().toLowerCase();
                     this.seleccion = 0;
-                    if (q.length < 2) { this.sugerencias = []; return; }
-                    this.sugerencias = this.productos
-                        .filter(p => p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q))
-                        .slice(0, 8);
+                    if (raw.length < 2) { this.sugerencias = []; return; }
+                    const tokens = raw.split(/\s+/).filter(Boolean);
+                    const scored = [];
+                    for (const p of this.productos) {
+                        const codigo = (p.codigo || '').toLowerCase();
+                        const nombre = (p.nombre || '').toLowerCase();
+                        const haystack = codigo + ' ' + nombre;
+                        if (! tokens.every(t => haystack.includes(t))) continue;
+                        let score = 3;
+                        if (codigo === raw) score = 0;
+                        else if (codigo.startsWith(raw) || tokens.every(t => codigo.includes(t))) score = 1;
+                        else if (nombre.startsWith(raw)) score = 2;
+                        scored.push({ p, score });
+                    }
+                    scored.sort((a, b) => a.score - b.score || a.p.nombre.localeCompare(b.p.nombre));
+                    this.sugerencias = scored.slice(0, 8).map(x => x.p);
                 },
 
                 moverSeleccion(dir) {
@@ -855,17 +966,15 @@
                     if (parsed?.idProducto) {
                         const producto = this.buscarPorCodigoProducto(parsed.idProducto);
                         if (producto) {
-                            this.carrito.push({
-                                producto_id: producto.id,
-                                codigo: q,
-                                nombre: producto.nombre,
-                                cantidad: Math.round(parsed.cantidad * 1000) / 1000,
-                                precio: this.precioDe(producto),
-                                iva: producto.iva,
-                                pesable: true,
-                            });
-                            this.busqueda = '';
-                            this.sugerencias = [];
+                            const cant = Math.round(parsed.cantidad * 1000) / 1000;
+                            if (! this.precioDe(producto) || this.precioDe(producto) <= 0) {
+                                this.abrirModalVarios(producto, cant);
+                                return;
+                            }
+                            this.pushItemCarrito(producto, cant, this.precioDe(producto), producto.nombre, false);
+                            // conservar código escaneado en la línea
+                            this.carrito[this.carrito.length - 1].codigo = q;
+                            this.carrito[this.carrito.length - 1].pesable = true;
                             return;
                         }
                     }
@@ -877,17 +986,14 @@
                         const producto = this.buscarPorCodigoProducto(plu)
                             || this.productos.find(p => p.pesable && (p.codigo === plu || p.codigo === String(parseInt(plu, 10))));
                         if (producto && gramos > 0) {
-                            this.carrito.push({
-                                producto_id: producto.id,
-                                codigo: q,
-                                nombre: producto.nombre,
-                                cantidad: gramos / 1000,
-                                precio: this.precioDe(producto),
-                                iva: producto.iva,
-                                pesable: true,
-                            });
-                            this.busqueda = '';
-                            this.sugerencias = [];
+                            const cant = gramos / 1000;
+                            if (! this.precioDe(producto) || this.precioDe(producto) <= 0) {
+                                this.abrirModalVarios(producto, cant);
+                                return;
+                            }
+                            this.pushItemCarrito(producto, cant, this.precioDe(producto), producto.nombre, false);
+                            this.carrito[this.carrito.length - 1].codigo = q;
+                            this.carrito[this.carrito.length - 1].pesable = true;
                             return;
                         }
                     }
@@ -931,14 +1037,16 @@
                 agregar(prod, cantidad = 1) {
                     const cant = Math.max(0.001, Math.round((Number(cantidad) || 1) * 1000) / 1000);
                     const precio = this.precioDe(prod);
+                    const reservado = this.esCodigoReservado(prod);
 
-                    // demonew: códigos 1–10 (Varios/Pan/Leña…) siempre suman una línea nueva,
-                    // no fusionan cantidad; descripción editable e importe si precio 0.
-                    if (this.esCodigoReservado(prod)) {
-                        if (! precio || precio <= 0) {
-                            this.abrirModalVarios(prod, cant);
-                            return;
-                        }
+                    // demonew: cualquier producto a precio 0 pide importe en modal (no se vende a $0)
+                    if (! precio || precio <= 0) {
+                        this.abrirModalVarios(prod, cant, { editableNombre: reservado });
+                        return;
+                    }
+
+                    // Códigos 1–10: siempre línea nueva + descripción editable
+                    if (reservado) {
                         this.pushItemCarrito(prod, cant, precio, prod.nombre, true);
                         return;
                     }
@@ -977,7 +1085,8 @@
                     this.$nextTick(() => this.$refs.buscador?.focus());
                 },
 
-                abrirModalVarios(prod, cantidad = 1) {
+                abrirModalVarios(prod, cantidad = 1, opts = {}) {
+                    const reservado = this.esCodigoReservado(prod);
                     this.variosCantidadPendiente = cantidad;
                     this.variosBorrador = {
                         producto: prod,
@@ -985,6 +1094,8 @@
                         nombreCatalogo: prod.nombre,
                         nombre: prod.nombre,
                         precio: null,
+                        precioCatalogo: this.precioDe(prod),
+                        editableNombre: opts.editableNombre ?? reservado,
                     };
                     this.modalVarios = true;
                     this.busqueda = '';
@@ -994,7 +1105,10 @@
 
                 cerrarModalVarios() {
                     this.modalVarios = false;
-                    this.variosBorrador = { codigo: '', nombreCatalogo: '', nombre: '', precio: null, producto: null };
+                    this.variosBorrador = {
+                        codigo: '', nombreCatalogo: '', nombre: '', precio: null,
+                        producto: null, precioCatalogo: 0, editableNombre: false,
+                    };
                     this.$nextTick(() => this.$refs.buscador?.focus());
                 },
 
@@ -1002,18 +1116,19 @@
                     const b = this.variosBorrador;
                     if (! b?.producto) return;
                     const precio = Number(b.precio);
-                    if (! Number.isFinite(precio) || precio < 0) {
+                    if (! Number.isFinite(precio) || precio <= 0) {
                         this.$refs.variosImporte?.focus();
                         return;
                     }
                     const nombre = String(b.nombre || b.nombreCatalogo || b.producto.nombre).trim()
                         || b.producto.nombre;
+                    const varios = !! b.editableNombre;
                     this.pushItemCarrito(
                         b.producto,
                         this.variosCantidadPendiente || 1,
                         precio,
                         nombre,
-                        true,
+                        varios,
                     );
                     this.cerrarModalVarios();
                 },
@@ -1026,7 +1141,10 @@
 
                 redondear(n) { return Math.round(n * 100) / 100; },
                 subtotal() { return this.redondear(this.carrito.reduce((s, i) => s + i.cantidad * i.precio, 0)); },
-                total() { return Math.max(0, this.redondear(this.subtotal() - (this.descuento || 0))); },
+                total() {
+                    const desc = Math.min(this.subtotal(), Math.max(0, Number(this.descuento) || 0));
+                    return Math.max(0, this.redondear(this.subtotal() - desc));
+                },
                 sumaPagos() { return this.redondear(this.pagos.reduce((s, p) => s + (p.importe || 0), 0)); },
                 fmt(n) { return '$ ' + (n ?? 0).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
 
@@ -1113,6 +1231,11 @@
                 },
 
                 abrirPago() {
+                    const sinPrecio = this.carrito.findIndex(i => ! (Number(i.precio) > 0));
+                    if (sinPrecio >= 0) {
+                        alert('Hay productos sin precio. Ingresá un importe mayor a 0 en cada ítem.');
+                        return;
+                    }
                     const efectivo = this.medioEfectivo();
                     const medios = this.mediosDisponibles();
                     this.pagos = [{ medio_pago_id: efectivo?.id ?? medios[0]?.id, importe: this.total() }];
@@ -1122,7 +1245,11 @@
                 },
 
                 vaciar() {
-                    if (confirm('¿Vaciar el carrito?')) { this.carrito = []; this.$refs.buscador.focus(); }
+                    if (confirm('¿Vaciar el carrito?')) {
+                        this.carrito = [];
+                        this.limpiarDescuento();
+                        this.$refs.buscador.focus();
+                    }
                 },
 
                 async confirmar() {
@@ -1373,9 +1500,10 @@
                 finalizarVenta() {
                     this.modalPago = false;
                     this.carrito = [];
-                    this.descuento = 0;
+                    this.limpiarDescuento();
                     this.clienteId = '';
                     this.clienteBusqueda = '';
+                    this.listaPrecioId = '';
                     this.presupuestoId = null;
                     this.ventaOrigenNumero = '';
                     this.observacionesAfip = [];

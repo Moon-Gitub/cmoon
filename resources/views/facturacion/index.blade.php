@@ -13,8 +13,18 @@
     @endunless
 
     <form method="GET" class="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <x-sort-hidden :sort="$sort ?? null" :dir="$dir ?? null" />
-<div>
+        <x-sort-hidden :sort="$sort ?? null" :dir="$dir ?? null" />
+        <div class="min-w-[16rem] flex-1 sm:max-w-md">
+            <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Buscar</label>
+            <x-filtro-busqueda
+                :url="route('busqueda.comprobantes')"
+                name="buscar"
+                placeholder="Nº, receptor, CAE o documento…"
+                :value="request('buscar')"
+                hint="Predictivo · o Enter para filtrar el listado"
+            />
+        </div>
+        <div>
             <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Desde</label>
             <input type="date" name="desde" value="{{ $desde->format('Y-m-d') }}"
                    class="rounded-lg border border-slate-300 px-3 py-2 text-sm">

@@ -30,6 +30,7 @@
         await refreshLicenseUi();
         state.catalog = await window.cmoon.getCatalog();
         fillClientes();
+        fillListas();
         bindEvents();
         setInterval(tick, 30000);
         window.addEventListener('online', tick);
@@ -75,6 +76,7 @@
                 await window.cmoon.syncCatalog().catch(() => {});
                 state.catalog = await window.cmoon.getCatalog();
                 fillClientes();
+                fillListas();
                 serverOk = true;
             }
         } catch { /* sin servidor */ }
@@ -164,14 +166,32 @@
     }
 
     function listaActiva() {
-        const c = clienteActivo();
-        if (! c?.lista_precio_id) return null;
-        return listas().find(l => Number(l.id) === Number(c.lista_precio_id)) || null;
+        const id = $('lista-precio')?.value;
+        if (! id) return null;
+        return listas().find(l => Number(l.id) === Number(id)) || null;
+    }
+
+    function fillListas() {
+        const sel = $('lista-precio');
+        if (! sel) return;
+        const actual = sel.value;
+        sel.innerHTML = '<option value="">General (precio de venta)</option>' +
+            listas().map(l => {
+                let extra = '';
+                if (l.base === 'compra') {
+                    extra = Number(l.porcentaje) === 0 ? ' — al costo' : ` — costo ${l.porcentaje > 0 ? '+' : ''}${l.porcentaje}%`;
+                } else {
+                    extra = ` — venta ${l.porcentaje > 0 ? '+' : ''}${l.porcentaje}%`;
+                }
+                return `<option value="${l.id}">${escapeHtml(l.nombre)}${extra}</option>`;
+            }).join('');
+        if (actual) sel.value = actual;
     }
 
     function updateListaLabel() {
         const lista = listaActiva();
         const el = $('lista-label');
+        if (! el) return;
         if (! lista) { el.hidden = true; return; }
         el.hidden = false;
         if (lista.base === 'compra') {
@@ -200,7 +220,43 @@
                 item.pesable = !! prod.pesable;
             }
         });
+        syncDescFromPctIfNeeded();
         renderCarrito();
+    }
+
+    function descuentoPct() {
+        const n = parseNum($('descuento-pct')?.value);
+        return n && n > 0 ? Math.min(100, n) : 0;
+    }
+
+    function descuento() {
+        const n = parseNum($('descuento').value);
+        return n && n > 0 ? n : 0;
+    }
+
+    function syncDescFromPct() {
+        const pct = descuentoPct();
+        const sub = subtotal();
+        const monto = Math.round(sub * pct / 100 * 100) / 100;
+        $('descuento').value = String(monto);
+        if ($('descuento-pct')) $('descuento-pct').value = String(pct);
+    }
+
+    function syncDescFromMonto() {
+        const sub = subtotal();
+        let monto = descuento();
+        if (sub > 0 && monto > sub) monto = sub;
+        $('descuento').value = String(monto);
+        const pct = sub > 0 ? Math.round(100 * monto / sub * 100) / 100 : 0;
+        if ($('descuento-pct')) $('descuento-pct').value = String(pct);
+    }
+
+    function syncDescFromPctIfNeeded() {
+        if (descuentoPct() > 0) syncDescFromPct();
+    }
+
+    function total() {
+        return Math.max(0, Math.round((subtotal() - Math.min(subtotal(), descuento())) * 100) / 100);
     }
 
     function bindEvents() {
@@ -212,16 +268,59 @@
         });
         $('cliente').addEventListener('change', () => {
             state.clienteId = $('cliente').value;
+            const c = clienteActivo();
+            if ($('lista-precio')) {
+                $('lista-precio').value = c?.lista_precio_id ? String(c.lista_precio_id) : '';
+            }
             updateListaLabel();
             recalcularPreciosCarrito();
         });
-        $('descuento').addEventListener('input', renderCarrito);
-        $('btn-vaciar').addEventListener('click', () => { state.carrito = []; renderCarrito(); });
+        $('lista-precio')?.addEventListener('change', () => {
+            updateListaLabel();
+            recalcularPreciosCarrito();
+        });
+        $('descuento-pct')?.addEventListener('input', () => { syncDescFromPct(); renderCarrito(); });
+        $('descuento').addEventListener('input', () => { syncDescFromMonto(); renderCarrito(); });
+        $('quick-disc')?.querySelectorAll('[data-pct]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if ($('descuento-pct')) $('descuento-pct').value = btn.dataset.pct;
+                syncDescFromPct();
+                renderCarrito();
+            });
+        });
+        $('btn-vaciar').addEventListener('click', () => {
+            state.carrito = [];
+            if ($('descuento')) $('descuento').value = '0';
+            if ($('descuento-pct')) $('descuento-pct').value = '0';
+            renderCarrito();
+        });
         $('btn-cobrar').addEventListener('click', abrirPago);
         $('btn-sync').addEventListener('click', tick);
         $('btn-retry-license').addEventListener('click', tick);
         $('cancel-pago').addEventListener('click', () => $('modal-pago').close());
         $('form-pago').addEventListener('submit', confirmarVenta);
+        $('cancel-importe').addEventListener('click', () => {
+            pendienteImporte = null;
+            $('modal-importe').close();
+            $('buscar').focus();
+        });
+        $('form-importe').addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (! pendienteImporte) return;
+            const precio = parseNum($('importe-precio').value);
+            if (precio === null || precio <= 0) {
+                $('importe-error').textContent = 'Ingresá un importe mayor a 0.';
+                $('importe-error').hidden = false;
+                return;
+            }
+            const { p, cantidad, codigo } = pendienteImporte;
+            pushItem(p, cantidad, codigo, precio);
+            if (p.pesable) state.carrito[state.carrito.length - 1].pesable = true;
+            pendienteImporte = null;
+            $('modal-importe').close();
+            clearBuscar();
+            renderCarrito();
+        });
         $('medio').addEventListener('change', actualizarRecargoPago);
         $('importe').addEventListener('input', actualizarVuelto);
         $('ok-close').addEventListener('click', () => { $('modal-ok').close(); $('buscar').focus(); });
@@ -269,8 +368,7 @@
             const cant = parseNum(mult[1]);
             const p = buscarPorCodigoProducto(mult[2].trim());
             if (p && cant && cant > 0) {
-                pushItem(p, cant, p.codigo);
-                clearBuscar();
+                agregar(p, cant, p.codigo);
                 return;
             }
         }
@@ -280,8 +378,7 @@
         if (parsed?.idProducto) {
             const p = buscarPorCodigoProducto(parsed.idProducto);
             if (p) {
-                pushItem(p, parsed.cantidad, q);
-                clearBuscar();
+                agregar(p, parsed.cantidad, q);
                 return;
             }
         }
@@ -293,8 +390,7 @@
             const p = buscarPorCodigoProducto(plu)
                 || productos().find(x => x.pesable && (x.codigo === plu || x.codigo === String(parseInt(plu, 10))));
             if (p && gramos > 0) {
-                pushItem(p, gramos / 1000, q);
-                clearBuscar();
+                agregar(p, gramos / 1000, q);
                 return;
             }
         }
@@ -312,43 +408,55 @@
         $('buscar').focus();
     }
 
-    function pushItem(p, cantidad, codigo) {
+    function pushItem(p, cantidad, codigo, precio) {
         state.carrito.push({
             producto_id: p.id,
             codigo: codigo || p.codigo,
             nombre: p.nombre,
             cantidad: Math.round(cantidad * 1000) / 1000,
-            precio: precioDe(p),
+            precio: Number(precio ?? precioDe(p)) || 0,
             iva: p.iva,
             pesable: !! p.pesable,
         });
     }
 
-    function agregar(p) {
-        const ex = state.carrito.find(i => i.producto_id === p.id && ! p.pesable);
-        if (ex) {
-            ex.cantidad += 1;
-            ex.precio = precioDe(p);
-        } else {
-            pushItem(p, 1, p.codigo);
-        }
-        clearBuscar();
+    let pendienteImporte = null;
+
+    function pedirImporte(p, cantidad = 1, codigo) {
+        pendienteImporte = { p, cantidad, codigo: codigo || p.codigo };
+        $('importe-producto').textContent = `${p.codigo} — ${p.nombre}`;
+        $('importe-precio').value = '';
+        $('importe-error').hidden = true;
+        $('buscar').value = '';
+        state.sugerencias = [];
+        renderSug();
+        $('modal-importe').showModal();
+        setTimeout(() => $('importe-precio').focus(), 50);
     }
 
-    function descuento() {
-        const n = parseNum($('descuento').value);
-        return n && n > 0 ? n : 0;
+    function agregar(p, cantidad = 1, codigo) {
+        const cant = Math.max(0.001, Math.round((Number(cantidad) || 1) * 1000) / 1000);
+        const precio = precioDe(p);
+        if (! precio || precio <= 0) {
+            pedirImporte(p, cant, codigo);
+            return;
+        }
+        const ex = state.carrito.find(i => i.producto_id === p.id && ! p.pesable);
+        if (ex) {
+            ex.cantidad = Math.round((ex.cantidad + cant) * 1000) / 1000;
+            ex.precio = precio;
+        } else {
+            pushItem(p, cant, codigo || p.codigo, precio);
+        }
+        clearBuscar();
     }
 
     function subtotal() {
         return Math.round(state.carrito.reduce((s, i) => s + i.cantidad * i.precio, 0) * 100) / 100;
     }
 
-    function total() {
-        return Math.max(0, Math.round((subtotal() - descuento()) * 100) / 100);
-    }
-
     function renderCarrito() {
+        syncDescFromPctIfNeeded();
         $('carrito').innerHTML = state.carrito.map((i, idx) => `
             <div class="cart-row" data-idx="${idx}">
                 <div class="cart-main">
@@ -434,6 +542,10 @@
     }
 
     function abrirPago() {
+        if (state.carrito.some(i => ! (Number(i.precio) > 0))) {
+            alert('Hay productos sin precio. Ingresá un importe mayor a 0.');
+            return;
+        }
         const m = medios().filter(x => x.tipo !== 'qr'); // QR requiere internet/MP
         $('medio').innerHTML = m.map(x =>
             `<option value="${x.id}">${x.nombre}${x.recargo > 0 ? ` (+${x.recargo}%)` : ''}</option>`
@@ -486,6 +598,7 @@
             $('modal-ok').showModal();
             state.carrito = [];
             $('descuento').value = '0';
+            if ($('descuento-pct')) $('descuento-pct').value = '0';
             renderCarrito();
             tick();
         } catch (err) {

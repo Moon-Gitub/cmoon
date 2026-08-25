@@ -15,10 +15,12 @@ class ProveedorController extends Controller
     {
         $query = Proveedor::query()
             ->when($request->filled('buscar'), function ($query) use ($request) {
-                $buscar = $request->string('buscar');
-                $query->where(fn ($q) => $q
-                    ->where('razon_social', 'like', "%{$buscar}%")
-                    ->orWhere('cuit', 'like', "%{$buscar}%"));
+                app(\App\Services\BusquedaService::class)->aplicarTerminos(
+                    $query,
+                    (string) $request->input('buscar'),
+                    ['razon_social', 'cuit', 'email', 'telefono'],
+                    preferExact: ['cuit'],
+                );
             });
 
         [$sort, $dir] = TableSort::apply($query, $request, [

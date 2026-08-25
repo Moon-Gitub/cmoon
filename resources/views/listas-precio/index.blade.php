@@ -3,6 +3,17 @@
 @section('titulo', 'Listas de precio')
 
 @section('contenido')
+    <div class="mb-6 rounded-xl border border-indigo-100 bg-indigo-50/70 p-4 text-sm text-slate-700">
+        <p class="font-semibold text-indigo-900">¿Cómo funcionan las listas de precios?</p>
+        <ol class="mt-2 list-decimal space-y-1.5 pl-5">
+            <li><strong>Se crean acá</strong> (ej. Mayorista −10% sobre venta, o “Al costo”).</li>
+            <li><strong>Se asignan al cliente</strong> en Clientes → editar → “Lista de precios”. Si no tiene lista, paga el precio de venta del producto.</li>
+            <li><strong>En el POS</strong>, al elegir ese cliente se aplica sola la lista. También podés cambiar la lista a mano en esa venta (sin modificar el cliente).</li>
+            <li>Fórmula: <code class="rounded bg-white px-1">precio = base × (1 + % / 100)</code>. Base = precio de venta o de costo, según la lista. % negativo = descuento; positivo = recargo.</li>
+        </ol>
+        <p class="mt-2 text-xs text-slate-500">Ejemplo: producto a $1000 de venta. Lista “Mayorista” base venta −10% → cobra $900. Lista “Costo” base compra 0% → cobra el costo del producto.</p>
+    </div>
+
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
         @can('listas-precio.gestionar')

@@ -18,11 +18,12 @@ class ClienteController extends Controller
     {
         $query = Cliente::with(['listaPrecio', 'vendedor'])
             ->when($request->filled('buscar'), function ($query) use ($request) {
-                $buscar = $request->string('buscar');
-                $query->where(fn ($q) => $q
-                    ->where('nombre', 'like', "%{$buscar}%")
-                    ->orWhere('documento', 'like', "%{$buscar}%")
-                    ->orWhere('email', 'like', "%{$buscar}%"));
+                app(\App\Services\BusquedaService::class)->aplicarTerminos(
+                    $query,
+                    (string) $request->input('buscar'),
+                    ['nombre', 'documento', 'email', 'telefono'],
+                    preferExact: ['documento'],
+                );
             });
 
         [$sort, $dir] = TableSort::apply($query, $request, [

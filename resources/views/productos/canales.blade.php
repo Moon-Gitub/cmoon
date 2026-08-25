@@ -12,9 +12,17 @@
         <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800">{{ session('ok') }}</div>
     @endif
 
-    <form method="GET" class="mb-4 flex flex-wrap items-center gap-2">
-        <input type="text" name="buscar" value="{{ request('buscar') }}" placeholder="Nombre o código"
-               class="w-64 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+    <form method="GET" class="mb-4 flex flex-wrap items-end gap-2">
+        <div class="min-w-[14rem] flex-1 sm:max-w-xs">
+            <x-filtro-busqueda
+                :url="route('busqueda.productos')"
+                name="buscar"
+                placeholder="Nombre o código…"
+                :value="request('buscar')"
+                :navigate="false"
+                hint="Código o nombre · Enter filtra"
+            />
+        </div>
         <select name="categoria" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
             <option value="">Todas las categorías</option>
             @foreach ($categorias as $cat)

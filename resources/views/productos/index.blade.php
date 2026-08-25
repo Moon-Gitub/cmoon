@@ -6,8 +6,12 @@
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <form method="GET" class="flex flex-wrap items-center gap-2">
                 <x-sort-hidden :sort="$sort ?? null" :dir="$dir ?? null" />
-<input type="text" name="buscar" value="{{ request('buscar') }}" placeholder="Nombre o código"
-                   class="w-64 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                <x-filtro-busqueda
+                    :url="route('busqueda.productos')"
+                    name="buscar"
+                    placeholder="Código o nombre…"
+                    :value="request('buscar')"
+                />
             <select name="categoria" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <option value="">Todas las categorías</option>
                 @foreach ($categorias as $cat)

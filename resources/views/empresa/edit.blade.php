@@ -157,6 +157,66 @@
             </div>
         </div>
 
+        <div class="border-t border-slate-100 pt-4">
+            <h2 class="mb-1 text-sm font-semibold uppercase tracking-wider text-slate-500">Catálogo PDF por categoría</h2>
+            <p class="mb-3 text-xs text-slate-500">
+                Igual que en el sistema anterior: un PDF compartible con la lista de precios de cada categoría.
+                Podés subir un fondo a medida (recomendado A4 vertical) y un logo aparte.
+            </p>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Fondo del PDF</label>
+                    <div class="flex items-start gap-3">
+                        @if ($empresa->catalogo_fondo_path)
+                            <img src="{{ asset('storage/'.$empresa->catalogo_fondo_path) }}" alt="Fondo"
+                                 class="h-20 w-14 rounded border border-slate-200 object-cover">
+                        @endif
+                        <input type="file" name="catalogo_fondo" accept="image/*" class="block w-full text-sm">
+                    </div>
+                    <p class="mt-1 text-xs text-slate-400">JPG/PNG, máx. 5 MB. Si no hay fondo, se usa un fondo oscuro.</p>
+                    @error('catalogo_fondo')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Logo del catálogo</label>
+                    <div class="flex items-center gap-3">
+                        @if ($empresa->catalogo_logo_path || $empresa->logo_path)
+                            <img src="{{ asset('storage/'.($empresa->catalogo_logo_path ?: $empresa->logo_path)) }}" alt="Logo catálogo"
+                                 class="h-12 w-12 rounded-lg border border-slate-200 object-contain">
+                        @endif
+                        <input type="file" name="catalogo_logo" accept="image/*" class="block w-full text-sm">
+                    </div>
+                    <p class="mt-1 text-xs text-slate-400">Opcional. Si no se carga, usa el logo general de la empresa.</p>
+                    @error('catalogo_logo')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Color del título</label>
+                    <input type="color" name="catalogo_color_titulo"
+                           value="{{ old('catalogo_color_titulo', $empresa->catalogo_color_titulo ?? '#909e23') }}"
+                           class="h-10 w-full cursor-pointer rounded-lg border border-slate-300">
+                    @error('catalogo_color_titulo')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Color del texto</label>
+                    <input type="color" name="catalogo_color_texto"
+                           value="{{ old('catalogo_color_texto', $empresa->catalogo_color_texto ?? '#f1f0ec') }}"
+                           class="h-10 w-full cursor-pointer rounded-lg border border-slate-300">
+                    @error('catalogo_color_texto')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+            </div>
+            @php
+                $token = $empresa->catalogo_share_token;
+                $ejemplo = $token
+                    ? route('catalogo.categoria.publico', ['token' => $token, 'categoria' => 1])
+                    : null;
+            @endphp
+            @if ($ejemplo)
+                <p class="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                    Link público (ejemplo): <code class="break-all">{{ preg_replace('#/categoria/\d+#', '/categoria/{id}', $ejemplo) }}</code>
+                    — desde Categorías podés copiar el de cada una.
+                </p>
+            @endif
+        </div>
+
         @can('empresa.editar')
             <div class="border-t border-slate-100 pt-4">
                 <button type="submit"

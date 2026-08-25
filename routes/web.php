@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CajaController;
+use App\Http\Controllers\CatalogoCategoriaController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\CompraController;
@@ -33,6 +34,7 @@ use App\Http\Controllers\YcloudWebhookController;
 use App\Http\Controllers\N8nController;
 use App\Http\Controllers\N8nWebhookController;
 use App\Http\Controllers\AsistenteController;
+use App\Http\Controllers\BusquedaController;
 use App\Http\Controllers\DescargasController;
 use App\Http\Controllers\IaOperativaController;
 use App\Http\Controllers\VentaController;
@@ -57,6 +59,11 @@ Route::post('/webhooks/ycloud', [YcloudWebhookController::class, 'handle'])
 Route::post('/webhooks/n8n', [N8nWebhookController::class, 'handle'])
     ->name('n8n.webhook')
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
+// Catálogo PDF por categoría (link público para compartir, estilo demonew)
+Route::get('/catalogo/{token}/categoria/{categoria}', [CatalogoCategoriaController::class, 'publico'])
+    ->whereNumber('categoria')
+    ->name('catalogo.categoria.publico');
 
 // Diagnóstico de salida a AFIP (token = sha256(APP_KEY) primeros 16 hex)
 Route::get('/_diag/afip', function () {
@@ -95,6 +102,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/apps/descargar/{platform}', [DescargasController::class, 'download'])
         ->whereIn('platform', ['windows', 'linux', 'android'])
         ->name('descargas.download');
+
+    Route::prefix('busqueda')->name('busqueda.')->group(function () {
+        Route::get('/productos', [BusquedaController::class, 'productos'])->name('productos');
+        Route::get('/clientes', [BusquedaController::class, 'clientes'])->name('clientes');
+        Route::get('/proveedores', [BusquedaController::class, 'proveedores'])->name('proveedores');
+        Route::get('/ventas', [BusquedaController::class, 'ventas'])->name('ventas');
+        Route::get('/comprobantes', [BusquedaController::class, 'comprobantes'])->name('comprobantes');
+        Route::get('/usuarios', [BusquedaController::class, 'usuarios'])->name('usuarios');
+    });
 
     Route::get('/asistente', [AsistenteController::class, 'index'])->name('asistente.index');
     Route::post('/asistente/preguntar', [AsistenteController::class, 'preguntar'])->name('asistente.preguntar');
@@ -142,6 +158,8 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('permission:categorias.ver')->group(function () {
         Route::resource('categorias', CategoriaController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::get('/categorias/{categoria}/pdf', [CatalogoCategoriaController::class, 'pdf'])
+            ->name('categorias.pdf');
     });
 
     Route::middleware('permission:listas-precio.ver')->group(function () {

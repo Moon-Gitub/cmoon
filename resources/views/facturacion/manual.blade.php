@@ -35,19 +35,16 @@
 
         <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Receptor</h2>
-            <div class="mb-3">
-                <label class="mb-1 block text-sm font-medium text-slate-700">Cargar desde cliente</label>
-                <select @change="cargarCliente($event.target.value)"
-                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    <option value="">— Completar a mano —</option>
-                    @foreach ($clientes as $cliente)
-                        <option value="{{ $cliente->id }}"
-                                data-nombre="{{ $cliente->nombre }}"
-                                data-tipo="{{ $cliente->tipo_documento }}"
-                                data-doc="{{ $cliente->documento }}"
-                                data-iva="{{ $cliente->condicion_iva }}">{{ $cliente->nombre }}</option>
-                    @endforeach
-                </select>
+            <div class="mb-3"
+                 @buscador-seleccionado="if ($event.detail.name === '_cliente_carga') cargarClienteItem($event.detail.item)">
+                <x-buscador
+                    :url="route('busqueda.clientes')"
+                    name="_cliente_carga"
+                    label="Cargar desde cliente"
+                    placeholder="Nombre o documento…"
+                    :required="false"
+                    hint="Opcional · completa los campos del receptor"
+                />
             </div>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
@@ -140,13 +137,12 @@
                 emisorId: '{{ $emisores->first()?->id }}',
                 receptor: { nombre: '', condicionIva: 'CONSUMIDOR_FINAL', docTipo: '99', docNumero: '' },
                 items: [{ descripcion: '', cantidad: 1, precio: null, iva: '21' }],
-                cargarCliente(id) {
-                    const opt = document.querySelector(`option[value="${id}"][data-nombre]`);
-                    if (! opt) return;
-                    this.receptor.nombre = opt.dataset.nombre;
-                    this.receptor.docNumero = opt.dataset.doc ?? '';
-                    this.receptor.condicionIva = opt.dataset.iva || 'CONSUMIDOR_FINAL';
-                    this.receptor.docTipo = { CUIT: '80', CUIL: '86', DNI: '96' }[opt.dataset.tipo] ?? '99';
+                cargarClienteItem(item) {
+                    if (! item) return;
+                    this.receptor.nombre = item.nombre || '';
+                    this.receptor.docNumero = item.documento || '';
+                    this.receptor.condicionIva = item.condicion_iva || 'CONSUMIDOR_FINAL';
+                    this.receptor.docTipo = { CUIT: '80', CUIL: '86', DNI: '96' }[item.tipo_documento] ?? '99';
                 },
                 total() { return this.items.reduce((s, i) => s + (i.cantidad || 0) * (i.precio || 0), 0); },
                 fmt(n) { return '$ ' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },

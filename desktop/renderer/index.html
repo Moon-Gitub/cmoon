@@ -47,9 +47,23 @@
             <div id="carrito" class="cart-items"></div>
             <div class="totals">
                 <div class="total-line muted-line"><span>Subtotal</span><span id="subtotal">$ 0,00</span></div>
-                <label class="desc-line">Descuento
-                    <input type="text" id="descuento" inputmode="decimal" value="0">
+                <label class="desc-line">Lista de precios
+                    <select id="lista-precio"></select>
                 </label>
+                <div class="desc-line desc-dual">
+                    <label>Desc. %
+                        <input type="text" id="descuento-pct" inputmode="decimal" value="0">
+                    </label>
+                    <label>Desc. $
+                        <input type="text" id="descuento" inputmode="decimal" value="0">
+                    </label>
+                </div>
+                <div class="quick-disc" id="quick-disc">
+                    <button type="button" data-pct="5">5%</button>
+                    <button type="button" data-pct="10">10%</button>
+                    <button type="button" data-pct="15">15%</button>
+                    <button type="button" data-pct="20">20%</button>
+                </div>
                 <div class="total-line"><span>Total</span><strong id="total">$ 0,00</strong></div>
             </div>
             <div class="actions">
@@ -75,6 +89,22 @@
             <div class="dialog-actions">
                 <button type="button" id="cancel-pago">Cancelar</button>
                 <button type="submit" id="confirm-pago">Confirmar venta</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="modal-importe">
+        <form method="dialog" id="form-importe">
+            <h3>Ingresá el importe</h3>
+            <p id="importe-producto" class="muted"></p>
+            <p class="muted" style="color:#b45309">Este producto no tiene precio de lista.</p>
+            <label>Importe unitario ($)
+                <input type="number" id="importe-precio" step="0.01" min="0.01" required>
+            </label>
+            <p id="importe-error" class="error" hidden></p>
+            <div class="dialog-actions">
+                <button type="button" id="cancel-importe">Cancelar</button>
+                <button type="submit">Agregar</button>
             </div>
         </form>
     </dialog>

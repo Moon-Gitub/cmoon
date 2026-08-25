@@ -100,6 +100,28 @@ class VentaController extends Controller
     {
         $query->whereBetween('ventas.fecha', [$desde, $hasta]);
 
+        if ($request->filled('buscar')) {
+            $buscar = trim((string) $request->input('buscar'));
+            $numero = (int) preg_replace('/\D/', '', $buscar);
+            $query->where(function (Builder $outer) use ($buscar, $numero) {
+                if ($numero > 0) {
+                    $outer->where('ventas.numero', $numero)
+                        ->orWhere('ventas.numero', 'like', $numero.'%');
+                }
+                $outer->orWhereHas('cliente', function (Builder $c) use ($buscar) {
+                    app(\App\Services\BusquedaService::class)->aplicarTerminos(
+                        $c,
+                        $buscar,
+                        ['nombre', 'documento'],
+                        preferExact: ['documento'],
+                    );
+                });
+                $outer->orWhereHas('vendedor', function (Builder $u) use ($buscar) {
+                    app(\App\Services\BusquedaService::class)->aplicarTerminos($u, $buscar, ['name']);
+                });
+            });
+        }
+
         $estado = (string) $request->input('estado', '');
         if ($estado === 'facturada') {
             $query->where('ventas.estado', 'completada')

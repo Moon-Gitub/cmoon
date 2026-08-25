@@ -20,11 +20,11 @@ class UsuarioController extends Controller
         $query = User::with(['roles', 'sucursal'])
             ->where('empresa_id', auth()->user()->empresa_id)
             ->when($request->filled('buscar'), function ($query) use ($request) {
-                $buscar = $request->string('buscar');
-                $query->where(fn ($q) => $q
-                    ->where('name', 'like', "%{$buscar}%")
-                    ->orWhere('usuario', 'like', "%{$buscar}%")
-                    ->orWhere('email', 'like', "%{$buscar}%"));
+                app(\App\Services\BusquedaService::class)->aplicarTerminos(
+                    $query,
+                    (string) $request->input('buscar'),
+                    ['name', 'usuario', 'email']
+                );
             });
 
         [$sort, $dir] = TableSort::apply($query, $request, [

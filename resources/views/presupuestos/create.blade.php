@@ -3,18 +3,22 @@
 @section('titulo', 'Nuevo presupuesto')
 
 @section('contenido')
-    <form method="POST" action="{{ route('presupuestos.store') }}" x-data="presupuestoForm()" class="max-w-5xl space-y-4">
+    <form method="POST" action="{{ route('presupuestos.store') }}"
+          x-data="presupuestoForm(@js(route('busqueda.productos')))"
+          class="max-w-5xl space-y-4">
         @csrf
 
         <div class="grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-3">
             <div>
-                <label class="mb-1 block text-sm font-medium text-slate-700">Cliente</label>
-                <select name="cliente_id" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    <option value="">Consumidor final</option>
-                    @foreach ($clientes as $cliente)
-                        <option value="{{ $cliente->id }}">{{ $cliente->nombre }}</option>
-                    @endforeach
-                </select>
+                <x-buscador
+                    :url="route('busqueda.clientes')"
+                    name="cliente_id"
+                    label="Cliente"
+                    placeholder="Nombre o documento… (vacío = consumidor final)"
+                    :value="old('cliente_id')"
+                    :required="false"
+                    hint="Opcional · dejá vacío para consumidor final"
+                />
             </div>
             <div>
                 <label class="mb-1 block text-sm font-medium text-slate-700">Válido hasta</label>
@@ -31,21 +35,35 @@
         <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Ítems</h2>
             <div class="space-y-2">
-                <template x-for="(item, idx) in items" :key="idx">
-                    <div class="flex items-start gap-2">
-                        <select :name="'items['+idx+'][producto_id]'" x-model="item.producto_id"
-                                @change="precargar(item)"
-                                class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                            <option value="">— Ítem libre —</option>
-                            @foreach ($productos as $producto)
-                                <option value="{{ $producto->id }}" data-precio="{{ $producto->precio_venta }}">
-                                    {{ $producto->nombre }} ({{ $producto->codigo }})
-                                </option>
-                            @endforeach
-                        </select>
+                <template x-for="(item, idx) in lineas" :key="idx">
+                    <div class="flex flex-wrap items-start gap-2 sm:flex-nowrap">
+                        <div class="relative min-w-[14rem] flex-1">
+                            <input type="hidden" :name="'items['+idx+'][producto_id]'" :value="item.producto_id">
+                            <input type="text" x-model="item.q"
+                                   @input="buscarProducto(item)"
+                                   @keydown.arrow-down.prevent="mover(item, 1)"
+                                   @keydown.arrow-up.prevent="mover(item, -1)"
+                                   @keydown.enter.prevent="confirmarProducto(item)"
+                                   @keydown.escape="item.abierto = false"
+                                   placeholder="Código o producto…"
+                                   autocomplete="off"
+                                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                            <ul x-show="item.abierto && item.sugerencias.length" x-cloak
+                                class="absolute z-30 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg">
+                                <template x-for="(sug, i) in item.sugerencias" :key="sug.id">
+                                    <li>
+                                        <button type="button" class="block w-full px-3 py-2 text-left hover:bg-indigo-50"
+                                                :class="i === item.indice ? 'bg-indigo-50' : ''"
+                                                @mousedown.prevent="elegirProducto(item, sug)">
+                                            <span x-text="sug.label"></span>
+                                        </button>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
                         <input type="text" :name="'items['+idx+'][descripcion]'" x-model="item.descripcion"
-                               x-show="! item.producto_id" placeholder="Descripción"
-                               class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                               placeholder="Descripción"
+                               class="min-w-[10rem] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
                         <input type="number" :name="'items['+idx+'][cantidad]'" x-model.number="item.cantidad" required
                                step="any" min="0.001" placeholder="Cant."
                                class="w-24 rounded-lg border border-slate-300 px-2 py-2 text-right text-sm">
@@ -54,12 +72,12 @@
                                class="w-28 rounded-lg border border-slate-300 px-2 py-2 text-right text-sm">
                         <span class="w-28 py-2 text-right text-sm font-semibold"
                               x-text="fmt((item.cantidad || 0) * (item.precio || 0))"></span>
-                        <button type="button" @click="items.splice(idx, 1)" x-show="items.length > 1"
+                        <button type="button" @click="lineas.splice(idx, 1)" x-show="lineas.length > 1"
                                 class="rounded-lg p-2 text-red-500 hover:bg-red-50">✕</button>
                     </div>
                 </template>
             </div>
-            <button type="button" @click="items.push({ producto_id: '', descripcion: '', cantidad: 1, precio: null })"
+            <button type="button" @click="agregarLinea()"
                     class="mt-3 text-sm text-indigo-600 hover:text-indigo-800">+ Agregar ítem</button>
 
             <div class="mt-4 flex justify-end border-t border-slate-100 pt-3 text-lg font-bold">
@@ -85,14 +103,50 @@
     </form>
 
     <script>
-        function presupuestoForm() {
+        function presupuestoForm(urlProductos) {
+            const lineaVacia = () => ({
+                producto_id: '', descripcion: '', cantidad: 1, precio: null,
+                q: '', sugerencias: [], abierto: false, indice: -1, _t: null,
+            });
             return {
-                items: [{ producto_id: '', descripcion: '', cantidad: 1, precio: null }],
-                precargar(item) {
-                    const opt = document.querySelector(`option[value="${item.producto_id}"][data-precio]`);
-                    if (opt && ! item.precio) item.precio = parseFloat(opt.dataset.precio) || null;
+                urlProductos,
+                lineas: [lineaVacia()],
+                agregarLinea() { this.lineas.push(lineaVacia()); },
+                buscarProducto(item) {
+                    item.producto_id = '';
+                    clearTimeout(item._t);
+                    const term = (item.q || '').trim();
+                    if (term.length < 2) { item.sugerencias = []; item.abierto = false; return; }
+                    item._t = setTimeout(async () => {
+                        try {
+                            const res = await fetch(`${this.urlProductos}?q=${encodeURIComponent(term)}&limit=20`, {
+                                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                            });
+                            item.sugerencias = res.ok ? await res.json() : [];
+                            item.abierto = item.sugerencias.length > 0;
+                            item.indice = item.abierto ? 0 : -1;
+                        } catch { item.sugerencias = []; item.abierto = false; }
+                    }, 280);
                 },
-                total() { return this.items.reduce((s, i) => s + (i.cantidad || 0) * (i.precio || 0), 0); },
+                mover(item, delta) {
+                    if (! item.sugerencias.length) return;
+                    item.indice = (item.indice + delta + item.sugerencias.length) % item.sugerencias.length;
+                    item.abierto = true;
+                },
+                confirmarProducto(item) {
+                    if (item.abierto && item.indice >= 0 && item.sugerencias[item.indice]) {
+                        this.elegirProducto(item, item.sugerencias[item.indice]);
+                    }
+                },
+                elegirProducto(item, sug) {
+                    item.producto_id = sug.id;
+                    item.descripcion = sug.nombre;
+                    item.q = sug.label;
+                    if (! item.precio) item.precio = sug.precio_venta || null;
+                    item.abierto = false;
+                    item.sugerencias = [];
+                },
+                total() { return this.lineas.reduce((s, i) => s + (i.cantidad || 0) * (i.precio || 0), 0); },
                 fmt(n) { return '$ ' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
             };
         }
