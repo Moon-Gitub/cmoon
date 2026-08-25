@@ -213,18 +213,18 @@ class InformeService
         return $q
             ->select(
                 DB::raw('COALESCE(productos.id, 0) as producto_id'),
-                DB::raw('COALESCE(productos.codigo, "") as codigo'),
+                DB::raw("COALESCE(productos.codigo, '') as codigo"),
                 DB::raw('COALESCE(productos.nombre, venta_items.descripcion) as nombre'),
-                DB::raw('COALESCE(categorias.nombre, "Sin categoría") as categoria'),
+                DB::raw("COALESCE(categorias.nombre, 'Sin categoría') as categoria"),
                 DB::raw("SUM({$cant}) as cantidad"),
                 DB::raw("SUM({$tot}) as venta"),
                 DB::raw("SUM({$cant} * COALESCE(productos.precio_compra, 0)) as costo"),
             )
             ->groupBy(
                 DB::raw('COALESCE(productos.id, 0)'),
-                DB::raw('COALESCE(productos.codigo, "")'),
+                DB::raw("COALESCE(productos.codigo, '')"),
                 DB::raw('COALESCE(productos.nombre, venta_items.descripcion)'),
-                DB::raw('COALESCE(categorias.nombre, "Sin categoría")'),
+                DB::raw("COALESCE(categorias.nombre, 'Sin categoría')"),
             )
             ->orderByDesc('venta')
             ->limit($limit)
@@ -264,11 +264,11 @@ class InformeService
 
         return $q
             ->select(
-                DB::raw('COALESCE(categorias.nombre, "Sin categoría") as nombre'),
+                DB::raw("COALESCE(categorias.nombre, 'Sin categoría') as nombre"),
                 DB::raw("SUM({$cant}) as cantidad"),
                 DB::raw("SUM({$tot}) as total"),
             )
-            ->groupBy(DB::raw('COALESCE(categorias.nombre, "Sin categoría")'))
+            ->groupBy(DB::raw("COALESCE(categorias.nombre, 'Sin categoría')"))
             ->orderByDesc('total')
             ->get()
             ->map(function ($row) use ($totalGeneral) {
