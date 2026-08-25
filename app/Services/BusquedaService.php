@@ -257,7 +257,12 @@ class BusquedaService
      */
     public function aplicarTerminos(Builder $query, string $q, array $campos, array $preferExact = []): void
     {
-        $tokens = preg_split('/\s+/u', trim($q), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $q = $this->normalizarConsulta($q);
+        $tokens = preg_split('/\s+/u', $q, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $tokens = array_values(array_filter(
+            $tokens,
+            fn (string $t) => ! preg_match('/^[\p{P}\p{S}]+$/u', $t)
+        ));
         if ($tokens === []) {
             return;
         }
@@ -276,6 +281,19 @@ class BusquedaService
                 }
             });
         }
+    }
+
+    /**
+     * Si el término viene del label predictivo ("CODIGO — NOMBRE"), usa la primera parte.
+     */
+    public function normalizarConsulta(string $q): string
+    {
+        $q = trim(html_entity_decode($q, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        if (preg_match('/^(.+?)\s+[—\-–]\s+.+$/u', $q, $m)) {
+            return trim($m[1]);
+        }
+
+        return $q;
     }
 
     private function escaparLike(string $valor): string

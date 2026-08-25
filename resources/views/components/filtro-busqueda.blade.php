@@ -26,7 +26,11 @@
             const form = this.$el.closest('form');
             const input = form?.querySelector('[name={{ $name }}]');
             if (input) {
-                input.value = item.nombre || item.razon_social || item.label || this.q;
+                // Nunca filtrar con el label "código — nombre" (rompe el AND de tokens).
+                const valor = item.codigo || item.documento || item.cuit || item.nombre
+                    || item.razon_social || item.numero || this.q;
+                input.value = valor;
+                this.q = String(valor);
                 form.submit();
             }
         },
@@ -38,7 +42,10 @@
                @keydown="onKeydown($event)"
                @keydown.enter.prevent="
                     if (abierto && indice >= 0 && items[indice]) { elegir(items[indice]); }
-                    else { $el.form?.submit(); }
+                    else {
+                        q = (q || '').replace(/\s+[—\-–]\s+.*/u, '').trim();
+                        $el.form?.submit();
+                    }
                "
                @focus="if (items.length) abierto = true"
                @blur="onBlur()"
