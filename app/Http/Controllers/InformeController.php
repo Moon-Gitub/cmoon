@@ -3,8 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Comprobante;
+use App\Models\MedioPago;
+use App\Models\Sucursal;
 use App\Models\Venta;
-use App\Models\VentaPago;
+use App\Services\InformeService;
+use App\Support\CsvExport;
 use App\Support\TableSort;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,53 +16,204 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InformeController extends Controller
 {
-    public function ventas(Request $request): View
+    public function __construct(private readonly InformeService $informes) {}
+
+    public function index(): View
     {
-        $desde = $request->date('desde') ?? now()->startOfMonth();
-        $hasta = $request->date('hasta')?->endOfDay() ?? now()->endOfDay();
+        [$desde, $hasta] = [now()->startOfMonth(), now()->endOfDay()];
+        $kpis = $this->informes->kpisVentas($desde, $hasta);
+        $stock = $this->informes->stockValorizado();
+        $pedidos = $this->informes->gestionPedidos(30, 30);
 
-        $base = Venta::where('estado', 'completada')->whereBetween('fecha', [$desde, $hasta]);
-
-        $totales = [
-            'cantidad' => (clone $base)->count(),
-            'total' => (float) (clone $base)->sum(DB::raw(Venta::sqlTotalConSigno())),
-            'descuentos' => (float) (clone $base)->sum('descuento'),
-        ];
-        $totales['promedio'] = $totales['cantidad'] > 0 ? $totales['total'] / $totales['cantidad'] : 0;
-
-        $porDia = (clone $base)
-            ->select(DB::raw('DATE(fecha) as dia'), DB::raw('COUNT(*) as cantidad'), DB::raw('SUM('.Venta::sqlTotalConSigno().') as total'))
-            ->groupBy('dia')->orderBy('dia')->get();
-
-        $porMedio = VentaPago::query()
-            ->join('ventas', 'ventas.id', '=', 'venta_pagos.venta_id')
-            ->join('medios_pago', 'medios_pago.id', '=', 'venta_pagos.medio_pago_id')
-            ->where('ventas.empresa_id', auth()->user()->empresa_id)
-            ->where('ventas.estado', 'completada')
-            ->whereBetween('ventas.fecha', [$desde, $hasta])
-            ->select('medios_pago.nombre', DB::raw('SUM('.Venta::sqlImportePagoConSigno().') as total'))
-            ->groupBy('medios_pago.nombre')->orderByDesc('total')->get();
-
-        $topProductos = DB::table('venta_items')
-            ->join('ventas', 'ventas.id', '=', 'venta_items.venta_id')
-            ->where('ventas.estado', 'completada')
-            ->whereBetween('ventas.fecha', [$desde, $hasta])
-            ->select('venta_items.descripcion',
-                DB::raw('SUM('.Venta::sqlCantidadItemConSigno().') as cantidad'),
-                DB::raw('SUM('.Venta::sqlTotalItemConSigno().') as total'))
-            ->groupBy('venta_items.descripcion')
-            ->orderByDesc('total')->limit(15)->get();
-
-        $porVendedor = (clone $base)
-            ->join('users', 'users.id', '=', 'ventas.user_id')
-            ->select('users.name', DB::raw('COUNT(*) as cantidad'), DB::raw('SUM('.Venta::sqlTotalConSigno().') as total'))
-            ->groupBy('users.name')->orderByDesc('total')->get();
-
-        return view('informes.ventas', compact('desde', 'hasta', 'totales', 'porDia', 'porMedio', 'topProductos', 'porVendedor'));
+        return view('informes.index', compact('kpis', 'stock', 'pedidos', 'desde', 'hasta'));
     }
 
-    public function stock(Request $request): View
+    public function ventas(Request $request): View|StreamedResponse
     {
+        [$desde, $hasta] = $this->informes->rangoFechas($request);
+        $filtros = $this->informes->filtrosVentas($request);
+
+        $totales = $this->informes->kpisVentas($desde, $hasta, $filtros);
+        $porDia = $this->informes->ventasPorDia($desde, $hasta, $filtros);
+        $porMedio = $this->informes->ventasPorMedio($desde, $hasta, $filtros);
+        $porVendedor = $this->informes->ventasPorVendedor($desde, $hasta, $filtros);
+        $porSucursal = $this->informes->ventasPorSucursal($desde, $hasta, $filtros);
+        $porCliente = $this->informes->ventasPorCliente($desde, $hasta, $filtros, 15);
+        $topProductos = $this->informes->productosVendidos($desde, $hasta, $filtros, 15);
+
+        if ($request->input('exportar') === 'csv') {
+            return CsvExport::download(
+                'informe-ventas-'.$desde->format('Ymd').'-'.$hasta->format('Ymd').'.csv',
+                ['Día', 'Cantidad', 'Total'],
+                $porDia->map(fn ($d) => [
+                    $d->dia,
+                    $d->cantidad,
+                    CsvExport::money((float) $d->total),
+                ])
+            );
+        }
+
+        return view('informes.ventas', [
+            'desde' => $desde,
+            'hasta' => $hasta,
+            'filtros' => $filtros,
+            'totales' => $totales,
+            'porDia' => $porDia,
+            'porMedio' => $porMedio,
+            'porVendedor' => $porVendedor,
+            'porSucursal' => $porSucursal,
+            'porCliente' => $porCliente,
+            'topProductos' => $topProductos,
+            'vendedores' => $this->informes->vendedoresActivos(),
+            'sucursales' => Sucursal::where('activa', true)->orderBy('nombre')->get(),
+            'mediosPago' => MedioPago::where('activo', true)->orderBy('nombre')->get(),
+        ]);
+    }
+
+    public function productos(Request $request): View|StreamedResponse
+    {
+        [$desde, $hasta] = $this->informes->rangoFechas($request);
+        $filtros = $this->informes->filtrosVentas($request);
+        $productos = $this->informes->productosVendidos($desde, $hasta, $filtros);
+
+        $resumen = [
+            'unidades' => (float) $productos->sum('cantidad'),
+            'venta' => (float) $productos->sum('venta'),
+            'costo' => (float) $productos->sum('costo'),
+            'margen' => (float) $productos->sum('margen'),
+            'items' => $productos->count(),
+        ];
+        $resumen['margen_pct'] = $resumen['venta'] > 0
+            ? round(($resumen['margen'] / $resumen['venta']) * 100, 1)
+            : 0.0;
+
+        if ($request->input('exportar') === 'csv') {
+            return CsvExport::download(
+                'productos-vendidos-'.$desde->format('Ymd').'-'.$hasta->format('Ymd').'.csv',
+                ['Código', 'Producto', 'Categoría', 'Cantidad', 'Costo', 'Venta', 'Margen', '%'],
+                $productos->map(fn ($p) => [
+                    $p->codigo,
+                    $p->nombre,
+                    $p->categoria,
+                    CsvExport::qty((float) $p->cantidad),
+                    CsvExport::money((float) $p->costo),
+                    CsvExport::money((float) $p->venta),
+                    CsvExport::money((float) $p->margen),
+                    number_format((float) $p->margen_pct, 1, ',', '').'%',
+                ])
+            );
+        }
+
+        return view('informes.productos', [
+            'desde' => $desde,
+            'hasta' => $hasta,
+            'filtros' => $filtros,
+            'productos' => $productos,
+            'resumen' => $resumen,
+            'vendedores' => $this->informes->vendedoresActivos(),
+            'sucursales' => Sucursal::where('activa', true)->orderBy('nombre')->get(),
+        ]);
+    }
+
+    public function rentabilidad(Request $request): View|StreamedResponse
+    {
+        [$desde, $hasta] = $this->informes->rangoFechas($request);
+        $filtros = $this->informes->filtrosVentas($request);
+        $data = $this->informes->rentabilidad($desde, $hasta, $filtros);
+
+        if ($request->input('exportar') === 'csv') {
+            return CsvExport::download(
+                'rentabilidad-'.$desde->format('Ymd').'-'.$hasta->format('Ymd').'.csv',
+                ['Código', 'Producto', 'Cantidad', 'Costo', 'Venta', 'Margen', '%'],
+                $data['top_productos']->map(fn ($p) => [
+                    $p->codigo,
+                    $p->nombre,
+                    CsvExport::qty((float) $p->cantidad),
+                    CsvExport::money((float) $p->costo),
+                    CsvExport::money((float) $p->venta),
+                    CsvExport::money((float) $p->margen),
+                    number_format((float) $p->margen_pct, 1, ',', '').'%',
+                ])
+            );
+        }
+
+        return view('informes.rentabilidad', [
+            'desde' => $desde,
+            'hasta' => $hasta,
+            'filtros' => $filtros,
+            'data' => $data,
+            'vendedores' => $this->informes->vendedoresActivos(),
+            'sucursales' => Sucursal::where('activa', true)->orderBy('nombre')->get(),
+        ]);
+    }
+
+    public function categorias(Request $request): View|StreamedResponse
+    {
+        [$desde, $hasta] = $this->informes->rangoFechas($request);
+        $filtros = $this->informes->filtrosVentas($request);
+        $filas = $this->informes->ventasPorCategoria($desde, $hasta, $filtros);
+        $total = (float) $filas->sum('total');
+
+        if ($request->input('exportar') === 'csv') {
+            return CsvExport::download(
+                'ventas-categorias-'.$desde->format('Ymd').'-'.$hasta->format('Ymd').'.csv',
+                ['Categoría', 'Cantidad', 'Total', 'Promedio', '%'],
+                $filas->map(fn ($f) => [
+                    $f->nombre,
+                    CsvExport::qty((float) $f->cantidad),
+                    CsvExport::money((float) $f->total),
+                    CsvExport::money((float) $f->promedio),
+                    number_format((float) $f->porcentaje, 1, ',', '').'%',
+                ])
+            );
+        }
+
+        return view('informes.categorias', compact('desde', 'hasta', 'filtros', 'filas', 'total'));
+    }
+
+    public function pedidos(Request $request): View|StreamedResponse
+    {
+        $diasAnalisis = max(7, min(90, $request->integer('dias_analisis', 30) ?: 30));
+        $diasCobertura = max(7, min(90, $request->integer('dias_cobertura', 30) ?: 30));
+        $soloCriticos = $request->boolean('solo_pedir');
+
+        $data = $this->informes->gestionPedidos($diasAnalisis, $diasCobertura);
+        $items = $soloCriticos
+            ? $data['items']->filter(fn ($i) => $i->cantidad_sugerida > 0)->values()
+            : $data['items'];
+
+        if ($request->input('exportar') === 'csv') {
+            return CsvExport::download(
+                'gestion-pedidos.csv',
+                ['Estado', 'Código', 'Producto', 'Stock', 'Venta/día', 'Cobertura', 'Pedir', 'Inversión', 'Ganancia', 'ROI %'],
+                $items->map(fn ($i) => [
+                    $i->estado,
+                    $i->codigo,
+                    $i->nombre,
+                    CsvExport::qty((float) $i->stock),
+                    CsvExport::qty((float) $i->promedio_diario),
+                    $i->dias_cobertura,
+                    CsvExport::qty((float) $i->cantidad_sugerida),
+                    CsvExport::money((float) $i->inversion),
+                    CsvExport::money((float) $i->ganancia),
+                    number_format((float) $i->roi, 1, ',', ''),
+                ])
+            );
+        }
+
+        return view('informes.pedidos', [
+            'diasAnalisis' => $diasAnalisis,
+            'diasCobertura' => $diasCobertura,
+            'soloCriticos' => $soloCriticos,
+            'items' => $items,
+            'resumen' => $data['resumen'],
+        ]);
+    }
+
+    public function stock(Request $request): View|StreamedResponse
+    {
+        $valorizado = $this->informes->stockValorizado();
+
         $query = \App\Models\Producto::with(['stocks.sucursal', 'categoria'])
             ->withSum('stocks as stock_total', 'cantidad')
             ->where('activo', true)
@@ -77,22 +231,41 @@ class InformeController extends Controller
             'total' => 'stock_total',
             'minimo' => 'stock_minimo',
             'valor_costo' => fn ($q, $d) => $q->orderByRaw('(select coalesce(sum(cantidad), 0) from stocks where stocks.producto_id = productos.id) * productos.precio_compra '.$d),
+            'valor_venta' => fn ($q, $d) => $q->orderByRaw('(select coalesce(sum(cantidad), 0) from stocks where stocks.producto_id = productos.id) * productos.precio_venta '.$d),
         ], 'producto');
+
+        if ($request->input('exportar') === 'csv') {
+            $rows = (clone $query)->limit(5000)->get();
+
+            return CsvExport::download(
+                'stock-valorizado.csv',
+                ['Código', 'Producto', 'Categoría', 'Stock', 'Mínimo', 'P.compra', 'Valorizado costo', 'P.venta', 'Valorizado venta'],
+                $rows->map(function ($p) {
+                    $stk = (float) ($p->stock_total ?? $p->stockTotal());
+
+                    return [
+                        $p->codigo,
+                        $p->nombre,
+                        $p->categoria?->nombre ?? '',
+                        CsvExport::qty($stk),
+                        CsvExport::qty((float) $p->stock_minimo),
+                        CsvExport::money((float) $p->precio_compra),
+                        CsvExport::money($stk * (float) $p->precio_compra),
+                        CsvExport::money((float) $p->precio_venta),
+                        CsvExport::money($stk * (float) $p->precio_venta),
+                    ];
+                })
+            );
+        }
 
         $productos = $query->paginate(50)->withQueryString();
 
-        $valorizado = DB::table('stocks')
-            ->join('productos', 'productos.id', '=', 'stocks.producto_id')
-            ->whereNull('productos.deleted_at')
-            ->where('productos.activo', true)
-            ->selectRaw('SUM(stocks.cantidad * productos.precio_compra) as costo, SUM(stocks.cantidad * productos.precio_venta) as venta')
-            ->first();
-
         return view('informes.stock', [
             'productos' => $productos,
-            'valorCosto' => (float) ($valorizado->costo ?? 0),
-            'valorVenta' => (float) ($valorizado->venta ?? 0),
-            'sucursales' => \App\Models\Sucursal::where('activa', true)->get(),
+            'valorCosto' => $valorizado['costo'],
+            'valorVenta' => $valorizado['venta'],
+            'valorizado' => $valorizado,
+            'sucursales' => Sucursal::where('activa', true)->get(),
             'sort' => $sort,
             'dir' => $dir,
         ]);
@@ -137,7 +310,7 @@ class InformeController extends Controller
         return view('informes.libro-iva', compact('comprobantes', 'totales', 'desde', 'hasta', 'sort', 'dir'));
     }
 
-    public function cuentasCorrientes(Request $request): View
+    public function cuentasCorrientes(Request $request): View|StreamedResponse
     {
         $query = \App\Models\Cliente::where('activo', true)
             ->withSum('movimientosCuenta as saldo', 'importe')
@@ -149,6 +322,20 @@ class InformeController extends Controller
             'documento' => 'documento',
             'saldo' => 'saldo',
         ], 'saldo', 'desc');
+
+        if ($request->input('exportar') === 'csv') {
+            $rows = (clone $query)->limit(5000)->get();
+
+            return CsvExport::download(
+                'cuentas-corrientes.csv',
+                ['Cliente', 'Documento', 'Saldo'],
+                $rows->map(fn ($c) => [
+                    $c->nombre,
+                    $c->documento,
+                    CsvExport::money((float) ($c->saldo ?? 0)),
+                ])
+            );
+        }
 
         $clientes = $query->paginate(50)->withQueryString();
 
@@ -207,28 +394,21 @@ class InformeController extends Controller
 
     private function libroIvaCsv($comprobantes, string $desde, string $hasta): StreamedResponse
     {
-        return response()->streamDownload(function () use ($comprobantes) {
-            $salida = fopen('php://output', 'w');
-            // BOM para que Excel abra bien los acentos
-            fwrite($salida, "\xEF\xBB\xBF");
-            fputcsv($salida, ['Fecha', 'Tipo', 'Número', 'Receptor', 'Doc', 'Neto', 'IVA', 'Exento', 'Total', 'CAE'], ';');
-
-            foreach ($comprobantes as $c) {
-                fputcsv($salida, [
-                    $c->fecha_emision->format('d/m/Y'),
-                    $c->tipoNombre(),
-                    $c->numeroFormateado(),
-                    $c->receptor_nombre,
-                    $c->doc_numero,
-                    number_format((float) $c->neto, 2, ',', ''),
-                    number_format((float) $c->iva, 2, ',', ''),
-                    number_format((float) $c->exento, 2, ',', ''),
-                    number_format((float) $c->total, 2, ',', ''),
-                    $c->cae,
-                ], ';');
-            }
-
-            fclose($salida);
-        }, "libro-iva-ventas-{$desde}-{$hasta}.csv", ['Content-Type' => 'text/csv; charset=UTF-8']);
+        return CsvExport::download(
+            "libro-iva-ventas-{$desde}-{$hasta}.csv",
+            ['Fecha', 'Tipo', 'Número', 'Receptor', 'Doc', 'Neto', 'IVA', 'Exento', 'Total', 'CAE'],
+            $comprobantes->map(fn ($c) => [
+                $c->fecha_emision->format('d/m/Y'),
+                $c->tipoNombre(),
+                $c->numeroFormateado(),
+                $c->receptor_nombre,
+                $c->doc_numero,
+                CsvExport::money((float) $c->neto),
+                CsvExport::money((float) $c->iva),
+                CsvExport::money((float) $c->exento),
+                CsvExport::money((float) $c->total),
+                $c->cae,
+            ])
+        );
     }
 }

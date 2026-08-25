@@ -3,18 +3,32 @@
 @section('titulo', 'Informe de stock')
 
 @section('contenido')
-    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Stock valorizado a costo</p>
+    @include('informes._nav')
+
+    <div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Artículos</p>
+            <p class="mt-1 text-2xl font-bold">{{ number_format($valorizado['items'] ?? 0, 0, ',', '.') }}</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Valorizado costo</p>
             <p class="mt-1 text-2xl font-bold">$ {{ number_format($valorCosto, 2, ',', '.') }}</p>
         </div>
-        <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Stock valorizado a precio de venta</p>
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Valorizado venta</p>
             <p class="mt-1 text-2xl font-bold text-indigo-600">$ {{ number_format($valorVenta, 2, ',', '.') }}</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Margen potencial</p>
+            <p class="mt-1 text-2xl font-bold text-emerald-600">$ {{ number_format(($valorizado['margen_potencial'] ?? ($valorVenta - $valorCosto)), 2, ',', '.') }}</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Bajo mínimo</p>
+            <p class="mt-1 text-2xl font-bold text-red-600">{{ number_format($valorizado['bajo_minimo'] ?? 0, 0, ',', '.') }}</p>
         </div>
     </div>
 
-    <div class="mb-4 flex gap-2">
+    <div class="mb-4 flex flex-wrap gap-2">
         <a href="{{ route('informes.stock') }}"
            class="rounded-lg px-4 py-2 text-sm font-medium {{ request('filtro') !== 'bajo' ? 'bg-indigo-600 text-white' : 'border border-slate-300 bg-white hover:bg-slate-50' }}">
             Todos
@@ -22,6 +36,10 @@
         <a href="{{ route('informes.stock', ['filtro' => 'bajo']) }}"
            class="rounded-lg px-4 py-2 text-sm font-medium {{ request('filtro') === 'bajo' ? 'bg-red-600 text-white' : 'border border-slate-300 bg-white hover:bg-slate-50' }}">
             Stock bajo
+        </a>
+        <a href="{{ request()->fullUrlWithQuery(['exportar' => 'csv']) }}"
+           class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50">
+            Exportar CSV
         </a>
     </div>
 

@@ -3,6 +3,8 @@
 @section('titulo', 'Informe de cajas')
 
 @section('contenido')
+    @include('informes._nav')
+
     <form method="GET" class="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <x-sort-hidden :sort="$sort ?? null" :dir="$dir ?? null" />
 <div>

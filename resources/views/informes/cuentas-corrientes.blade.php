@@ -3,6 +3,8 @@
 @section('titulo', 'Cuentas corrientes')
 
 @section('contenido')
+    @include('informes._nav')
+
     <form method="GET" class="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <x-sort-hidden :sort="$sort ?? null" :dir="$dir ?? null" />
 <div>
@@ -14,6 +16,8 @@
             </select>
         </div>
         <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Aplicar</button>
+        <a href="{{ request()->fullUrlWithQuery(['exportar' => 'csv']) }}"
+           class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50">Exportar CSV</a>
     </form>
 
     <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">

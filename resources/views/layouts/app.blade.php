@@ -219,30 +219,10 @@
             @endcan
 
             @can('informes.ver')
-                <a href="{{ route('informes.ventas') }}"
-                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('informes.ventas') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
+                <a href="{{ route('informes.index') }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('informes.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
-                    Informe de ventas
-                </a>
-                <a href="{{ route('informes.stock') }}"
-                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('informes.stock') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m16.5 0H3.75m16.5 0l-1.5-3.75h-13.5L3.75 7.5m6.75 4.5h3"/></svg>
-                    Informe de stock
-                </a>
-                <a href="{{ route('informes.libro-iva') }}"
-                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('informes.libro-iva') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg>
-                    Libro IVA
-                </a>
-                <a href="{{ route('informes.cuentas-corrientes') }}"
-                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('informes.cuentas-corrientes') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
-                    Cuentas corrientes
-                </a>
-                <a href="{{ route('informes.cajas') }}"
-                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('informes.cajas') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3"/></svg>
-                    Cajas
+                    Informes
                 </a>
             @endcan
 
@@ -382,14 +362,13 @@
                 @can('clientes.ver')<a href="{{ route('clientes.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Clientes</a>@endcan
                 @can('facturacion.ver')<a href="{{ route('facturacion.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Comprobantes</a>@endcan
                 @can('informes.ver')
-                    <a href="{{ route('informes.ventas') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Informe ventas</a>
-                    <a href="{{ route('informes.cuentas-corrientes') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Cuentas corrientes</a>
-                    <a href="{{ route('informes.cajas') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Informe cajas</a>
+                    <a href="{{ route('informes.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Informes</a>
                 @endcan
             </nav>
         </aside>
     </div>
 </div>
 <style>[x-cloak]{display:none!important}</style>
+@stack('scripts')
 </body>
 </html>

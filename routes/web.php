@@ -259,12 +259,17 @@ Route::middleware('auth')->group(function () {
         Route::delete('/emisores/{emisor}', [EmisorController::class, 'destroy'])->name('emisores.destroy');
     });
 
-    Route::middleware('permission:informes.ver')->group(function () {
-        Route::get('/informes/ventas', [InformeController::class, 'ventas'])->name('informes.ventas');
-        Route::get('/informes/stock', [InformeController::class, 'stock'])->name('informes.stock');
-        Route::get('/informes/libro-iva', [InformeController::class, 'libroIva'])->name('informes.libro-iva');
-        Route::get('/informes/cuentas-corrientes', [InformeController::class, 'cuentasCorrientes'])->name('informes.cuentas-corrientes');
-        Route::get('/informes/cajas', [InformeController::class, 'cajas'])->name('informes.cajas');
+    Route::middleware('permission:informes.ver')->prefix('informes')->name('informes.')->group(function () {
+        Route::get('/', [InformeController::class, 'index'])->name('index');
+        Route::get('/ventas', [InformeController::class, 'ventas'])->name('ventas');
+        Route::get('/productos', [InformeController::class, 'productos'])->name('productos');
+        Route::get('/rentabilidad', [InformeController::class, 'rentabilidad'])->name('rentabilidad');
+        Route::get('/categorias', [InformeController::class, 'categorias'])->name('categorias');
+        Route::get('/pedidos', [InformeController::class, 'pedidos'])->name('pedidos');
+        Route::get('/stock', [InformeController::class, 'stock'])->name('stock');
+        Route::get('/libro-iva', [InformeController::class, 'libroIva'])->name('libro-iva');
+        Route::get('/cuentas-corrientes', [InformeController::class, 'cuentasCorrientes'])->name('cuentas-corrientes');
+        Route::get('/cajas', [InformeController::class, 'cajas'])->name('cajas');
     });
 
     Route::middleware('permission:empresas.gestionar')->group(function () {
