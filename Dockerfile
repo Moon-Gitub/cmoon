@@ -50,4 +50,13 @@ COPY --chown=www-data:www-data . /var/www/html
 COPY --from=vendor --chown=www-data:www-data /app/vendor /var/www/html/vendor
 COPY --from=assets --chown=www-data:www-data /app/public/build /var/www/html/public/build
 
+# AppImage >100MB: va en partes en git y se recompone acá
+RUN set -e; \
+    DIR=/var/www/html/public/descargas; \
+    if [ -f "$DIR/POSMoon-Offline-Linux.AppImage.part0" ]; then \
+      cat "$DIR"/POSMoon-Offline-Linux.AppImage.part* > "$DIR/POSMoon-Offline-Linux.AppImage"; \
+      chmod +x "$DIR/POSMoon-Offline-Linux.AppImage"; \
+      rm -f "$DIR"/POSMoon-Offline-Linux.AppImage.part*; \
+    fi
+
 RUN php artisan storage:link || true

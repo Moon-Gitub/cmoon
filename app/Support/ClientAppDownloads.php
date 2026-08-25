@@ -58,7 +58,7 @@ class ClientAppDownloads
 
             foreach ($config['patterns'] ?? [] as $pattern) {
                 foreach (glob($directory.DIRECTORY_SEPARATOR.$pattern) ?: [] as $path) {
-                    if (is_file($path)) {
+                    if (is_file($path) && ! preg_match('/\.part\d+$/', $path)) {
                         $candidates[] = $path;
                     }
                 }

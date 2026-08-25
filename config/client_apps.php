@@ -7,8 +7,11 @@ return [
     */
     'directories' => array_values(array_filter([
         env('CLIENT_APPS_DIR'),
+        // Volumen persistente en Docker (sobrevive redeploys; útil para AppImage >100MB)
+        storage_path('app/descargas'),
         public_path('descargas'),
         base_path('desktop/entregas'),
+        base_path('desktop/dist'),
         base_path('mobile/dist'),
     ])),
 
@@ -31,6 +34,8 @@ return [
                 'POSMoon-Offline-*-amd64.deb',
                 'POSMoon-Offline-Linux.AppImage',
                 'POSMoon-Offline-Linux.deb',
+                'CMoon*.AppImage',
+                '*POS*-*.AppImage',
             ],
         ],
         'android' => [
@@ -40,6 +45,8 @@ return [
             'patterns' => [
                 'POSMoon*.apk',
                 'POSMoon-Mobile.apk',
+                'CMoon*.apk',
+                '*POS*-*.apk',
             ],
         ],
     ],

@@ -37,3 +37,7 @@ CREDENCIALES.local.md
 /mobile/android/app/build
 /mobile/android/.gradle
 /mobile/dist
+
+# AppImage completo (se versiona en .part* y se recompone en el Dockerfile)
+/public/descargas/*.AppImage
+!/public/descargas/*.AppImage.part*
