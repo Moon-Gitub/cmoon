@@ -6,6 +6,7 @@ use App\Models\Presupuesto;
 use App\Models\PresupuestoItem;
 use App\Models\Producto;
 use App\Services\PresupuestoService;
+use App\Support\TableSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -16,15 +17,29 @@ class PresupuestoController extends Controller
 
     public function index(Request $request): View
     {
-        $presupuestos = Presupuesto::with(['cliente', 'usuario'])
-            ->when($request->input('estado'), fn ($q, $estado) => $q->where('estado', $estado))
-            ->orderByDesc('id')
-            ->paginate(25)
-            ->withQueryString();
+        $query = Presupuesto::with(['cliente', 'usuario'])
+            ->when($request->input('estado'), fn ($q, $estado) => $q->where('estado', $estado));
+
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'numero' => 'id',
+            'fecha' => 'fecha',
+            'cliente' => fn ($q, $d) => $q->orderBy(
+                \App\Models\Cliente::select('nombre')->whereColumn('clientes.id', 'presupuestos.cliente_id'),
+                $d
+            ),
+            'vendedor' => fn ($q, $d) => $q->orderBy(
+                \App\Models\User::select('name')->whereColumn('users.id', 'presupuestos.user_id'),
+                $d
+            ),
+            'total' => 'total',
+            'estado' => 'estado',
+        ], 'numero', 'desc');
+
+        $presupuestos = $query->paginate(25)->withQueryString();
 
         $pendientesAprobacion = Presupuesto::where('estado', 'pendiente_aprobacion')->count();
 
-        return view('presupuestos.index', compact('presupuestos', 'pendientesAprobacion'));
+        return view('presupuestos.index', compact('presupuestos', 'pendientesAprobacion', 'sort', 'dir'));
     }
 
     public function create(): View

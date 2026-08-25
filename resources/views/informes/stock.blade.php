@@ -29,15 +29,15 @@
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <tr>
-                    <th class="px-4 py-3">Producto</th>
-                    <th class="px-4 py-3">Categoría</th>
+                        <x-sortable-th column="producto" label="Producto" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="categoria" label="Categoría" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
                     @foreach ($sucursales as $sucursal)
                         <th class="px-4 py-3 text-right">{{ $sucursal->nombre }}</th>
                     @endforeach
-                    <th class="px-4 py-3 text-right">Total</th>
-                    <th class="px-4 py-3 text-right">Mínimo</th>
-                    <th class="px-4 py-3 text-right">Valor costo</th>
-                </tr>
+                        <x-sortable-th column="total" label="Total" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" align="right" />
+                        <x-sortable-th column="minimo" label="Mínimo" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" align="right" />
+                        <x-sortable-th column="valor_costo" label="Valor costo" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" align="right" />
+                    </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($productos as $producto)

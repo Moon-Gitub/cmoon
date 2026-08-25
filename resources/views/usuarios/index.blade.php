@@ -5,7 +5,8 @@
 @section('contenido')
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <form method="GET" class="flex items-center gap-2">
-            <input type="text" name="buscar" value="{{ request('buscar') }}" placeholder="Buscar por nombre, usuario o email"
+                <x-sort-hidden :sort="$sort ?? null" :dir="$dir ?? null" />
+<input type="text" name="buscar" value="{{ request('buscar') }}" placeholder="Buscar por nombre, usuario o email"
                    class="w-72 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
             <button class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50">Buscar</button>
         </form>
@@ -22,15 +23,15 @@
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <tr>
-                    <th class="px-4 py-3">Nombre</th>
-                    <th class="px-4 py-3">Usuario</th>
-                    <th class="px-4 py-3">Email</th>
-                    <th class="px-4 py-3">Rol</th>
-                    <th class="px-4 py-3">Sucursal</th>
-                    <th class="px-4 py-3">Estado</th>
-                    <th class="px-4 py-3">Último acceso</th>
-                    <th class="px-4 py-3 text-right">Acciones</th>
-                </tr>
+                        <x-sortable-th column="nombre" label="Nombre" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="usuario" label="Usuario" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="email" label="Email" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <th class="px-4 py-3">Rol</th>
+                        <x-sortable-th column="sucursal" label="Sucursal" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="estado" label="Estado" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="ultimo_acceso" label="Último acceso" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" />
+                        <th class="px-4 py-3 text-right">Acciones</th>
+                    </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($usuarios as $u)

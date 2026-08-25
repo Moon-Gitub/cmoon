@@ -10,6 +10,7 @@ use App\Models\Producto;
 use App\Models\Proveedor;
 use App\Models\Sucursal;
 use App\Services\StockService;
+use App\Support\TableSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,17 +23,33 @@ class CompraController extends Controller
         $desde = $request->date('desde') ?? now()->startOfMonth();
         $hasta = $request->date('hasta') ?? now();
 
-        $compras = Compra::with(['proveedor', 'sucursal', 'usuario'])
-            ->whereBetween('fecha', [$desde->toDateString(), $hasta->toDateString()])
-            ->orderByDesc('fecha')->orderByDesc('id')
-            ->paginate(25)
-            ->withQueryString();
+        $query = Compra::with(['proveedor', 'sucursal', 'usuario'])
+            ->whereBetween('fecha', [$desde->toDateString(), $hasta->toDateString()]);
+
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'numero' => 'id',
+            'fecha' => 'fecha',
+            'proveedor' => fn ($q, $d) => $q->orderBy(
+                \App\Models\Proveedor::select('razon_social')->whereColumn('proveedores.id', 'compras.proveedor_id'),
+                $d
+            ),
+            'factura' => 'factura_numero',
+            'condicion' => 'condicion',
+            'total' => 'total',
+            'estado' => 'estado',
+        ], 'fecha', 'desc');
+
+        if ($sort !== 'numero') {
+            $query->orderByDesc('compras.id');
+        }
+
+        $compras = $query->paginate(25)->withQueryString();
 
         $totalPeriodo = Compra::where('estado', 'completada')
             ->whereBetween('fecha', [$desde->toDateString(), $hasta->toDateString()])
             ->sum('total');
 
-        return view('compras.index', compact('compras', 'totalPeriodo', 'desde', 'hasta'));
+        return view('compras.index', compact('compras', 'totalPeriodo', 'desde', 'hasta', 'sort', 'dir'));
     }
 
     public function create(): View

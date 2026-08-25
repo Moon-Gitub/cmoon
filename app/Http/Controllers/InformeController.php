@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Comprobante;
 use App\Models\Venta;
 use App\Models\VentaPago;
+use App\Support\TableSort;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -59,15 +60,26 @@ class InformeController extends Controller
 
     public function stock(Request $request): View
     {
-        $productos = \App\Models\Producto::with(['stocks.sucursal', 'categoria'])
+        $query = \App\Models\Producto::with(['stocks.sucursal', 'categoria'])
+            ->withSum('stocks as stock_total', 'cantidad')
             ->where('activo', true)
             ->where('es_combo', false)
             ->when($request->input('filtro') === 'bajo', function ($q) {
                 $q->whereRaw('(select coalesce(sum(cantidad), 0) from stocks where stocks.producto_id = productos.id) <= productos.stock_minimo');
-            })
-            ->orderBy('nombre')
-            ->paginate(50)
-            ->withQueryString();
+            });
+
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'producto' => 'nombre',
+            'categoria' => fn ($q, $d) => $q->orderBy(
+                \App\Models\Categoria::select('nombre')->whereColumn('categorias.id', 'productos.categoria_id'),
+                $d
+            ),
+            'total' => 'stock_total',
+            'minimo' => 'stock_minimo',
+            'valor_costo' => fn ($q, $d) => $q->orderByRaw('(select coalesce(sum(cantidad), 0) from stocks where stocks.producto_id = productos.id) * productos.precio_compra '.$d),
+        ], 'producto');
+
+        $productos = $query->paginate(50)->withQueryString();
 
         $valorizado = DB::table('stocks')
             ->join('productos', 'productos.id', '=', 'stocks.producto_id')
@@ -81,6 +93,8 @@ class InformeController extends Controller
             'valorCosto' => (float) ($valorizado->costo ?? 0),
             'valorVenta' => (float) ($valorizado->venta ?? 0),
             'sucursales' => \App\Models\Sucursal::where('activa', true)->get(),
+            'sort' => $sort,
+            'dir' => $dir,
         ]);
     }
 
@@ -89,11 +103,25 @@ class InformeController extends Controller
         $desde = $request->date('desde') ?? now()->startOfMonth();
         $hasta = $request->date('hasta') ?? now();
 
-        $comprobantes = Comprobante::with(['emisor', 'puntoVenta'])
+        $query = Comprobante::with(['emisor', 'puntoVenta'])
             ->where('estado', 'autorizado')
-            ->whereBetween('fecha_emision', [$desde->toDateString(), $hasta->toDateString()])
-            ->orderBy('fecha_emision')->orderBy('numero')
-            ->get();
+            ->whereBetween('fecha_emision', [$desde->toDateString(), $hasta->toDateString()]);
+
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'fecha' => 'fecha_emision',
+            'comprobante' => 'numero',
+            'receptor' => 'receptor_nombre',
+            'neto' => 'neto',
+            'iva' => 'iva',
+            'total' => 'total',
+            'cae' => 'cae',
+        ], 'fecha', 'asc');
+
+        if ($sort === 'fecha') {
+            $query->orderBy('numero');
+        }
+
+        $comprobantes = $query->get();
 
         $totales = [
             'neto' => (float) $comprobantes->sum('neto'),
@@ -106,18 +134,23 @@ class InformeController extends Controller
             return $this->libroIvaCsv($comprobantes, $desde->format('Ymd'), $hasta->format('Ymd'));
         }
 
-        return view('informes.libro-iva', compact('comprobantes', 'totales', 'desde', 'hasta'));
+        return view('informes.libro-iva', compact('comprobantes', 'totales', 'desde', 'hasta', 'sort', 'dir'));
     }
 
     public function cuentasCorrientes(Request $request): View
     {
-        $clientes = \App\Models\Cliente::where('activo', true)
+        $query = \App\Models\Cliente::where('activo', true)
             ->withSum('movimientosCuenta as saldo', 'importe')
             ->when($request->input('filtro') === 'con_saldo', fn ($q) => $q->having('saldo', '>', 0))
-            ->when($request->input('filtro') === 'a_favor', fn ($q) => $q->having('saldo', '<', 0))
-            ->orderByDesc('saldo')
-            ->paginate(50)
-            ->withQueryString();
+            ->when($request->input('filtro') === 'a_favor', fn ($q) => $q->having('saldo', '<', 0));
+
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'cliente' => 'nombre',
+            'documento' => 'documento',
+            'saldo' => 'saldo',
+        ], 'saldo', 'desc');
+
+        $clientes = $query->paginate(50)->withQueryString();
 
         $morphCliente = (new \App\Models\Cliente)->getMorphClass();
         $totales = [
@@ -125,7 +158,7 @@ class InformeController extends Controller
             'clientes_listados' => $clientes->total(),
         ];
 
-        return view('informes.cuentas-corrientes', compact('clientes', 'totales'));
+        return view('informes.cuentas-corrientes', compact('clientes', 'totales', 'sort', 'dir'));
     }
 
     public function cajas(Request $request): View
@@ -133,7 +166,7 @@ class InformeController extends Controller
         $desde = $request->date('desde') ?? now()->startOfMonth();
         $hasta = $request->date('hasta')?->endOfDay() ?? now()->endOfDay();
 
-        $sesiones = \App\Models\CajaSesion::with(['caja', 'usuario'])
+        $query = \App\Models\CajaSesion::with(['caja', 'usuario'])
             ->whereBetween('abierta_at', [$desde, $hasta])
             ->withCount(['ventas as ventas_count' => fn ($q) => $q->where('estado', 'completada')])
             ->addSelect([
@@ -141,10 +174,25 @@ class InformeController extends Controller
                     ->selectRaw('COALESCE(SUM('.Venta::sqlTotalConSigno().'), 0)')
                     ->whereColumn('ventas.caja_sesion_id', 'caja_sesiones.id')
                     ->where('ventas.estado', 'completada'),
-            ])
-            ->orderByDesc('abierta_at')
-            ->paginate(25)
-            ->withQueryString();
+            ]);
+
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'caja' => fn ($q, $d) => $q->orderBy(
+                \App\Models\Caja::select('nombre')->whereColumn('cajas.id', 'caja_sesiones.caja_id'),
+                $d
+            ),
+            'cajero' => fn ($q, $d) => $q->orderBy(
+                \App\Models\User::select('name')->whereColumn('users.id', 'caja_sesiones.user_id'),
+                $d
+            ),
+            'apertura' => 'abierta_at',
+            'cierre' => 'cerrada_at',
+            'ventas' => 'ventas_count',
+            'total' => 'ventas_total',
+            'estado' => 'estado',
+        ], 'apertura', 'desc');
+
+        $sesiones = $query->paginate(25)->withQueryString();
 
         $totales = [
             'sesiones' => $sesiones->total(),
@@ -154,7 +202,7 @@ class InformeController extends Controller
                 ->sum(DB::raw(Venta::sqlTotalConSigno())),
         ];
 
-        return view('informes.cajas', compact('sesiones', 'totales', 'desde', 'hasta'));
+        return view('informes.cajas', compact('sesiones', 'totales', 'desde', 'hasta', 'sort', 'dir'));
     }
 
     private function libroIvaCsv($comprobantes, string $desde, string $hasta): StreamedResponse

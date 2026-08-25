@@ -76,7 +76,8 @@
     @endcan
 
     <form method="GET" class="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div>
+                <x-sort-hidden :sort="$sort ?? null" :dir="$dir ?? null" />
+<div>
             <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Desde</label>
             <input type="date" name="desde" value="{{ $desde->format('Y-m-d') }}"
                    class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -115,16 +116,16 @@
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <tr>
-                    <th class="px-4 py-3">Fecha</th>
-                    <th class="px-4 py-3">Recibo</th>
-                    <th class="px-4 py-3">Proveedor</th>
-                    <th class="px-4 py-3">Factura</th>
-                    <th class="px-4 py-3 text-right">Neto</th>
-                    <th class="px-4 py-3 text-right">Alícuota</th>
-                    <th class="px-4 py-3 text-right">Retenido</th>
-                    <th class="px-4 py-3 text-right">Neto pagado</th>
-                    <th class="px-4 py-3"></th>
-                </tr>
+                        <x-sortable-th column="fecha" label="Fecha" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" />
+                        <x-sortable-th column="recibo" label="Recibo" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="proveedor" label="Proveedor" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="factura" label="Factura" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="neto" label="Neto" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" align="right" />
+                        <x-sortable-th column="alicuota" label="Alícuota" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" align="right" />
+                        <x-sortable-th column="retenido" label="Retenido" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" align="right" />
+                        <x-sortable-th column="neto_pagado" label="Neto pagado" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" align="right" />
+                        <th class="px-4 py-3"></th>
+                    </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($retenciones as $retencion)

@@ -7,7 +7,9 @@ use App\Models\Empresa;
 use App\Models\MedioPago;
 use App\Models\MovimientoCuenta;
 use App\Models\Proveedor;
+use App\Models\User;
 use App\Services\ProveedorCuentaCorrienteService;
+use App\Support\TableSort;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,16 +21,16 @@ class CuentaCorrienteController extends Controller
         private readonly ProveedorCuentaCorrienteService $proveedorCuenta,
     ) {}
 
-    public function cliente(Cliente $cliente): View
+    public function cliente(Request $request, Cliente $cliente): View
     {
-        return $this->vistaCuenta($cliente, $cliente->nombre, 'clientes.index');
+        return $this->vistaCuenta($request, $cliente, $cliente->nombre, 'clientes.index');
     }
 
-    public function proveedor(Proveedor $proveedor): View
+    public function proveedor(Request $request, Proveedor $proveedor): View
     {
         $empresa = Empresa::findOrFail(auth()->user()->empresa_id);
 
-        return $this->vistaCuenta($proveedor, $proveedor->razon_social, 'proveedores.index', [
+        return $this->vistaCuenta($request, $proveedor, $proveedor->razon_social, 'proveedores.index', [
             'empresa' => $empresa,
             'mediosPago' => MedioPago::where('activo', true)->orderBy('nombre')->get(),
             'agenteRetencion' => $empresa->agente_retencion_iibb,
@@ -94,13 +96,24 @@ class CuentaCorrienteController extends Controller
         return back()->with('ok', 'Pago registrado.');
     }
 
-    private function vistaCuenta(Model $titular, string $nombre, string $rutaVolver, array $extra = []): View
+    private function vistaCuenta(Request $request, Model $titular, string $nombre, string $rutaVolver, array $extra = []): View
     {
-        $movimientos = $titular->movimientosCuenta()
-            ->with(['usuario', 'medioPago', 'referencia'])
-            ->orderByDesc('fecha')
-            ->orderByDesc('id')
-            ->paginate(25);
+        $query = $titular->movimientosCuenta()
+            ->with(['usuario', 'medioPago', 'referencia']);
+
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'fecha' => 'fecha',
+            'tipo' => 'tipo',
+            'concepto' => 'concepto',
+            'factura' => 'factura_numero',
+            'usuario' => fn ($q, $d) => $q->orderBy(
+                User::select('name')->whereColumn('users.id', 'movimientos_cuenta.user_id'),
+                $d
+            ),
+            'importe' => 'importe',
+        ], 'fecha', 'desc');
+
+        $movimientos = $query->orderByDesc('id')->paginate(25)->withQueryString();
 
         return view('cuentas.show', array_merge([
             'titular' => $titular,
@@ -109,6 +122,8 @@ class CuentaCorrienteController extends Controller
             'movimientos' => $movimientos,
             'saldo' => $titular->saldoCuenta(),
             'esCliente' => $titular instanceof Cliente,
+            'sort' => $sort,
+            'dir' => $dir,
         ], $extra));
     }
 

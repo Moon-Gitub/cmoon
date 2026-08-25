@@ -5,7 +5,8 @@
 @section('contenido')
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <form method="GET" class="flex flex-wrap items-center gap-2">
-            <input type="text" name="buscar" value="{{ request('buscar') }}" placeholder="Nombre o código"
+                <x-sort-hidden :sort="$sort ?? null" :dir="$dir ?? null" />
+<input type="text" name="buscar" value="{{ request('buscar') }}" placeholder="Nombre o código"
                    class="w-64 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
             <select name="categoria" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <option value="">Todas las categorías</option>
@@ -62,15 +63,15 @@
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <tr>
-                    <th class="px-4 py-3">Código</th>
-                    <th class="px-4 py-3">Nombre</th>
-                    <th class="px-4 py-3">Categoría</th>
-                    <th class="px-4 py-3 text-right">P. compra</th>
-                    <th class="px-4 py-3 text-right">P. venta</th>
-                    <th class="px-4 py-3 text-right">IVA %</th>
-                    <th class="px-4 py-3 text-right">Stock</th>
-                    <th class="px-4 py-3 text-right">Acciones</th>
-                </tr>
+                        <x-sortable-th column="codigo" label="Código" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="nombre" label="Nombre" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="categoria" label="Categoría" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="precio_compra" label="P. compra" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" align="right" />
+                        <x-sortable-th column="precio_venta" label="P. venta" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" align="right" />
+                        <x-sortable-th column="iva" label="IVA %" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" align="right" />
+                        <x-sortable-th column="stock" label="Stock" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" align="right" />
+                        <th class="px-4 py-3 text-right">Acciones</th>
+                    </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($productos as $p)

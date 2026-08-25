@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Categoria;
 use App\Models\Empresa;
+use App\Support\TableSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -11,10 +12,20 @@ use Illuminate\View\View;
 
 class CategoriaController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $query = Categoria::withCount('productos');
+
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'nombre' => 'nombre',
+            'productos' => 'productos_count',
+            'estado' => 'activa',
+        ], 'nombre');
+
         return view('categorias.index', [
-            'categorias' => Categoria::withCount('productos')->orderBy('nombre')->get(),
+            'categorias' => $query->get(),
+            'sort' => $sort,
+            'dir' => $dir,
         ]);
     }
 

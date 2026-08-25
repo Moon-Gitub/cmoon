@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Cliente;
 use App\Models\MedioPago;
+use App\Models\User;
 use App\Models\Venta;
 use App\Services\VentaService;
+use App\Support\TableSort;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +22,6 @@ class VentaController extends Controller
         $hasta = $request->date('hasta')?->endOfDay() ?? now()->endOfDay();
         $estado = (string) $request->input('estado', '');
         $medioPagoId = $request->filled('medio_pago_id') ? $request->integer('medio_pago_id') : null;
-        [$sort, $dir] = $this->resolverOrden($request);
 
         $filtradas = $this->filtrarVentas(Venta::query(), $request, $desde, $hasta);
 
@@ -27,7 +29,33 @@ class VentaController extends Controller
             ->with(['cliente', 'vendedor', 'pagos.medioPago'])
             ->withExists(['comprobantes as facturada' => fn ($q) => $q->whereIn('estado', ['autorizado', 'pendiente'])]);
 
-        $this->aplicarOrden($ventas, $sort, $dir);
+        [$sort, $dir] = TableSort::apply($ventas, $request, [
+            'numero' => 'ventas.numero',
+            'fecha' => 'ventas.fecha',
+            'cliente' => fn ($q, $d) => $q->orderBy(
+                Cliente::select('nombre')->whereColumn('clientes.id', 'ventas.cliente_id'),
+                $d
+            ),
+            'vendedor' => fn ($q, $d) => $q->orderBy(
+                User::select('name')->whereColumn('users.id', 'ventas.user_id'),
+                $d
+            ),
+            'pago' => fn ($q, $d) => $q->orderBy(
+                DB::table('venta_pagos')
+                    ->join('medios_pago', 'medios_pago.id', '=', 'venta_pagos.medio_pago_id')
+                    ->whereColumn('venta_pagos.venta_id', 'ventas.id')
+                    ->orderBy('medios_pago.nombre')
+                    ->limit(1)
+                    ->select('medios_pago.nombre'),
+                $d
+            ),
+            'estado' => fn ($q, $d) => $q->orderBy('ventas.estado', $d)->orderBy('ventas.tipo', $d),
+            'total' => 'ventas.total',
+        ], 'fecha', 'desc');
+
+        if ($sort !== 'numero') {
+            $ventas->orderByDesc('ventas.id');
+        }
 
         $ventas = $ventas
             ->paginate(25)
@@ -66,52 +94,6 @@ class VentaController extends Controller
             'sort' => $sort,
             'dir' => $dir,
         ]);
-    }
-
-    /** @return array{0: string, 1: string} */
-    private function resolverOrden(Request $request): array
-    {
-        $sort = (string) $request->input('sort', 'fecha');
-        $dir = strtolower((string) $request->input('dir', 'desc')) === 'asc' ? 'asc' : 'desc';
-
-        $permitidas = ['numero', 'fecha', 'cliente', 'vendedor', 'pago', 'estado', 'total'];
-        if (! in_array($sort, $permitidas, true)) {
-            $sort = 'fecha';
-        }
-
-        return [$sort, $dir];
-    }
-
-    private function aplicarOrden(Builder $query, string $sort, string $dir): void
-    {
-        match ($sort) {
-            'numero' => $query->orderBy('ventas.numero', $dir),
-            'cliente' => $query
-                ->leftJoin('clientes', 'clientes.id', '=', 'ventas.cliente_id')
-                ->orderBy('clientes.nombre', $dir)
-                ->select('ventas.*'),
-            'vendedor' => $query
-                ->leftJoin('users', 'users.id', '=', 'ventas.user_id')
-                ->orderBy('users.name', $dir)
-                ->select('ventas.*'),
-            'pago' => $query->orderBy(
-                DB::table('venta_pagos')
-                    ->join('medios_pago', 'medios_pago.id', '=', 'venta_pagos.medio_pago_id')
-                    ->whereColumn('venta_pagos.venta_id', 'ventas.id')
-                    ->orderBy('medios_pago.nombre')
-                    ->limit(1)
-                    ->select('medios_pago.nombre'),
-                $dir
-            ),
-            'estado' => $query->orderBy('ventas.estado', $dir)->orderBy('ventas.tipo', $dir),
-            'total' => $query->orderBy('ventas.total', $dir),
-            default => $query->orderBy('ventas.fecha', $dir),
-        };
-
-        // Desempate estable al paginar
-        if ($sort !== 'numero') {
-            $query->orderByDesc('ventas.id');
-        }
     }
 
     private function filtrarVentas(Builder $query, Request $request, $desde, $hasta): Builder

@@ -7,6 +7,7 @@ use App\Models\Empresa;
 use App\Models\Producto;
 use App\Models\Sucursal;
 use App\Services\StockService;
+use App\Support\TableSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,7 +17,8 @@ class ProductoController extends Controller
 {
     public function index(Request $request): View
     {
-        $productos = Producto::with(['categoria', 'stocks'])
+        $query = Producto::with(['categoria', 'stocks'])
+            ->withSum('stocks as stock_total', 'cantidad')
             ->when($request->filled('buscar'), function ($query) use ($request) {
                 $buscar = $request->string('buscar');
                 $query->where(fn ($q) => $q
@@ -26,14 +28,28 @@ class ProductoController extends Controller
             ->when($request->filled('categoria'), fn ($q) => $q->where('categoria_id', $request->integer('categoria')))
             ->when($request->input('estado') === 'inactivos', fn ($q) => $q->where('activo', false))
             ->when($request->input('estado') !== 'inactivos', fn ($q) => $q->where('activo', true))
-            ->when($request->filled('canal'), fn ($q) => $q->publicarEn((string) $request->input('canal')))
-            ->orderBy('nombre')
-            ->paginate(20)
-            ->withQueryString();
+            ->when($request->filled('canal'), fn ($q) => $q->publicarEn((string) $request->input('canal')));
+
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'codigo' => 'codigo',
+            'nombre' => 'nombre',
+            'categoria' => fn ($q, $d) => $q->orderBy(
+                \App\Models\Categoria::select('nombre')->whereColumn('categorias.id', 'productos.categoria_id'),
+                $d
+            ),
+            'precio_compra' => 'precio_compra',
+            'precio_venta' => 'precio_venta',
+            'iva' => 'alicuota_iva',
+            'stock' => 'stock_total',
+        ], 'nombre');
+
+        $productos = $query->paginate(20)->withQueryString();
 
         return view('productos.index', [
             'productos' => $productos,
             'categorias' => Categoria::orderBy('nombre')->get(),
+            'sort' => $sort,
+            'dir' => $dir,
         ]);
     }
 

@@ -7,6 +7,7 @@ use App\Models\Emisor;
 use App\Models\PuntoVenta;
 use App\Models\Venta;
 use App\Services\Afip\FacturacionService;
+use App\Support\TableSort;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use Illuminate\Http\RedirectResponse;
@@ -20,18 +21,32 @@ class FacturacionController extends Controller
         $desde = $request->date('desde') ?? now()->startOfMonth();
         $hasta = $request->date('hasta') ?? now();
 
-        $comprobantes = Comprobante::with(['venta', 'emisor', 'puntoVenta'])
+        $query = Comprobante::with(['venta', 'emisor', 'puntoVenta'])
             ->whereBetween('fecha_emision', [$desde->toDateString(), $hasta->toDateString()])
-            ->when($request->input('estado'), fn ($q, $estado) => $q->where('estado', $estado))
-            ->orderByDesc('id')
-            ->paginate(25)
-            ->withQueryString();
+            ->when($request->input('estado'), fn ($q, $estado) => $q->where('estado', $estado));
+
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'fecha' => 'fecha_emision',
+            'comprobante' => 'numero',
+            'receptor' => 'receptor_nombre',
+            'total' => 'total',
+            'cae' => 'cae',
+            'estado' => 'estado',
+        ], 'fecha', 'desc');
+
+        if ($sort !== 'comprobante') {
+            $query->orderByDesc('id');
+        }
+
+        $comprobantes = $query->paginate(25)->withQueryString();
 
         return view('facturacion.index', [
             'comprobantes' => $comprobantes,
             'desde' => $desde,
             'hasta' => $hasta,
             'hayEmisores' => Emisor::where('activo', true)->exists(),
+            'sort' => $sort,
+            'dir' => $dir,
         ]);
     }
 

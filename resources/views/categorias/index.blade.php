@@ -26,11 +26,11 @@
                 <table class="w-full text-sm">
                     <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                         <tr>
-                            <th class="px-4 py-3">Nombre</th>
-                            <th class="px-4 py-3">Productos</th>
-                            <th class="px-4 py-3">Estado</th>
+                        <x-sortable-th column="nombre" label="Nombre" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="productos" label="Productos" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" />
+                        <x-sortable-th column="estado" label="Estado" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
                             <th class="px-4 py-3 text-right">Acciones</th>
-                        </tr>
+                    </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($categorias as $cat)

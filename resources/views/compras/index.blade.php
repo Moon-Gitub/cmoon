@@ -4,7 +4,8 @@
 
 @section('contenido')
     <form method="GET" class="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div>
+                <x-sort-hidden :sort="$sort ?? null" :dir="$dir ?? null" />
+<div>
             <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Desde</label>
             <input type="date" name="desde" value="{{ $desde->format('Y-m-d') }}"
                    class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -28,14 +29,14 @@
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <tr>
-                    <th class="px-4 py-3">#</th>
-                    <th class="px-4 py-3">Fecha</th>
-                    <th class="px-4 py-3">Proveedor</th>
-                    <th class="px-4 py-3">Factura</th>
-                    <th class="px-4 py-3">Condición</th>
-                    <th class="px-4 py-3 text-right">Total</th>
-                    <th class="px-4 py-3">Estado</th>
-                </tr>
+                        <x-sortable-th column="numero" label="#" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" />
+                        <x-sortable-th column="fecha" label="Fecha" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" />
+                        <x-sortable-th column="proveedor" label="Proveedor" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="factura" label="Factura" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="condicion" label="Condición" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="total" label="Total" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" align="right" />
+                        <x-sortable-th column="estado" label="Estado" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                    </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($compras as $compra)

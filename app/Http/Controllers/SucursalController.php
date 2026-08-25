@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Empresa;
 use App\Models\Sucursal;
+use App\Support\TableSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -11,10 +12,23 @@ use Illuminate\View\View;
 
 class SucursalController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $query = Sucursal::withCount('usuarios');
+
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'nombre' => 'nombre',
+            'codigo' => 'codigo',
+            'domicilio' => 'domicilio',
+            'telefono' => 'telefono',
+            'usuarios' => 'usuarios_count',
+            'estado' => 'activa',
+        ], 'nombre');
+
         return view('sucursales.index', [
-            'sucursales' => Sucursal::withCount('usuarios')->orderBy('nombre')->get(),
+            'sucursales' => $query->get(),
+            'sort' => $sort,
+            'dir' => $dir,
         ]);
     }
 

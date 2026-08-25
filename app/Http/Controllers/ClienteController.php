@@ -6,6 +6,7 @@ use App\Models\Cliente;
 use App\Models\Empresa;
 use App\Models\ListaPrecio;
 use App\Models\User;
+use App\Support\TableSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -15,19 +16,30 @@ class ClienteController extends Controller
 {
     public function index(Request $request): View
     {
-        $clientes = Cliente::with(['listaPrecio', 'vendedor'])
+        $query = Cliente::with(['listaPrecio', 'vendedor'])
             ->when($request->filled('buscar'), function ($query) use ($request) {
                 $buscar = $request->string('buscar');
                 $query->where(fn ($q) => $q
                     ->where('nombre', 'like', "%{$buscar}%")
                     ->orWhere('documento', 'like', "%{$buscar}%")
                     ->orWhere('email', 'like', "%{$buscar}%"));
-            })
-            ->orderBy('nombre')
-            ->paginate(20)
-            ->withQueryString();
+            });
 
-        return view('clientes.index', compact('clientes'));
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'nombre' => 'nombre',
+            'documento' => 'documento',
+            'condicion_iva' => 'condicion_iva',
+            'telefono' => 'telefono',
+            'lista' => fn ($q, $d) => $q->orderBy(
+                \App\Models\ListaPrecio::select('nombre')->whereColumn('listas_precio.id', 'clientes.lista_precio_id'),
+                $d
+            ),
+            'estado' => 'activo',
+        ], 'nombre');
+
+        $clientes = $query->paginate(20)->withQueryString();
+
+        return view('clientes.index', compact('clientes', 'sort', 'dir'));
     }
 
     public function create(): View

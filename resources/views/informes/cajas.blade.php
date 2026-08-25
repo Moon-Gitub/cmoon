@@ -4,7 +4,8 @@
 
 @section('contenido')
     <form method="GET" class="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div>
+                <x-sort-hidden :sort="$sort ?? null" :dir="$dir ?? null" />
+<div>
             <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Desde</label>
             <input type="date" name="desde" value="{{ $desde->format('Y-m-d') }}"
                    class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -32,15 +33,15 @@
         <table class="min-w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <tr>
-                    <th class="px-4 py-3">Caja</th>
-                    <th class="px-4 py-3">Cajero</th>
-                    <th class="px-4 py-3">Apertura</th>
-                    <th class="px-4 py-3">Cierre</th>
-                    <th class="px-4 py-3 text-right">Ventas</th>
-                    <th class="px-4 py-3 text-right">Total</th>
-                    <th class="px-4 py-3">Estado</th>
-                    <th class="px-4 py-3 text-right">Detalle</th>
-                </tr>
+                        <x-sortable-th column="caja" label="Caja" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="cajero" label="Cajero" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="apertura" label="Apertura" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" />
+                        <x-sortable-th column="cierre" label="Cierre" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" />
+                        <x-sortable-th column="ventas" label="Ventas" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" align="right" />
+                        <x-sortable-th column="total" label="Total" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" align="right" />
+                        <x-sortable-th column="estado" label="Estado" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <th class="px-4 py-3 text-right">Detalle</th>
+                    </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($sesiones as $sesion)

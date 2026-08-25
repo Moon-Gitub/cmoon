@@ -4,7 +4,8 @@
 
 @section('contenido')
     <form method="GET" class="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div>
+                <x-sort-hidden :sort="$sort ?? null" :dir="$dir ?? null" />
+<div>
             <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Filtro</label>
             <select name="filtro" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <option value="">Todos los clientes</option>
@@ -32,11 +33,11 @@
         <table class="min-w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <tr>
-                    <th class="px-4 py-3">Cliente</th>
-                    <th class="px-4 py-3">Documento</th>
-                    <th class="px-4 py-3 text-right">Saldo</th>
-                    <th class="px-4 py-3"></th>
-                </tr>
+                        <x-sortable-th column="cliente" label="Cliente" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="documento" label="Documento" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="saldo" label="Saldo" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" align="right" />
+                        <th class="px-4 py-3"></th>
+                    </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($clientes as $cliente)

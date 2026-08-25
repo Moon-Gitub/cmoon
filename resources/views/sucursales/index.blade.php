@@ -16,14 +16,14 @@
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <tr>
-                    <th class="px-4 py-3">Nombre</th>
-                    <th class="px-4 py-3">Código</th>
-                    <th class="px-4 py-3">Domicilio</th>
-                    <th class="px-4 py-3">Teléfono</th>
-                    <th class="px-4 py-3">Usuarios</th>
-                    <th class="px-4 py-3">Estado</th>
-                    <th class="px-4 py-3 text-right">Acciones</th>
-                </tr>
+                        <x-sortable-th column="nombre" label="Nombre" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="codigo" label="Código" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="domicilio" label="Domicilio" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="telefono" label="Teléfono" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="usuarios" label="Usuarios" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" />
+                        <x-sortable-th column="estado" label="Estado" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <th class="px-4 py-3 text-right">Acciones</th>
+                    </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($sucursales as $suc)

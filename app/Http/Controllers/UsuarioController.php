@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Empresa;
 use App\Models\Sucursal;
 use App\Models\User;
+use App\Support\TableSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -16,7 +17,7 @@ class UsuarioController extends Controller
 {
     public function index(Request $request): View
     {
-        $usuarios = User::with(['roles', 'sucursal'])
+        $query = User::with(['roles', 'sucursal'])
             ->where('empresa_id', auth()->user()->empresa_id)
             ->when($request->filled('buscar'), function ($query) use ($request) {
                 $buscar = $request->string('buscar');
@@ -24,12 +25,23 @@ class UsuarioController extends Controller
                     ->where('name', 'like', "%{$buscar}%")
                     ->orWhere('usuario', 'like', "%{$buscar}%")
                     ->orWhere('email', 'like', "%{$buscar}%"));
-            })
-            ->orderBy('name')
-            ->paginate(15)
-            ->withQueryString();
+            });
 
-        return view('usuarios.index', compact('usuarios'));
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'nombre' => 'name',
+            'usuario' => 'usuario',
+            'email' => 'email',
+            'sucursal' => fn ($q, $d) => $q->orderBy(
+                \App\Models\Sucursal::select('nombre')->whereColumn('sucursales.id', 'users.sucursal_id'),
+                $d
+            ),
+            'estado' => 'activo',
+            'ultimo_acceso' => 'ultimo_acceso_at',
+        ], 'nombre');
+
+        $usuarios = $query->paginate(15)->withQueryString();
+
+        return view('usuarios.index', compact('usuarios', 'sort', 'dir'));
     }
 
     public function create(): View

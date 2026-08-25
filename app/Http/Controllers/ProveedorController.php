@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Empresa;
 use App\Models\Proveedor;
+use App\Support\TableSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -12,18 +13,26 @@ class ProveedorController extends Controller
 {
     public function index(Request $request): View
     {
-        $proveedores = Proveedor::query()
+        $query = Proveedor::query()
             ->when($request->filled('buscar'), function ($query) use ($request) {
                 $buscar = $request->string('buscar');
                 $query->where(fn ($q) => $q
                     ->where('razon_social', 'like', "%{$buscar}%")
                     ->orWhere('cuit', 'like', "%{$buscar}%"));
-            })
-            ->orderBy('razon_social')
-            ->paginate(20)
-            ->withQueryString();
+            });
 
-        return view('proveedores.index', compact('proveedores'));
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'razon_social' => 'razon_social',
+            'cuit' => 'cuit',
+            'telefono' => 'telefono',
+            'email' => 'email',
+            'retencion' => 'alicuota_retencion_iibb',
+            'estado' => 'activo',
+        ], 'razon_social');
+
+        $proveedores = $query->paginate(20)->withQueryString();
+
+        return view('proveedores.index', compact('proveedores', 'sort', 'dir'));
     }
 
     public function create(): View

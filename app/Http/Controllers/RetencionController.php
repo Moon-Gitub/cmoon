@@ -7,6 +7,7 @@ use App\Models\Proveedor;
 use App\Models\Retencion;
 use App\Services\RetencionService;
 use App\Services\SircarService;
+use App\Support\TableSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -33,11 +34,27 @@ class RetencionController extends Controller
             $query->where('proveedor_id', $proveedorId);
         }
 
-        $retenciones = $query->orderByDesc('fecha')->orderByDesc('id')
-            ->paginate(25)
-            ->withQueryString();
-
         $totalPeriodo = (clone $query)->where('anulada', false)->sum('monto');
+
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'fecha' => 'fecha',
+            'recibo' => 'numero_recibo',
+            'proveedor' => fn ($q, $d) => $q->orderBy(
+                \App\Models\Proveedor::select('razon_social')->whereColumn('proveedores.id', 'retenciones.proveedor_id'),
+                $d
+            ),
+            'factura' => 'factura_numero',
+            'neto' => 'factura_neto',
+            'alicuota' => 'alicuota',
+            'retenido' => 'monto',
+            'neto_pagado' => 'monto_neto_pagado',
+        ], 'fecha', 'desc');
+
+        if ($sort !== 'recibo') {
+            $query->orderByDesc('id');
+        }
+
+        $retenciones = $query->paginate(25)->withQueryString();
 
         return view('retenciones.index', [
             'retenciones' => $retenciones,
@@ -49,6 +66,8 @@ class RetencionController extends Controller
             'defaults' => $this->retenciones->defaultsEmpresa($empresa),
             'proveedores' => Proveedor::where('activo', true)->orderBy('razon_social')
                 ->get(['id', 'razon_social', 'cuit', 'alicuota_retencion_iibb']),
+            'sort' => $sort,
+            'dir' => $dir,
         ]);
     }
 

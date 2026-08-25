@@ -39,14 +39,14 @@
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <tr>
-                    <th class="px-4 py-3">Fecha</th>
-                    <th class="px-4 py-3">Tipo</th>
-                    <th class="px-4 py-3">Concepto</th>
+                    <x-sortable-th column="fecha" label="Fecha" :sort="$sort" :dir="$dir" default-dir="desc" />
+                    <x-sortable-th column="tipo" label="Tipo" :sort="$sort" :dir="$dir" />
+                    <x-sortable-th column="concepto" label="Concepto" :sort="$sort" :dir="$dir" />
                     @unless ($esCliente)
-                        <th class="px-4 py-3">Factura</th>
+                        <x-sortable-th column="factura" label="Factura" :sort="$sort" :dir="$dir" />
                     @endunless
-                    <th class="px-4 py-3">Usuario</th>
-                    <th class="px-4 py-3 text-right">Importe</th>
+                    <x-sortable-th column="usuario" label="Usuario" :sort="$sort" :dir="$dir" />
+                    <x-sortable-th column="importe" label="Importe" :sort="$sort" :dir="$dir" align="right" default-dir="desc" />
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">

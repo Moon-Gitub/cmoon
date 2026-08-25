@@ -40,13 +40,13 @@
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <tr>
-                    <th class="px-4 py-3">#</th>
-                    <th class="px-4 py-3">Fecha</th>
-                    <th class="px-4 py-3">Cliente</th>
-                    <th class="px-4 py-3">Vendedor</th>
-                    <th class="px-4 py-3 text-right">Total</th>
-                    <th class="px-4 py-3">Estado</th>
-                </tr>
+                        <x-sortable-th column="numero" label="#" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" />
+                        <x-sortable-th column="fecha" label="Fecha" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" />
+                        <x-sortable-th column="cliente" label="Cliente" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="vendedor" label="Vendedor" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                        <x-sortable-th column="total" label="Total" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="desc" align="right" />
+                        <x-sortable-th column="estado" label="Estado" :sort="$sort ?? 'id'" :dir="$dir ?? 'asc'" default-dir="asc" />
+                    </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
                 @forelse ($presupuestos as $presupuesto)

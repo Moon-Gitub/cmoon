@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Empresa;
 use App\Models\MedioPago;
+use App\Support\TableSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -11,10 +12,21 @@ use Illuminate\View\View;
 
 class MedioPagoController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $query = MedioPago::query();
+
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'nombre' => 'nombre',
+            'tipo' => 'tipo',
+            'recargo' => 'recargo_porcentaje',
+            'estado' => 'activo',
+        ], 'nombre');
+
         return view('medios-pago.index', [
-            'medios' => MedioPago::orderBy('nombre')->get(),
+            'medios' => $query->get(),
+            'sort' => $sort,
+            'dir' => $dir,
         ]);
     }
 

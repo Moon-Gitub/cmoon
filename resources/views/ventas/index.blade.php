@@ -20,8 +20,7 @@
 
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <form method="GET" class="flex flex-wrap items-center gap-2">
-                <input type="hidden" name="sort" value="{{ $sort }}">
-                <input type="hidden" name="dir" value="{{ $dir }}">
+                <x-sort-hidden :sort="$sort" :dir="$dir" />
                 <input type="date" name="desde" value="{{ $desde->format('Y-m-d') }}"
                        class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <input type="date" name="hasta" value="{{ $hasta->format('Y-m-d') }}"
@@ -80,36 +79,13 @@
                                        title="Seleccionar página" class="rounded border-slate-300">
                             </th>
                         @endif
-                        @php
-                            $cols = [
-                                'numero' => ['label' => 'N°', 'class' => 'px-4 py-3'],
-                                'fecha' => ['label' => 'Fecha', 'class' => 'px-4 py-3'],
-                                'cliente' => ['label' => 'Cliente', 'class' => 'px-4 py-3'],
-                                'vendedor' => ['label' => 'Vendedor', 'class' => 'px-4 py-3'],
-                                'pago' => ['label' => 'Pago', 'class' => 'px-4 py-3'],
-                                'estado' => ['label' => 'Estado', 'class' => 'px-4 py-3'],
-                                'total' => ['label' => 'Total', 'class' => 'px-4 py-3 text-right'],
-                            ];
-                        @endphp
-                        @foreach ($cols as $col => $meta)
-                            @php
-                                $activa = $sort === $col;
-                                $siguiente = ($activa && $dir === 'asc') ? 'desc' : 'asc';
-                                $href = request()->fullUrlWithQuery(['sort' => $col, 'dir' => $activa ? $siguiente : ($col === 'fecha' || $col === 'numero' || $col === 'total' ? 'desc' : 'asc'), 'page' => null]);
-                            @endphp
-                            <th class="{{ $meta['class'] }}">
-                                <a href="{{ $href }}"
-                                   class="inline-flex items-center gap-1 hover:text-slate-800 {{ $activa ? 'text-slate-800' : '' }}"
-                                   title="Ordenar por {{ strtolower($meta['label']) }}">
-                                    <span>{{ $meta['label'] }}</span>
-                                    @if ($activa)
-                                        <span aria-hidden="true">{{ $dir === 'asc' ? '↑' : '↓' }}</span>
-                                    @else
-                                        <span class="text-slate-300" aria-hidden="true">↕</span>
-                                    @endif
-                                </a>
-                            </th>
-                        @endforeach
+                        <x-sortable-th column="numero" label="N°" :sort="$sort" :dir="$dir" default-dir="desc" />
+                        <x-sortable-th column="fecha" label="Fecha" :sort="$sort" :dir="$dir" default-dir="desc" />
+                        <x-sortable-th column="cliente" label="Cliente" :sort="$sort" :dir="$dir" />
+                        <x-sortable-th column="vendedor" label="Vendedor" :sort="$sort" :dir="$dir" />
+                        <x-sortable-th column="pago" label="Pago" :sort="$sort" :dir="$dir" />
+                        <x-sortable-th column="estado" label="Estado" :sort="$sort" :dir="$dir" />
+                        <x-sortable-th column="total" label="Total" :sort="$sort" :dir="$dir" align="right" default-dir="desc" />
                         <th class="px-4 py-3 text-right">Acciones</th>
                     </tr>
                 </thead>

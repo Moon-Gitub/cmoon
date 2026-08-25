@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Empresa;
 use App\Models\ListaPrecio;
+use App\Support\TableSort;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -11,10 +12,21 @@ use Illuminate\View\View;
 
 class ListaPrecioController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $query = ListaPrecio::query();
+
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'nombre' => 'nombre',
+            'base' => 'base',
+            'ajuste' => 'porcentaje',
+            'estado' => 'activa',
+        ], 'nombre');
+
         return view('listas-precio.index', [
-            'listas' => ListaPrecio::orderBy('nombre')->get(),
+            'listas' => $query->get(),
+            'sort' => $sort,
+            'dir' => $dir,
         ]);
     }
 
