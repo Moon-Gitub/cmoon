@@ -3,7 +3,7 @@
 @section('titulo', 'Productos')
 
 @section('contenido')
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="mb-4 flex flex-wrap items-start justify-between gap-3 pb-3">
         <form method="GET" class="flex flex-wrap items-center gap-2">
                 <x-sort-hidden :sort="$sort ?? null" :dir="$dir ?? null" />
                 <x-filtro-busqueda
@@ -12,35 +12,35 @@
                     placeholder="Código o nombre…"
                     :value="request('buscar')"
                     :navigate="false"
-                    hint="Enter filtra la tabla · ↑↓ Enter o click elige un producto"
+                    hint="Enter filtra · ↑↓ Enter o click elige producto"
                 />
-            <select name="categoria" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <select name="categoria" class="h-[38px] rounded-lg border border-slate-300 px-3 text-sm">
                 <option value="">Todas las categorías</option>
                 @foreach ($categorias as $cat)
                     <option value="{{ $cat->id }}" {{ request('categoria') == $cat->id ? 'selected' : '' }}>{{ $cat->nombre }}</option>
                 @endforeach
             </select>
-            <select name="estado" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <select name="estado" class="h-[38px] rounded-lg border border-slate-300 px-3 text-sm">
                 <option value="">Activos</option>
                 <option value="inactivos" {{ request('estado') === 'inactivos' ? 'selected' : '' }}>Inactivos</option>
             </select>
-            <select name="canal" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <select name="canal" class="h-[38px] rounded-lg border border-slate-300 px-3 text-sm">
                 <option value="">Todos los canales</option>
                 <option value="shopify" {{ request('canal') === 'shopify' ? 'selected' : '' }}>Shopify</option>
                 <option value="whatsapp" {{ request('canal') === 'whatsapp' ? 'selected' : '' }}>WhatsApp</option>
                 <option value="tiendanube" {{ request('canal') === 'tiendanube' ? 'selected' : '' }}>Tiendanube</option>
             </select>
-            <button class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50">Filtrar</button>
+            <button type="submit" class="h-[38px] rounded-lg border border-slate-300 bg-white px-3 text-sm hover:bg-slate-50">Filtrar</button>
         </form>
 
         @can('productos.crear')
             <div class="flex gap-2">
                 <a href="{{ route('productos.importar') }}"
-                   class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50">
+                   class="inline-flex h-[38px] items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium hover:bg-slate-50">
                     Importar CSV
                 </a>
                 <a href="{{ route('productos.create') }}"
-                   class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                   class="inline-flex h-[38px] items-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
                     + Nuevo producto
                 </a>
             </div>

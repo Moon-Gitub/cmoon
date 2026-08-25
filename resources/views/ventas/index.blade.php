@@ -18,7 +18,7 @@
         ])),
     })" @endif>
 
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div class="mb-4 flex flex-wrap items-start justify-between gap-3 pb-3">
             <form method="GET" class="flex flex-wrap items-center gap-2">
                 <x-sort-hidden :sort="$sort" :dir="$dir" />
                 <x-filtro-busqueda
@@ -31,17 +31,17 @@
                     hint="Enter filtra · click o ↑↓ Enter abre la venta"
                 />
                 <input type="date" name="desde" value="{{ $desde->format('Y-m-d') }}"
-                       class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                       class="h-[38px] rounded-lg border border-slate-300 px-3 text-sm">
                 <input type="date" name="hasta" value="{{ $hasta->format('Y-m-d') }}"
-                       class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <select name="estado" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                       class="h-[38px] rounded-lg border border-slate-300 px-3 text-sm">
+                <select name="estado" class="h-[38px] rounded-lg border border-slate-300 px-3 text-sm">
                     <option value="">Todas</option>
                     <option value="completada" {{ request('estado') === 'completada' ? 'selected' : '' }}>Completadas</option>
                     <option value="facturada" {{ request('estado') === 'facturada' ? 'selected' : '' }}>Facturadas</option>
                     <option value="anulada" {{ request('estado') === 'anulada' ? 'selected' : '' }}>Anuladas</option>
                     <option value="devolucion" {{ request('estado') === 'devolucion' ? 'selected' : '' }}>Devoluciones X</option>
                 </select>
-                <select name="medio_pago_id" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <select name="medio_pago_id" class="h-[38px] rounded-lg border border-slate-300 px-3 text-sm">
                     <option value="">Todos los medios</option>
                     @foreach ($mediosPago as $medio)
                         <option value="{{ $medio->id }}" {{ (string) request('medio_pago_id') === (string) $medio->id ? 'selected' : '' }}>
@@ -49,7 +49,7 @@
                         </option>
                     @endforeach
                 </select>
-                <button class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50">Filtrar</button>
+                <button type="submit" class="h-[38px] rounded-lg border border-slate-300 bg-white px-3 text-sm hover:bg-slate-50">Filtrar</button>
             </form>
 
             <div class="flex flex-wrap items-center gap-3">

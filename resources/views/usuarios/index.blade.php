@@ -3,8 +3,8 @@
 @section('titulo', 'Usuarios')
 
 @section('contenido')
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <form method="GET" class="flex flex-wrap items-end gap-2">
+    <div class="mb-4 flex flex-wrap items-start justify-between gap-3 pb-3">
+        <form method="GET" class="flex flex-wrap items-center gap-2">
             <x-sort-hidden :sort="$sort ?? null" :dir="$dir ?? null" />
             <x-filtro-busqueda
                 :url="route('busqueda.usuarios')"
@@ -13,7 +13,7 @@
                 :value="request('buscar')"
                 :navigate="false"
             />
-            <button class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50">Buscar</button>
+            <button type="submit" class="h-[38px] rounded-lg border border-slate-300 bg-white px-3 text-sm hover:bg-slate-50">Buscar</button>
         </form>
 
         @can('usuarios.crear')

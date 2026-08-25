@@ -42,8 +42,9 @@
                @focus="if (items.length) abierto = true"
                @blur="onBlur()"
                placeholder="{{ $placeholder }}"
+               title="{{ $hint }}"
                autocomplete="off"
-               class="w-full rounded-lg border border-slate-300 py-2 pl-3 pr-9 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+               class="h-[38px] w-full rounded-lg border border-slate-300 py-2 pl-3 pr-9 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
         <button type="button" x-show="q" x-cloak @mousedown.prevent="limpiar()"
                 class="absolute inset-y-0 right-0 px-2 text-slate-400 hover:text-slate-600">✕</button>
     </div>
@@ -59,5 +60,8 @@
             </li>
         </template>
     </ul>
-    <p class="mt-1 text-[11px] text-slate-400">{{ $hint }}</p>
+    {{-- Hint absoluto: no estira la fila ni desalinea selects/botones (items-center). --}}
+    @if ($hint)
+        <p class="pointer-events-none absolute left-0 top-full z-10 mt-0.5 text-[11px] leading-tight text-slate-400">{{ $hint }}</p>
+    @endif
 </div>
