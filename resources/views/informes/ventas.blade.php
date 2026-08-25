@@ -213,14 +213,22 @@
     @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script>
-        const dias = @json($porDia->map(fn ($d) => [
-            'label' => \Carbon\Carbon::parse($d->dia)->format('d/m'),
-            'total' => round((float) $d->total, 2),
-        ])->values());
-        const medios = @json($porMedio->map(fn ($m) => [
-            'label' => $m->nombre,
-            'total' => round((float) $m->total, 2),
-        ])->values());
+        @php
+            $chartDias = $porDia->map(function ($d) {
+                return [
+                    'label' => \Carbon\Carbon::parse($d->dia)->format('d/m'),
+                    'total' => round((float) $d->total, 2),
+                ];
+            })->values();
+            $chartMedios = $porMedio->map(function ($m) {
+                return [
+                    'label' => $m->nombre,
+                    'total' => round((float) $m->total, 2),
+                ];
+            })->values();
+        @endphp
+        const dias = @json($chartDias);
+        const medios = @json($chartMedios);
 
         if (dias.length) {
             new Chart(document.getElementById('chartVentasDia'), {

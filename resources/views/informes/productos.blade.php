@@ -108,10 +108,15 @@
     @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script>
-        const top = @json($productos->take(10)->map(fn ($p) => [
-            'label' => \Illuminate\Support\Str::limit($p->nombre, 28),
-            'total' => round((float) $p->venta, 2),
-        ])->values());
+        @php
+            $chartTop = $productos->take(10)->map(function ($p) {
+                return [
+                    'label' => \Illuminate\Support\Str::limit($p->nombre, 28),
+                    'total' => round((float) $p->venta, 2),
+                ];
+            })->values();
+        @endphp
+        const top = @json($chartTop);
         if (top.length) {
             new Chart(document.getElementById('chartProd'), {
                 type: 'bar',

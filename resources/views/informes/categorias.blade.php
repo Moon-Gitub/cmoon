@@ -68,10 +68,15 @@
     @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script>
-        const rows = @json($filas->map(fn ($f) => [
-            'label' => $f->nombre,
-            'total' => round((float) $f->total, 2),
-        ])->values());
+        @php
+            $chartCat = $filas->map(function ($f) {
+                return [
+                    'label' => $f->nombre,
+                    'total' => round((float) $f->total, 2),
+                ];
+            })->values();
+        @endphp
+        const rows = @json($chartCat);
         if (rows.length) {
             new Chart(document.getElementById('chartCat'), {
                 type: 'pie',
