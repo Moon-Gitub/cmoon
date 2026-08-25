@@ -4,18 +4,19 @@
     'placeholder' => 'Buscar…',
     'value' => '',
     'gotoKey' => 'url',
-    'navigate' => true,
-    'hint' => 'Escribí 2+ letras · ↑↓ Enter · o Enter para filtrar la tabla',
+    'navigate' => false,
+    'hint' => 'Escribí 2+ letras · Enter filtra · ↑↓ Enter elige sugerencia',
 ])
 
 <div class="relative min-w-[16rem] flex-1 sm:max-w-md"
      x-data="buscadorPredictivo({
         url: @js($url),
-        name: '',
+        name: @js($name),
         placeholder: @js($placeholder),
         minLength: 2,
         initialLabel: @js($value),
         allowClear: true,
+        filterMode: true,
         onSelect(item) {
             @if ($navigate)
             if (item.{{ $gotoKey }}) {
@@ -25,14 +26,12 @@
             @endif
             const form = this.$el.closest('form');
             const input = form?.querySelector('[name={{ $name }}]');
-            if (input) {
-                // Nunca filtrar con el label "código — nombre" (rompe el AND de tokens).
-                const valor = item.codigo || item.documento || item.cuit || item.nombre
-                    || item.razon_social || item.numero || this.q;
-                input.value = valor;
-                this.q = String(valor);
-                form.submit();
-            }
+            const valor = this.valorFiltro(item);
+            if (input) input.value = valor;
+            this.q = String(valor);
+            if (!form) return;
+            if (typeof form.requestSubmit === 'function') form.requestSubmit();
+            else form.submit();
         },
      })"
      @click.outside="abierto = false">
@@ -40,13 +39,6 @@
         <input type="text" name="{{ $name }}" x-ref="input" x-model="q"
                @input.debounce.50ms="onInput()"
                @keydown="onKeydown($event)"
-               @keydown.enter.prevent="
-                    if (abierto && indice >= 0 && items[indice]) { elegir(items[indice]); }
-                    else {
-                        q = (q || '').replace(/\s+[—\-–]\s+.*/u, '').trim();
-                        $el.form?.submit();
-                    }
-               "
                @focus="if (items.length) abierto = true"
                @blur="onBlur()"
                placeholder="{{ $placeholder }}"

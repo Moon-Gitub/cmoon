@@ -1,8 +1,10 @@
 /**
  * Buscador predictivo reutilizable (estilo demonew / jQuery UI Autocomplete).
  *
- * Uso:
- *   <div x-data="buscadorPredictivo({ url: '...', name: 'cliente_id', minLength: 2 })" ...>
+ * Modos:
+ * - Formulario (default): elige un ítem → selectedId + evento.
+ * - Filtro de listado (filterMode): Enter sin flechas filtra la tabla;
+ *   ↑↓ + Enter o click elige sugerencia.
  */
 export function buscadorPredictivo(config = {}) {
     return {
@@ -17,6 +19,7 @@ export function buscadorPredictivo(config = {}) {
         initialLabel: config.initialLabel ?? '',
         required: !!config.required,
         allowClear: config.allowClear !== false,
+        filterMode: !!config.filterMode,
         onSelect: typeof config.onSelect === 'function' ? config.onSelect : null,
 
         q: config.initialLabel || '',
@@ -62,7 +65,8 @@ export function buscadorPredictivo(config = {}) {
                 if (req !== this._req) return;
                 this.items = res.ok ? await res.json() : [];
                 this.abierto = this.items.length > 0;
-                this.indice = this.items.length ? 0 : -1;
+                // Sin preselección: Enter filtra; ↑↓ elige ítem.
+                this.indice = -1;
             } catch {
                 if (req !== this._req) return;
                 this.items = [];
@@ -76,12 +80,47 @@ export function buscadorPredictivo(config = {}) {
             if (!item) return;
             this.selectedId = String(item.id);
             this.selectedLabel = item.label || item.nombre || '';
-            this.q = this.selectedLabel;
+            this.q = this.filterMode
+                ? this.valorFiltro(item)
+                : (this.selectedLabel);
             this.abierto = false;
             this.items = [];
             this.indice = -1;
             if (this.onSelect) this.onSelect(item);
             this.$dispatch('buscador-seleccionado', { name: this.name, item });
+        },
+
+        /** Valor seguro para GET ?buscar= (nunca el label "código — nombre"). */
+        valorFiltro(item) {
+            if (item.codigo) return String(item.codigo);
+            if (item.documento) return String(item.documento);
+            if (item.cuit) return String(item.cuit);
+            if (item.nombre) return String(item.nombre);
+            if (item.razon_social) return String(item.razon_social);
+            if (item.numero != null && item.numero !== '') return String(item.numero);
+            return this.limpiarTermino(this.q);
+        },
+
+        limpiarTermino(texto) {
+            return String(texto || '')
+                .replace(/\s+[—\-–]\s+.*/u, '')
+                .trim();
+        },
+
+        submitFiltro() {
+            this.q = this.limpiarTermino(this.q);
+            this.abierto = false;
+            this.items = [];
+            this.indice = -1;
+            const form = this.$el?.closest?.('form');
+            if (!form) return;
+            const input = this.$refs.input;
+            if (input) input.value = this.q;
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+            } else {
+                form.submit();
+            }
         },
 
         limpiar() {
@@ -92,6 +131,9 @@ export function buscadorPredictivo(config = {}) {
             this.abierto = false;
             this.indice = -1;
             this.$refs.input?.focus();
+            if (this.filterMode) {
+                this.$nextTick(() => this.submitFiltro());
+            }
         },
 
         onKeydown(e) {
@@ -100,24 +142,32 @@ export function buscadorPredictivo(config = {}) {
             }
             if (e.key === 'ArrowDown' && this.items.length) {
                 e.preventDefault();
-                this.indice = (this.indice + 1) % this.items.length;
+                this.abierto = true;
+                this.indice = this.indice < 0 ? 0 : (this.indice + 1) % this.items.length;
             } else if (e.key === 'ArrowUp' && this.items.length) {
                 e.preventDefault();
-                this.indice = (this.indice - 1 + this.items.length) % this.items.length;
+                this.abierto = true;
+                this.indice = this.indice < 0
+                    ? this.items.length - 1
+                    : (this.indice - 1 + this.items.length) % this.items.length;
             } else if (e.key === 'Enter') {
                 if (this.abierto && this.indice >= 0 && this.items[this.indice]) {
                     e.preventDefault();
                     this.elegir(this.items[this.indice]);
+                } else if (this.filterMode) {
+                    e.preventDefault();
+                    this.submitFiltro();
                 }
             } else if (e.key === 'Escape') {
                 this.abierto = false;
+                this.indice = -1;
             }
         },
 
         onBlur() {
             setTimeout(() => {
                 this.abierto = false;
-                if (this.selectedId && this.selectedLabel) {
+                if (this.selectedId && this.selectedLabel && !this.filterMode) {
                     this.q = this.selectedLabel;
                 }
             }, 150);

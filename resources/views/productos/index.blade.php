@@ -11,6 +11,8 @@
                     name="buscar"
                     placeholder="Código o nombre…"
                     :value="request('buscar')"
+                    :navigate="false"
+                    hint="Enter filtra la tabla · ↑↓ Enter o click elige un producto"
                 />
             <select name="categoria" class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <option value="">Todas las categorías</option>

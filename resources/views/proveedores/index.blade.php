@@ -11,6 +11,7 @@
                 name="buscar"
                 placeholder="Razón social o CUIT…"
                 :value="request('buscar')"
+                :navigate="false"
             />
             <button class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50">Buscar</button>
         </form>

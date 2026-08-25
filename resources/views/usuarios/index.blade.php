@@ -11,7 +11,7 @@
                 name="buscar"
                 placeholder="Nombre, usuario o email…"
                 :value="request('buscar')"
-                hint="Predictivo · Enter para filtrar"
+                :navigate="false"
             />
             <button class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm hover:bg-slate-50">Buscar</button>
         </form>

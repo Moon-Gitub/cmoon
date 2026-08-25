@@ -21,7 +21,8 @@
                 name="buscar"
                 placeholder="Nº, receptor, CAE o documento…"
                 :value="request('buscar')"
-                hint="Predictivo · o Enter para filtrar el listado"
+                :navigate="true"
+                hint="Enter filtra · click o ↑↓ Enter abre el comprobante"
             />
         </div>
         <div>

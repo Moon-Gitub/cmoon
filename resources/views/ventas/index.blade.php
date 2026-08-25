@@ -27,6 +27,8 @@
                     placeholder="Nº, cliente o vendedor…"
                     :value="request('buscar')"
                     goto-key="url"
+                    :navigate="true"
+                    hint="Enter filtra · click o ↑↓ Enter abre la venta"
                 />
                 <input type="date" name="desde" value="{{ $desde->format('Y-m-d') }}"
                        class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
