@@ -234,16 +234,6 @@
                 </a>
             @endcan
 
-            @if(config('tiendanube.client_id'))
-                @can('empresa.editar')
-                    <a href="{{ route('tiendanube.index') }}"
-                       class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('tiendanube.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                        Tiendanube
-                    </a>
-                @endcan
-            @endif
-
             <p class="px-3 pb-1 pt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Apps</p>
 
             <a href="{{ route('descargas.index') }}"
@@ -259,6 +249,11 @@
             </a>
 
             @can('empresa.editar')
+                <a href="{{ route('tiendanube.index') }}"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('tiendanube.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    Tiendanube
+                </a>
                 <a href="{{ route('shopify.index') }}"
                    class="flex items-center gap-3 rounded-lg px-3 py-2 {{ request()->routeIs('shopify.*') ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800' }}">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/></svg>
@@ -363,6 +358,9 @@
                 @can('facturacion.ver')<a href="{{ route('facturacion.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Comprobantes</a>@endcan
                 @can('informes.ver')
                     <a href="{{ route('informes.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Informes</a>
+                @endcan
+                @can('empresa.editar')
+                    <a href="{{ route('tiendanube.index') }}" class="block rounded-lg px-3 py-2 hover:bg-slate-800">Tiendanube</a>
                 @endcan
             </nav>
         </aside>
