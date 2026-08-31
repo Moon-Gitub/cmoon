@@ -1,0 +1,111 @@
+---
+description: Reglas obligatorias para desplegar, replicar o modificar un tenant POSMoon en el VPS Dokploy. Usar ante cualquier cambio en docker-compose.yml, volúmenes, límites de memoria, dominios, Adminer, backups o deploys.
+globs: docker-compose.yml, docker/**, docs/replicar-tenant.md
+alwaysApply: false
+---
+
+# POSMoon en Dokploy — reglas duras
+
+La guía completa está en `docs/replicar-tenant.md`. **Leela antes de tocar el
+compose, los volúmenes o los deploys.** Acá va lo que no se negocia.
+
+## Contexto
+
+Los 5 tenants (POSMOON, Esquina53, CabañasDelCerro, Abisko, Jamrod) deployan del
+MISMO repo y el MISMO `docker-compose.yml`. Se diferencian solo por variables de
+entorno en Dokploy. **Un cambio al compose afecta a los cinco.**
+
+VPS: 2 vCPU / 8 GB / ~60 contenedores. Es una máquina ajustada: en agosto de 2026
+el OOM killer mató bases de tres clientes y el server quedó una hora colgado.
+
+## Prohibido
+
+```bash
+docker compose down -v     docker volume rm      docker volume prune
+docker system prune --volumes                    docker system prune -a --volumes
+```
+
+- No borres ni recrees un servicio desde la UI de Dokploy (puede llevarse los
+  volúmenes). Se edita el compose y se redeploya.
+- Para frenar contenedores: `stop`, nunca `down`.
+- No toques los ~50 contenedores que no son POSMoon (n8n, Evolution, Traefik).
+
+## Volúmenes
+
+**NUNCA renombres la clave de un volumen** (`mysql-data`, `redis-data`,
+`app-storage`). Compose ya los prefija con el nombre del proyecto, así que los
+datos de cada cliente ya están aislados. Renombrarla no migra nada: Docker crea
+un volumen vacío y la base aparece en blanco.
+
+Todo servicio con estado necesita volumen nombrado: `mysql` → `/var/lib/mysql`,
+`redis` → `/data`, `app` → `/var/www/html/storage/app`.
+
+## Límites de memoria
+
+Todos los servicios llevan techo. Sin techo, un contenedor descontrolado cuelga
+la máquina y se lleva a los cinco clientes.
+
+```yaml
+deploy: { resources: { limits: { memory: 384M } } }   # app
+# queue 256M · scheduler 160M · mysql 512M · redis 96M · adminer 64M
+```
+
+Antes de bajar un techo, medí con `docker stats --no-stream`. Un límite por
+debajo del uso real hace que el kernel mate el contenedor en producción.
+
+MySQL va con `--innodb-buffer-pool-size=128M` y `--performance-schema=OFF`
+(ahorra ~200 MB por instancia).
+
+## Adminer
+
+**El servicio `adminer` no lleva dominio en Dokploy. Nunca.**
+
+Que el compose no tenga `ports:` no alcanza: Dokploy inyecta labels de Traefik al
+desplegar, desde los dominios de su UI. **Editar el compose no cierra un Adminer
+expuesto** — hay que borrar el dominio en Dokploy.
+
+Para entrar a una base: `docker exec -it <stack>-mysql-1 mysql -u root -p`, o
+túnel SSH. Nunca exponiendo el puerto.
+
+## Deploys
+
+Los tenants tienen `autoDeploy` activo sobre `main`. **Un push a `main` dispara
+cinco builds simultáneos y tumba el server.**
+
+Procedimiento para cambiar el compose:
+
+1. Commitear a una **rama**, no a `main`
+2. Apuntar **un** tenant a esa rama y deployar
+3. Verificar
+4. Apagar `autoDeploy` en el resto
+5. Mergear a `main`
+6. Deployar de a uno, verificando cada uno
+7. Restaurar rama y `autoDeploy`
+
+## Antes de cualquier cambio que toque datos
+
+`mysqldump --single-transaction --routines --triggers --events --all-databases`,
+verificar que termine con `-- Dump completed`, y **bajarlo fuera del servidor**.
+
+## Verificación post-deploy
+
+```bash
+docker ps -a --filter "name=<stack>"                          # 7 contenedores healthy
+docker inspect <stack>-mysql-1 --format '{{.HostConfig.Memory}}'   # != 0
+# migrations debe dar 42:
+docker exec <stack>-mysql-1 mysql -u root -N -e "SELECT COUNT(*) FROM cmoon.migrations;"
+curl -s -o /dev/null -w "%{http_code}" https://<cliente>.cluna.ar/      # 302
+curl -s -o /dev/null -w "%{http_code}" https://<cliente>-db.cluna.ar/   # 404
+```
+
+Si un conteo de filas no coincide con el de antes del deploy: revertir y avisar.
+
+## Detalles que confunden
+
+- `journalctl`/`dmesg`/`docker ps` hablan **UTC**; los logs de las apps, **ART
+  (-0300)**. Son 3 horas de diferencia al correlacionar.
+- En `free -h` mirá `available`, no `used`. `buff/cache` es caché reclamable.
+- Cada MySQL tiene dos bases: `cmoon` (app, 66 tablas) y `<cliente>_legacy`. Los
+  conteos de tablas difieren por eso, no por drift de esquema.
+- `docker/legacy-migrate.sh:58` tiene un `|| true` que se traga errores de
+  migración: un deploy puede salir en verde con la base incompleta.
