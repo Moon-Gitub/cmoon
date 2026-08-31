@@ -13,6 +13,10 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 384M
     networks:
       - default
       - dokploy-network
@@ -54,6 +58,10 @@ services:
     restart: unless-stopped
     command: ["php", "/var/www/html/artisan", "queue:work", "--tries=3", "--timeout=90"]
     stop_signal: SIGTERM
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     environment:
       <<: *app-env
       AUTORUN_ENABLED: "false"
@@ -75,6 +83,10 @@ services:
     restart: unless-stopped
     command: ["php", "/var/www/html/artisan", "schedule:work"]
     stop_signal: SIGTERM
+    deploy:
+      resources:
+        limits:
+          memory: 160M
     environment:
       <<: *app-env
       AUTORUN_ENABLED: "false"
@@ -92,9 +104,18 @@ services:
   mysql:
     image: mysql:8.4
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+      # Ajustes de memoria: el server tiene 8 GB para ~79 contenedores.
+      # Sin esto, MySQL 8.4 reserva varios cientos de MB por instancia y el
+      # OOM killer lo mata (paso el 25/08, 28/08 y 31/08).
+      - --innodb-buffer-pool-size=128M
+      - --performance-schema=OFF
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:-cmoon}
       MYSQL_USER: ${DB_USERNAME:-cmoon}
@@ -112,6 +133,10 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 96M
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?Falta REDIS_PASSWORD en Environment de Dokploy}
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
@@ -127,6 +152,10 @@ services:
   adminer:
     image: adminer:4
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 64M
     networks:
       - default
       - dokploy-network
@@ -150,7 +179,9 @@ services:
       LEGACY_DUMP_URL: ${LEGACY_DUMP_URL:-}
       LEGACY_DB_HOST: ${LEGACY_DB_HOST:-mysql}
       LEGACY_DB_PORT: ${LEGACY_DB_PORT:-3306}
-      LEGACY_DB_DATABASE: ${LEGACY_DB_DATABASE:-jamrod_legacy}
+      # Default neutro: antes era "jamrod_legacy", nombre de otro cliente.
+      # Cada tenant define el suyo en Environment de Dokploy.
+      LEGACY_DB_DATABASE: ${LEGACY_DB_DATABASE:-legacy}
       LEGACY_DB_USERNAME: ${LEGACY_DB_USERNAME:-root}
       LEGACY_DB_PASSWORD: ${LEGACY_DB_PASSWORD:-}
       LEGACY_AUTO_MIGRATE: ${LEGACY_AUTO_MIGRATE:-false}
