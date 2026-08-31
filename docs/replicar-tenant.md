@@ -67,9 +67,10 @@ Además:
 
 ## 2. Checklist para replicar un tenant nuevo
 
-1. **Crear el proyecto en Dokploy** con un nombre reconocible. Dokploy le va a
-   asignar igual un nombre interno aleatorio; no se puede evitar, por eso el
-   mapeo de la sección 0 hay que mantenerlo actualizado.
+1. **Crear el proyecto en Dokploy** con un nombre reconocible. Se puede hacer
+   desde la UI o por la API de Dokploy — el agente ya lo automatiza hoy.
+   Dokploy le asigna igual un nombre interno aleatorio; no se puede evitar, por
+   eso el mapeo de la sección 0 hay que mantenerlo actualizado.
 2. **Source:** GitHub → repo `Moon-Gitub/cmoon`, branch `main`,
    Compose Path `./docker-compose.yml`.
 3. **Cargar las variables de entorno** (sección 10). Sin ellas el deploy falla
@@ -77,7 +78,9 @@ Además:
 4. **Dominio:** agregar SOLO el del servicio `app`. Nunca el de `adminer`
    (sección 7).
 5. **Deploy.** Verificar con la sección 12.
-6. **Actualizar el mapeo** de la sección 0 con el nombre aleatorio nuevo.
+6. **Actualizar el mapeo** de la sección 0 con el nombre aleatorio nuevo. Si no,
+   en un mes nadie va a saber qué stack corresponde a qué cliente.
+7. **Dejar `autoDeploy` apagado** hasta terminar de verificar el tenant nuevo.
 
 ---
 
