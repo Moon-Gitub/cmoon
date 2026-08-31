@@ -322,6 +322,44 @@ Consultar el estado:
 SELECT name, "autoDeploy", branch FROM compose;
 ```
 
+### El webhook depende del dominio del panel — y falla en silencio
+
+El `autoDeploy` no lo dispara Dokploy solo: lo dispara un **webhook que GitHub
+llama** en cada push. Esa URL contiene el dominio del panel de Dokploy.
+
+**Si cambia la URL del panel, o se cierra el puerto por el que respondía, todos
+los webhooks quedan apuntando a una dirección muerta.** Y el modo de falla es el
+peor posible: **silencioso**. Pusheás, GitHub dice que entregó, y no pasa nada.
+No hay error en ningún lado.
+
+Pasó el 31/08/2026: al cerrar el puerto 3000 y mover el panel a
+`https://dokploy.cluna.ar`, los webhooks siguieron apuntando a
+`http://72.60.0.249:3000/...` y el auto-deploy dejó de funcionar en **todos** los
+servicios con origen GitHub del servidor, no solo en los POSMoon.
+
+**Cómo detectarlo:**
+
+```bash
+# ¿llegó algo a Dokploy después del push?
+docker service logs dokploy --since 10m 2>&1 | grep -i webhook
+# ¿se registró un deployment nuevo?
+# (en dokploy-postgres) SELECT co.name, d.status, d."createdAt"
+#   FROM deployment d JOIN compose co ON co."composeId"=d."composeId"
+#   ORDER BY d."createdAt" DESC LIMIT 5;
+```
+
+Si no hay líneas de webhook y no hay deployments nuevos, el webhook está roto.
+
+**Cómo arreglarlo:** la URL correcta está en Dokploy, en cada servicio, pestaña
+**Deployments**. Se copia de ahí y se reemplaza en el repo:
+GitHub → Settings → Webhooks.
+
+**Hay que hacerlo repo por repo.** Cada servicio con origen GitHub tiene su
+propio webhook con su propio token.
+
+> Mientras el webhook esté roto, pushear a `main` es inofensivo: no dispara
+> nada. El riesgo de los builds simultáneos vuelve recién cuando se arregle.
+
 ---
 
 ## 10. Variables de entorno en Dokploy
