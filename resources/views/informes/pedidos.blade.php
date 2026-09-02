@@ -17,7 +17,8 @@
                    class="h-[38px] w-28 rounded-lg border border-slate-300 px-3 text-sm">
         </div>
         <label class="flex h-[38px] items-center gap-2 text-sm text-slate-600">
-            <input type="checkbox" name="solo_pedir" value="1" @checked($soloCriticos)>
+            <input type="hidden" name="solo_pedir" value="0">
+            <input type="checkbox" name="solo_pedir" value="1" @checked($soloPedir)>
             Solo con pedido sugerido
         </label>
         <button class="h-[38px] rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">Calcular</button>
@@ -44,32 +45,38 @@
             <p class="mt-1 text-2xl font-bold text-emerald-600">$ {{ number_format($resumen['ganancia_esperada'], 2, ',', '.') }}</p>
         </div>
         <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p class="text-xs font-semibold uppercase text-slate-500">Productos analizados</p>
+            <p class="text-xs font-semibold uppercase text-slate-500">{{ $soloPedir ? 'Con pedido sugerido' : 'Productos analizados' }}</p>
             <p class="mt-1 text-2xl font-bold">{{ $resumen['productos'] }}</p>
         </div>
     </div>
 
     <p class="mb-3 text-sm text-slate-500">
-        Calcula velocidad de venta de los últimos {{ $diasAnalisis }} días y sugiere reponer hasta {{ $diasCobertura }} días de cobertura.
-        Estado: <span class="font-semibold text-red-600">crítico</span> ≤3 días ·
+        Usa ventas de los últimos {{ $diasAnalisis }} días para calcular velocidad de venta y sugiere reponer hasta {{ $diasCobertura }} días de stock.
+        <strong>Pedir</strong> = máximo(0, venta/día × días cobertura − stock actual).
+        @if ($soloPedir)
+            Mostrando solo productos con cantidad a pedir &gt; 0. Los totales de arriba corresponden a esta lista.
+        @else
+            Incluye productos con stock suficiente (pedir = 0). Activá «Solo con pedido sugerido» para ver únicamente lo que hay que comprar.
+        @endif
+        Estado: <span class="font-semibold text-red-600">crítico</span> ≤3 días de cobertura ·
         <span class="font-semibold text-amber-600">urgente</span> ≤7 ·
         <span class="font-semibold text-slate-600">normal</span> el resto.
     </p>
 
     <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
         <table class="w-full text-sm">
-            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <tr>
-                    <th class="px-3 py-3">Estado</th>
-                    <th class="px-3 py-3">Código</th>
-                    <th class="px-3 py-3">Producto</th>
-                    <th class="px-3 py-3 text-right">Stock</th>
-                    <th class="px-3 py-3 text-right">Venta/día</th>
-                    <th class="px-3 py-3 text-right">Cobertura</th>
-                    <th class="px-3 py-3 text-right">Pedir</th>
-                    <th class="px-3 py-3 text-right">Inversión</th>
-                    <th class="px-3 py-3 text-right">Ganancia</th>
-                    <th class="px-3 py-3 text-right">ROI</th>
+                    <x-sortable-th column="estado" label="Estado" :sort="$sort ?? 'pedir'" :dir="$dir ?? 'desc'" default-dir="asc" class="px-3 py-3" />
+                    <x-sortable-th column="codigo" label="Código" :sort="$sort ?? 'pedir'" :dir="$dir ?? 'desc'" default-dir="asc" class="px-3 py-3" />
+                    <x-sortable-th column="producto" label="Producto" :sort="$sort ?? 'pedir'" :dir="$dir ?? 'desc'" default-dir="asc" class="px-3 py-3" />
+                    <x-sortable-th column="stock" label="Stock" :sort="$sort ?? 'pedir'" :dir="$dir ?? 'desc'" default-dir="desc" align="right" class="px-3 py-3" />
+                    <x-sortable-th column="venta_dia" label="Venta/día" :sort="$sort ?? 'pedir'" :dir="$dir ?? 'desc'" default-dir="desc" align="right" class="px-3 py-3" />
+                    <x-sortable-th column="cobertura" label="Cobertura" :sort="$sort ?? 'pedir'" :dir="$dir ?? 'desc'" default-dir="asc" align="right" class="px-3 py-3" />
+                    <x-sortable-th column="pedir" label="Pedir" :sort="$sort ?? 'pedir'" :dir="$dir ?? 'desc'" default-dir="desc" align="right" class="px-3 py-3" />
+                    <x-sortable-th column="inversion" label="Inversión" :sort="$sort ?? 'pedir'" :dir="$dir ?? 'desc'" default-dir="desc" align="right" class="px-3 py-3" />
+                    <x-sortable-th column="ganancia" label="Ganancia" :sort="$sort ?? 'pedir'" :dir="$dir ?? 'desc'" default-dir="desc" align="right" class="px-3 py-3" />
+                    <x-sortable-th column="roi" label="ROI" :sort="$sort ?? 'pedir'" :dir="$dir ?? 'desc'" default-dir="desc" align="right" class="px-3 py-3" />
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -92,7 +99,9 @@
                         <td class="px-3 py-2 text-right">{{ number_format((float) $i->roi, 1, ',', '.') }}%</td>
                     </tr>
                 @empty
-                    <tr><td colspan="10" class="px-4 py-10 text-center text-slate-400">Sin productos con ventas en el período de análisis.</td></tr>
+                    <tr><td colspan="10" class="px-4 py-10 text-center text-slate-400">
+                        {{ $soloPedir ? 'Ningún producto requiere reposición con los parámetros actuales.' : 'Sin productos con ventas en el período de análisis.' }}
+                    </td></tr>
                 @endforelse
             </tbody>
         </table>

@@ -76,6 +76,17 @@ class InformeController extends Controller
         $filtros = $this->informes->filtrosVentas($request);
         $productos = $this->informes->productosVendidos($desde, $hasta, $filtros);
 
+        [$productos, $sort, $dir] = TableSort::applyToCollection($productos, $request, [
+            'codigo' => 'codigo',
+            'producto' => 'nombre',
+            'categoria' => 'categoria',
+            'cantidad' => 'cantidad',
+            'costo' => 'costo',
+            'venta' => 'venta',
+            'margen' => 'margen',
+            'margen_pct' => 'margen_pct',
+        ], 'venta', 'desc');
+
         $resumen = [
             'unidades' => (float) $productos->sum('cantidad'),
             'venta' => (float) $productos->sum('venta'),
@@ -110,6 +121,8 @@ class InformeController extends Controller
             'filtros' => $filtros,
             'productos' => $productos,
             'resumen' => $resumen,
+            'sort' => $sort,
+            'dir' => $dir,
             'vendedores' => $this->informes->vendedoresActivos(),
             'sucursales' => Sucursal::where('activa', true)->orderBy('nombre')->get(),
         ]);
@@ -175,12 +188,27 @@ class InformeController extends Controller
     {
         $diasAnalisis = max(7, min(90, $request->integer('dias_analisis', 30) ?: 30));
         $diasCobertura = max(7, min(90, $request->integer('dias_cobertura', 30) ?: 30));
-        $soloCriticos = $request->boolean('solo_pedir');
+        $soloPedir = $request->has('solo_pedir') ? $request->boolean('solo_pedir') : true;
 
         $data = $this->informes->gestionPedidos($diasAnalisis, $diasCobertura);
-        $items = $soloCriticos
+        $items = $soloPedir
             ? $data['items']->filter(fn ($i) => $i->cantidad_sugerida > 0)->values()
             : $data['items'];
+
+        [$items, $sort, $dir] = TableSort::applyToCollection($items, $request, [
+            'estado' => 'estado',
+            'codigo' => 'codigo',
+            'producto' => 'nombre',
+            'stock' => 'stock',
+            'venta_dia' => 'promedio_diario',
+            'cobertura' => 'dias_cobertura',
+            'pedir' => 'cantidad_sugerida',
+            'inversion' => 'inversion',
+            'ganancia' => 'ganancia',
+            'roi' => 'roi',
+        ], $soloPedir ? 'pedir' : 'cobertura', 'desc');
+
+        $resumen = InformeService::resumenGestionPedidos($items);
 
         if ($request->input('exportar') === 'csv') {
             return CsvExport::download(
@@ -204,9 +232,11 @@ class InformeController extends Controller
         return view('informes.pedidos', [
             'diasAnalisis' => $diasAnalisis,
             'diasCobertura' => $diasCobertura,
-            'soloCriticos' => $soloCriticos,
+            'soloPedir' => $soloPedir,
             'items' => $items,
-            'resumen' => $data['resumen'],
+            'resumen' => $resumen,
+            'sort' => $sort,
+            'dir' => $dir,
         ]);
     }
 

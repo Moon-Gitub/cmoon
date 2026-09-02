@@ -394,18 +394,27 @@ class InformeService
             ];
         })->sortBy('dias_cobertura')->values();
 
+        return [
+            'items' => $items,
+            'resumen' => self::resumenGestionPedidos($items),
+        ];
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, object>  $items
+     * @return array<string, float|int>
+     */
+    public static function resumenGestionPedidos(Collection $items): array
+    {
         $conPedido = $items->filter(fn ($i) => $i->cantidad_sugerida > 0);
 
         return [
-            'items' => $items,
-            'resumen' => [
-                'productos' => $items->count(),
-                'criticos' => $items->where('estado', 'critico')->count(),
-                'urgentes' => $items->where('estado', 'urgente')->count(),
-                'inversion_total' => round((float) $conPedido->sum('inversion'), 2),
-                'inversion_criticos' => round((float) $items->where('estado', 'critico')->sum('inversion'), 2),
-                'ganancia_esperada' => round((float) $conPedido->sum('ganancia'), 2),
-            ],
+            'productos' => $items->count(),
+            'criticos' => $items->where('estado', 'critico')->count(),
+            'urgentes' => $items->where('estado', 'urgente')->count(),
+            'inversion_total' => round((float) $conPedido->sum('inversion'), 2),
+            'inversion_criticos' => round((float) $conPedido->where('estado', 'critico')->sum('inversion'), 2),
+            'ganancia_esperada' => round((float) $conPedido->sum('ganancia'), 2),
         ];
     }
 

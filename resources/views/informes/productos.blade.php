@@ -76,14 +76,14 @@
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                 <tr>
-                    <th class="px-4 py-3">Código</th>
-                    <th class="px-4 py-3">Producto</th>
-                    <th class="px-4 py-3">Categoría</th>
-                    <th class="px-4 py-3 text-right">Cantidad</th>
-                    <th class="px-4 py-3 text-right">Costo</th>
-                    <th class="px-4 py-3 text-right">Venta</th>
-                    <th class="px-4 py-3 text-right">Margen</th>
-                    <th class="px-4 py-3 text-right">%</th>
+                    <x-sortable-th column="codigo" label="Código" :sort="$sort ?? 'venta'" :dir="$dir ?? 'desc'" default-dir="asc" />
+                    <x-sortable-th column="producto" label="Producto" :sort="$sort ?? 'venta'" :dir="$dir ?? 'desc'" default-dir="asc" />
+                    <x-sortable-th column="categoria" label="Categoría" :sort="$sort ?? 'venta'" :dir="$dir ?? 'desc'" default-dir="asc" />
+                    <x-sortable-th column="cantidad" label="Cantidad" :sort="$sort ?? 'venta'" :dir="$dir ?? 'desc'" default-dir="desc" align="right" />
+                    <x-sortable-th column="costo" label="Costo" :sort="$sort ?? 'venta'" :dir="$dir ?? 'desc'" default-dir="desc" align="right" />
+                    <x-sortable-th column="venta" label="Venta" :sort="$sort ?? 'venta'" :dir="$dir ?? 'desc'" default-dir="desc" align="right" />
+                    <x-sortable-th column="margen" label="Margen" :sort="$sort ?? 'venta'" :dir="$dir ?? 'desc'" default-dir="desc" align="right" />
+                    <x-sortable-th column="margen_pct" label="%" :sort="$sort ?? 'venta'" :dir="$dir ?? 'desc'" default-dir="desc" align="right" />
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
