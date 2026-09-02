@@ -354,8 +354,47 @@ Si no hay líneas de webhook y no hay deployments nuevos, el webhook está roto.
 **Deployments**. Se copia de ahí y se reemplaza en el repo:
 GitHub → Settings → Webhooks.
 
-**Hay que hacerlo repo por repo.** Cada servicio con origen GitHub tiene su
-propio webhook con su propio token.
+**Ojo: no es por repo, es por GitHub App.** Dokploy no usa webhooks por
+repositorio: usa GitHub Apps instaladas, y cada App tiene **una sola URL de
+webhook que sirve a todos sus repos**. Por eso los repos figuran con 0 webhooks
+en GitHub: los eventos llegan por la App.
+
+Mapeo al 02/09/2026 (consultar la tabla `github` de Dokploy para actualizarlo):
+
+| GitHub App | Servicios que cubre |
+|---|---|
+| `dokploy-moon-pos` | ABISKO, CABANAS, CMOON, ESQUINA53, JAMROD, Arquitectura |
+| `aiporvos` | cluna (cluna.ar), OdontoGravity, supe, fcai, Figuritas, Influencer, intelliprices, Legal-Assistant, rag_langchain, repoaiporvos, sudamericana-dashboard, VDG-Mentorias, viaje_second_brain, AIporvos |
+| `dokploy-cluna` | mentoria-chile-sesiones |
+| `dokploy-ventanco` | vetanco-reclamos |
+
+**`cluna.ar` va por la App `aiporvos`, no por `dokploy-cluna`.** El nombre engaña.
+
+Los tres campos a corregir en cada App (`github.com/settings/apps/<slug>`):
+
+| Sección | Campo | Valor |
+|---|---|---|
+| arriba | Homepage URL | `https://dokploy.cluna.ar` |
+| Identifying and authorizing users | Redirect URI | `https://dokploy.cluna.ar/api/providers/github/setup` |
+| **Webhook** | **Webhook URL** | **`https://dokploy.cluna.ar/api/deploy/github`** |
+
+El único que restaura el auto-deploy es el tercero, y está al pie de la página —
+es fácil confundirlo con Homepage URL, que está arriba y pide una URL parecida.
+No toques el campo **Secret**: Dokploy valida cada evento contra él.
+
+Un token de usuario (`ghp_`) **no sirve** para esto: cambiar el webhook de una
+App requiere autenticarse como la App, con su clave privada. Se hace a mano.
+
+### Segunda causa posible: la rama
+
+Aunque el webhook funcione, Dokploy descarta el evento si el push no fue a la
+rama configurada en el servicio. Al 02/09/2026, `cluna` y `VDG-Mentorias`
+esperan `master` mientras el resto usa `main`. Si el repo cambió a `main` y
+Dokploy sigue en `master`, no deploya nunca y tampoco avisa.
+
+Los servicios con `sourceType = raw` (compose pegado a mano, como minio,
+rabbitmq y n8n-with-postgres de Sudamericana) no tienen webhook ni pueden
+tenerlo: se despliegan siempre a mano.
 
 > Mientras el webhook esté roto, pushear a `main` es inofensivo: no dispara
 > nada. El riesgo de los builds simultáneos vuelve recién cuando se arregle.
