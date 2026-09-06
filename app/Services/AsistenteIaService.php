@@ -13,6 +13,7 @@ class AsistenteIaService
     public function __construct(
         private IaCupoService $cupo,
         private N8nService $n8n,
+        private GestionDatosIaService $gestionDatos,
     ) {}
 
     /** @return array{ok: bool, texto: string, cupo: array} */
@@ -69,6 +70,8 @@ class AsistenteIaService
 
     private function generar(int $empresaId, string $mensaje): string
     {
+        $contexto = $this->gestionDatos->contexto($empresaId);
+
         $productos = Producto::withoutGlobalScopes()
             ->where('empresa_id', $empresaId)
             ->where('activo', true)
@@ -97,10 +100,10 @@ class AsistenteIaService
         $apiKey = (string) config('ycloud.openai_api_key');
         if ($apiKey === '') {
             if ($productos->isEmpty()) {
-                return 'No tengo API de IA configurada ni productos para armar una respuesta. Configurá OPENAI_API_KEY o cargá productos.';
+                return "Contexto:\n{$contexto}\n\nNo tengo API de IA configurada ni productos para armar una respuesta. Configurá OPENAI_API_KEY o cargá productos.";
             }
 
-            $lineas = ['Según el catálogo:'];
+            $lineas = ["Contexto:\n{$contexto}", '', 'Según el catálogo:'];
             foreach ($productos as $p) {
                 $lineas[] = '• '.$p->nombre.' ('.$p->codigo.') $ '.number_format((float) $p->precio_venta, 2, ',', '.');
             }
@@ -124,12 +127,13 @@ class AsistenteIaService
                         [
                             'role' => 'system',
                             'content' => "Asistente de {$nombre} (POSMoon). Español, breve. "
-                                .'Usá el catálogo JSON si habla de productos. No inventes stock ni precios. '
+                                .'Usá el contexto operativo y el catálogo JSON. No inventes stock ni precios. '
                                 .'No des consejos legales/impositivos definitivos.',
                         ],
                         [
                             'role' => 'user',
-                            'content' => $mensaje."\n\nCatálogo:\n".json_encode($productos, JSON_UNESCAPED_UNICODE),
+                            'content' => "Contexto del negocio:\n{$contexto}\n\nPregunta:\n{$mensaje}\n\nCatálogo:\n"
+                                .json_encode($productos, JSON_UNESCAPED_UNICODE),
                         ],
                     ],
                 ]);

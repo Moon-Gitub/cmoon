@@ -29,6 +29,7 @@ class Cliente extends Model
         'lista_precio_id',
         'vendedor_id',
         'limite_credito',
+        'dias_credito',
         'observaciones',
         'activo',
     ];
@@ -37,6 +38,7 @@ class Cliente extends Model
     {
         return [
             'limite_credito' => 'decimal:2',
+            'dias_credito' => 'integer',
             'activo' => 'boolean',
             'lat' => 'decimal:7',
             'lng' => 'decimal:7',

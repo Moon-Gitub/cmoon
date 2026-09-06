@@ -35,6 +35,13 @@
     <div class="no-print">
         <a href="{{ route('facturacion.ticket', $comprobante) }}?print=1" target="_blank">Imprimir ticket 80mm</a>
         <button type="button" onclick="window.print()">Imprimir hoja</button>
+        <form method="post" action="{{ route('facturacion.enviar-email', $comprobante) }}" style="display:inline-flex;gap:6px;align-items:center">
+            @csrf
+            <input type="email" name="email" required placeholder="email@cliente.com"
+                   value="{{ old('email') }}"
+                   style="padding:6px 10px;border:1px solid #ccc;border-radius:4px;font-size:13px;min-width:200px">
+            <button type="submit">Enviar por email</button>
+        </form>
     </div>
 
     <div class="cabecera">

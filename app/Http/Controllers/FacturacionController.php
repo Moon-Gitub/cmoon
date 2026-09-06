@@ -7,6 +7,7 @@ use App\Models\Emisor;
 use App\Models\PuntoVenta;
 use App\Models\Venta;
 use App\Services\Afip\FacturacionService;
+use App\Services\FacturaMailService;
 use App\Support\TableSort;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
@@ -270,6 +271,27 @@ class FacturacionController extends Controller
             'comprobante' => $comprobante,
             'qr' => $comprobante->estado === 'autorizado' ? $this->qrAfip($comprobante) : null,
         ]);
+    }
+
+    public function enviarEmail(Request $request, Comprobante $comprobante, FacturaMailService $mail): RedirectResponse
+    {
+        abort_unless(auth()->user()->can('facturacion.emitir'), 403);
+
+        $datos = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        if ($comprobante->estado !== 'autorizado') {
+            return back()->with('error', 'Solo se pueden enviar comprobantes autorizados.');
+        }
+
+        try {
+            $mail->enviarComprobante($comprobante, $datos['email']);
+        } catch (\Throwable $e) {
+            return back()->with('error', 'No se pudo enviar el mail: '.$e->getMessage());
+        }
+
+        return back()->with('ok', 'Comprobante enviado a '.$datos['email'].'.');
     }
 
     public function ticket(Comprobante $comprobante): View

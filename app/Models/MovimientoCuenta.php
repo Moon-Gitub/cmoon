@@ -21,6 +21,7 @@ class MovimientoCuenta extends Model
         'referencia_id',
         'user_id',
         'fecha',
+        'vencimiento',
         'factura_numero',
         'factura_neto',
         'factura_iva',
@@ -35,6 +36,7 @@ class MovimientoCuenta extends Model
             'factura_neto' => 'decimal:2',
             'factura_iva' => 'decimal:2',
             'fecha' => 'date',
+            'vencimiento' => 'date',
         ];
     }
 

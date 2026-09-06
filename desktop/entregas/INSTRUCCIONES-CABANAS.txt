@@ -1,0 +1,21 @@
+POSMoon Offline 1.1.1 — Cabañas del Cerro (FIX Windows)
+=======================================================
+
+Archivo: POSMoon-Offline-1.1.1-Setup-x64.exe
+
+IMPORTANTE: desinstalar la versión anterior (1.1.0) antes de instalar esta.
+
+1) Instalar el Setup (doble clic).
+2) Abrir "POSMoon Offline".
+3) Activar (internet solo la 1ª vez):
+   - Servidor: https://cabanasdelcerro.cluna.ar
+   - Usuario: admin (u alfredo, lau, flor…)
+   - Contraseña: la del POS web
+   - ID Moon: 1
+   - Nombre caja: ej. Caja 1
+
+Si no abre: mirar el archivo
+  %APPDATA%\posmoon-offline\crash.log
+(o %APPDATA%\cmoon-desktop\crash.log según la instalación).
+
+Causa del fallo 1.1.0: el instalador traía SQLite de Linux y Windows lo cerraba al instante.

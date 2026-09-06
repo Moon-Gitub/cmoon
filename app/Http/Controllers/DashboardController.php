@@ -6,12 +6,13 @@ use App\Models\CajaSesion;
 use App\Models\Producto;
 use App\Models\User;
 use App\Models\Venta;
+use App\Services\AlertaService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function index(): View
+    public function index(AlertaService $alertas): View
     {
         $hoy = Venta::where('estado', 'completada')->whereDate('fecha', today());
 
@@ -35,6 +36,7 @@ class DashboardController extends Controller
             'usuariosActivos' => User::where('activo', true)->count(),
             'ultimasVentas' => Venta::with('cliente')->latest('fecha')->limit(8)->get(),
             'ultimos7' => $ultimos7,
+            'alertas' => $alertas->paraEmpresa((int) auth()->user()->empresa_id),
         ]);
     }
 }

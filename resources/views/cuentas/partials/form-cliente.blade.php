@@ -13,10 +13,16 @@
         <input type="number" step="0.01" min="0.01" name="importe" placeholder="Importe $" required
                class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
     </div>
-    <div class="flex items-center justify-between gap-2">
-        <div class="flex items-center gap-3">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-3">
             <input type="date" name="fecha" value="{{ now()->format('Y-m-d') }}" required
                    class="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <label class="flex items-center gap-1.5 text-xs text-slate-600">
+                Vencimiento
+                <input type="date" name="vencimiento"
+                       class="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                       title="Opcional; aplica a cargos/factura">
+            </label>
             <label class="flex items-center gap-1.5 text-xs text-slate-600">
                 <input type="checkbox" name="resta" value="1" class="rounded border-slate-300">
                 Si es ajuste, resta deuda

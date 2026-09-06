@@ -136,6 +136,7 @@ class CuentaCorrienteController extends Controller
             'concepto' => ['required', 'string', 'max:255'],
             'importe' => ['required', 'numeric', 'gt:0'],
             'fecha' => ['required', 'date'],
+            'vencimiento' => ['nullable', 'date'],
         ]);
 
         $importe = (float) $datos['importe'];
@@ -153,6 +154,7 @@ class CuentaCorrienteController extends Controller
             'importe' => $importe,
             'user_id' => auth()->id(),
             'fecha' => $datos['fecha'],
+            'vencimiento' => $datos['tipo'] === 'factura' ? ($datos['vencimiento'] ?? null) : null,
         ]);
 
         return back()->with('ok', 'Movimiento registrado.');

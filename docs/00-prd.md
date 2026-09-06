@@ -135,6 +135,8 @@ POSMoon resuelve esto con un stack moderno (Laravel), aislamiento por `empresa_i
 | Comprobantes | Histórico CAE |
 | Informes | Ventas, stock, libro IVA |
 | Retenciones IIBB | Alta, anulación, export SIRCAR (TXT/ZIP) |
+| Cobranzas / cheques / OC / remitos / bancos / CRM | MVP fases Gauchada (ver docs/23-mejoras-gauchada.md) |
+| CITI ventas | Export CSV/TXT desde informes |
 
 ### 5.6 Canales y migraciones
 

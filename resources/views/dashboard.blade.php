@@ -3,6 +3,32 @@
 @section('titulo', 'Inicio')
 
 @section('contenido')
+    @if (! empty($alertas))
+        <div class="mb-6 space-y-2">
+            @foreach ($alertas as $alerta)
+                @php
+                    $sev = $alerta['severidad'] ?? 'media';
+                    $box = match ($sev) {
+                        'alta' => 'border-red-200 bg-red-50 text-red-900',
+                        'baja' => 'border-amber-100 bg-amber-50/70 text-amber-900',
+                        default => 'border-amber-200 bg-amber-50 text-amber-900',
+                    };
+                @endphp
+                <div class="rounded-xl border {{ $box }} px-4 py-3 text-sm shadow-sm">
+                    <div class="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                            <p class="font-semibold">{{ $alerta['titulo'] }}</p>
+                            <p class="mt-0.5 opacity-90">{{ $alerta['detalle'] }}</p>
+                        </div>
+                        @if (! empty($alerta['url']))
+                            <a href="{{ $alerta['url'] }}" class="shrink-0 text-xs font-semibold underline underline-offset-2">Ver →</a>
+                        @endif
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @endif
+
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <p class="text-sm text-slate-500">Ventas de hoy</p>

@@ -34,9 +34,16 @@ use App\Http\Controllers\YcloudWebhookController;
 use App\Http\Controllers\N8nController;
 use App\Http\Controllers\N8nWebhookController;
 use App\Http\Controllers\AsistenteController;
+use App\Http\Controllers\BancoController;
 use App\Http\Controllers\BusquedaController;
+use App\Http\Controllers\ChequeController;
+use App\Http\Controllers\CobranzaController;
+use App\Http\Controllers\CrmController;
 use App\Http\Controllers\DescargasController;
 use App\Http\Controllers\IaOperativaController;
+use App\Http\Controllers\MercadoPagoVisorController;
+use App\Http\Controllers\OrdenCompraController;
+use App\Http\Controllers\RemitoController;
 use App\Http\Controllers\VentaController;
 use App\Services\Afip\AfipSoap;
 use Illuminate\Support\Facades\Route;
@@ -240,6 +247,8 @@ Route::middleware('auth')->group(function () {
             ->whereNumber('comprobante')->name('facturacion.show');
         Route::get('/facturacion/{comprobante}/ticket', [FacturacionController::class, 'ticket'])
             ->whereNumber('comprobante')->name('facturacion.ticket');
+        Route::post('/facturacion/{comprobante}/email', [FacturacionController::class, 'enviarEmail'])
+            ->whereNumber('comprobante')->name('facturacion.enviar-email');
         Route::get('/facturacion/{comprobante}/nota', [FacturacionController::class, 'notaForm'])
             ->whereNumber('comprobante')->name('facturacion.nota');
         Route::post('/facturacion/{comprobante}/nota', [FacturacionController::class, 'notaStore'])
@@ -268,8 +277,55 @@ Route::middleware('auth')->group(function () {
         Route::get('/pedidos', [InformeController::class, 'pedidos'])->name('pedidos');
         Route::get('/stock', [InformeController::class, 'stock'])->name('stock');
         Route::get('/libro-iva', [InformeController::class, 'libroIva'])->name('libro-iva');
+        Route::get('/citi-ventas', [InformeController::class, 'citiVentas'])->name('citi-ventas');
         Route::get('/cuentas-corrientes', [InformeController::class, 'cuentasCorrientes'])->name('cuentas-corrientes');
         Route::get('/cajas', [InformeController::class, 'cajas'])->name('cajas');
+    });
+
+    Route::middleware('permission:cobranzas.ver')->group(function () {
+        Route::get('/cobranzas', [CobranzaController::class, 'index'])->name('cobranzas.index');
+    });
+
+    Route::middleware('permission:cheques.ver')->group(function () {
+        Route::get('/cheques', [ChequeController::class, 'index'])->name('cheques.index');
+        Route::get('/cheques/nuevo', [ChequeController::class, 'create'])->name('cheques.create');
+        Route::post('/cheques', [ChequeController::class, 'store'])->name('cheques.store');
+        Route::post('/cheques/{cheque}/estado', [ChequeController::class, 'cambiarEstado'])->name('cheques.cambiar-estado');
+    });
+
+    Route::middleware('permission:ordenes-compra.ver')->group(function () {
+        Route::get('/ordenes-compra', [OrdenCompraController::class, 'index'])->name('ordenes-compra.index');
+        Route::get('/ordenes-compra/nueva', [OrdenCompraController::class, 'create'])->name('ordenes-compra.create');
+        Route::post('/ordenes-compra', [OrdenCompraController::class, 'store'])->name('ordenes-compra.store');
+        Route::post('/ordenes-compra/ocr', [OrdenCompraController::class, 'ocr'])->name('ordenes-compra.ocr');
+        Route::get('/ordenes-compra/{ordenCompra}', [OrdenCompraController::class, 'show'])->whereNumber('ordenCompra')->name('ordenes-compra.show');
+        Route::post('/ordenes-compra/{ordenCompra}/recibir', [OrdenCompraController::class, 'recibir'])->name('ordenes-compra.recibir');
+    });
+
+    Route::middleware('permission:remitos.ver')->group(function () {
+        Route::get('/remitos', [RemitoController::class, 'index'])->name('remitos.index');
+        Route::get('/remitos/nuevo', [RemitoController::class, 'createFromPresupuesto'])->name('remitos.create');
+        Route::post('/remitos', [RemitoController::class, 'store'])->name('remitos.store');
+        Route::get('/remitos/{remito}', [RemitoController::class, 'show'])->whereNumber('remito')->name('remitos.show');
+        Route::post('/remitos/{remito}/entregar', [RemitoController::class, 'entregar'])->name('remitos.entregar');
+    });
+
+    Route::middleware('permission:bancos.ver')->group(function () {
+        Route::get('/bancos', [BancoController::class, 'index'])->name('bancos.index');
+        Route::post('/bancos', [BancoController::class, 'store'])->name('bancos.store');
+        Route::get('/bancos/{cuentaBancaria}', [BancoController::class, 'show'])->whereNumber('cuentaBancaria')->name('bancos.show');
+        Route::post('/bancos/{cuentaBancaria}/importar', [BancoController::class, 'importCsv'])->name('bancos.importar');
+    });
+
+    Route::middleware('permission:crm.ver')->group(function () {
+        Route::get('/crm', [CrmController::class, 'index'])->name('crm.index');
+        Route::post('/crm', [CrmController::class, 'store'])->name('crm.store');
+        Route::post('/crm/{oportunidad}/etapa', [CrmController::class, 'updateEtapa'])->name('crm.etapa');
+        Route::post('/crm/{oportunidad}/actividad', [CrmController::class, 'addActividad'])->name('crm.actividad');
+    });
+
+    Route::middleware('permission:pos.vender')->group(function () {
+        Route::get('/mercadopago/visor', [MercadoPagoVisorController::class, 'index'])->name('mercadopago.visor');
     });
 
     Route::middleware('permission:empresas.gestionar')->group(function () {

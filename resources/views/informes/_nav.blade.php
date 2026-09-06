@@ -9,6 +9,7 @@
         ['route' => 'informes.pedidos', 'label' => '¿Qué pedir?', 'match' => 'informes.pedidos'],
         ['route' => 'informes.stock', 'label' => 'Stock', 'match' => 'informes.stock'],
         ['route' => 'informes.libro-iva', 'label' => 'Libro IVA', 'match' => 'informes.libro-iva'],
+        ['route' => 'informes.citi-ventas', 'label' => 'CITI ventas', 'match' => 'informes.citi-ventas'],
         ['route' => 'informes.cuentas-corrientes', 'label' => 'Cta. cte.', 'match' => 'informes.cuentas-corrientes'],
         ['route' => 'informes.cajas', 'label' => 'Cajas', 'match' => 'informes.cajas'],
     ];

@@ -340,6 +340,66 @@ class InformeController extends Controller
         return view('informes.libro-iva', compact('comprobantes', 'totales', 'desde', 'hasta', 'sort', 'dir'));
     }
 
+    public function citiVentas(Request $request): View|StreamedResponse
+    {
+        $desde = $request->date('desde') ?? now()->startOfMonth();
+        $hasta = $request->date('hasta') ?? now();
+
+        if (! $request->filled('exportar') && ! $request->filled('formato')) {
+            return view('informes.citi-ventas', compact('desde', 'hasta'));
+        }
+
+        $comprobantes = Comprobante::with(['puntoVenta'])
+            ->where('estado', 'autorizado')
+            ->whereBetween('fecha_emision', [$desde->toDateString(), $hasta->toDateString()])
+            ->orderBy('fecha_emision')
+            ->orderBy('numero')
+            ->get();
+
+        $filename = 'citi-ventas-'.$desde->format('Ymd').'-'.$hasta->format('Ymd');
+        $formato = strtolower((string) $request->input('formato', 'csv'));
+
+        if ($formato === 'txt') {
+            return response()->streamDownload(function () use ($comprobantes) {
+                $out = fopen('php://output', 'w');
+                fwrite($out, "Fecha;TipoCbte;PtoVta;Nro;DocTipo;DocNro;Gravado;IVA;Total;CAE\n");
+                foreach ($comprobantes as $c) {
+                    $linea = implode(';', [
+                        $c->fecha_emision->format('Ymd'),
+                        (string) $c->tipo_comprobante,
+                        (string) ($c->puntoVenta?->numero ?? 0),
+                        (string) $c->numero,
+                        (string) $c->doc_tipo,
+                        (string) $c->doc_numero,
+                        number_format((float) $c->neto, 2, '.', ''),
+                        number_format((float) $c->iva, 2, '.', ''),
+                        number_format((float) $c->total, 2, '.', ''),
+                        (string) $c->cae,
+                    ]);
+                    fwrite($out, $linea."\n");
+                }
+                fclose($out);
+            }, $filename.'.txt', ['Content-Type' => 'text/plain; charset=UTF-8']);
+        }
+
+        return CsvExport::download(
+            $filename.'.csv',
+            ['Fecha', 'TipoCbte', 'PtoVta', 'Nro', 'DocTipo', 'DocNro', 'Gravado', 'IVA', 'Total', 'CAE'],
+            $comprobantes->map(fn ($c) => [
+                $c->fecha_emision->format('d/m/Y'),
+                $c->tipo_comprobante,
+                $c->puntoVenta?->numero,
+                $c->numero,
+                $c->doc_tipo,
+                $c->doc_numero,
+                CsvExport::money((float) $c->neto),
+                CsvExport::money((float) $c->iva),
+                CsvExport::money((float) $c->total),
+                $c->cae,
+            ])
+        );
+    }
+
     public function cuentasCorrientes(Request $request): View|StreamedResponse
     {
         $query = \App\Models\Cliente::where('activo', true)
