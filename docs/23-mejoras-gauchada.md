@@ -1,28 +1,36 @@
 # Mejoras Gauchada → POSMoon (sep 2026)
 
-Implementación MVP de las 3 fases del plan competitivo vs [gauchada.app](https://gauchada.app/).
+Implementación **completa** de las 3 fases del plan vs [gauchada.app](https://gauchada.app/).
 
-## Fase 1
-- Alertas en dashboard (stock bajo, CC vencida, cajas abiertas >16h, cheques)
-- Agenda de cobranzas `/cobranzas`
-- Asistente IA con contexto de gestión real
-- Vencimiento en movimientos de CC + `clientes.dias_credito`
-- Email de factura desde comprobante
-- Export CITI ventas `/informes/citi-ventas`
+## Fase 1 — lista
+- Asistente IA con contexto real (ventas, CC, stock, qué pedir)
+- Alertas en dashboard (stock bajo, CC vencida, cajas >16h, cheques)
+- Facturas recurrentes: UI `/facturas-recurrentes` + job `facturas:recurrentes` (diario 07:00)
+- Email de factura (HTML + PDF TCPDF / fallback .txt)
+- Export CITI ventas + Libro IVA compras (`/informes/libro-iva-compras`)
+- Agenda cobranzas `/cobranzas` + `vencimiento` / `dias_credito`
 
-## Fase 2
-- Cheques (cartera / estados)
-- Órdenes de compra + recepción parcial + OCR texto→ítems
-- Remitos desde presupuesto
-- Visor MercadoPago (ventas QR / config)
+## Fase 2 — lista
+- Cheques (cartera / depositado / cobrado / rechazado)
+- Órdenes de compra + recepción parcial (stock)
+- OCR texto → JSON → compra borrador (`compras/desde-ocr`)
+- Cadena: presupuesto → **pedido** → remito → venta/factura
+- Visor MercadoPago: liquidaciones + pagos API + ventas QR
 
-## Fase 3
-- Cuentas bancarias + import CSV extractos
-- CRM liviano (oportunidades por etapa + actividades)
-- Tabla `facturas_recurrentes` (base; scheduler pendiente)
+## Fase 3 — lista
+- Bancos: cuentas, import CSV, conciliar / desconciliar
+- Depósitos ≠ sucursales + lotes/series por producto
+- CRM liviano (etapas + actividades + filtro)
 
 ## Fuera de alcance (PRD)
 Contabilidad general y RRHH/sueldos.
 
-## Migración
-`php artisan migrate` → `2026_09_06_100000_gauchada_fases_mejoras.php`
+## Migraciones
+```bash
+php artisan migrate
+# 2026_09_06_100000_gauchada_fases_mejoras
+# 2026_09_06_140000_depositos_y_lotes
+```
+
+## Scheduler
+Requiere el contenedor `scheduler` en Dokploy. Comando: `facturas:recurrentes`.

@@ -6,7 +6,6 @@ use App\Models\OrdenCompra;
 use App\Models\Sucursal;
 use App\Services\OcrCompraIaService;
 use App\Services\OrdenCompraService;
-use App\Services\StockService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -62,7 +61,7 @@ class OrdenCompraController extends Controller
         ]);
     }
 
-    public function recibir(Request $request, OrdenCompra $ordenCompra, OrdenCompraService $servicio, StockService $stock): RedirectResponse
+    public function recibir(Request $request, OrdenCompra $ordenCompra, OrdenCompraService $servicio): RedirectResponse
     {
         $datos = $request->validate([
             'items' => ['required', 'array', 'min:1'],
@@ -71,7 +70,7 @@ class OrdenCompraController extends Controller
         ]);
 
         try {
-            $orden = $servicio->recibirParcial($ordenCompra, $datos['items'], $stock);
+            $orden = $servicio->recibirParcial($ordenCompra, $datos['items']);
         } catch (\InvalidArgumentException $e) {
             return back()->with('error', $e->getMessage());
         }

@@ -162,6 +162,102 @@ class CompraController extends Controller
             ->with('ok', "Compra #{$compra->id} registrada. Stock actualizado.");
     }
 
+    public function desdeOcr(Request $request, StockService $stockService): RedirectResponse
+    {
+        abort_unless(auth()->user()->can('compras.gestionar'), 403);
+
+        $datos = $request->validate([
+            'proveedor_id' => ['required', 'exists:proveedores,id'],
+            'sucursal_id' => ['required', 'exists:sucursales,id'],
+            'factura_numero' => ['nullable', 'string', 'max:30'],
+            'condicion' => ['nullable', 'in:contado,cuenta_corriente'],
+            'fecha' => ['required', 'date'],
+            'observaciones' => ['nullable', 'string'],
+            'sin_stock' => ['nullable', 'boolean'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.producto_id' => ['nullable', 'exists:productos,id'],
+            'items.*.descripcion' => ['nullable', 'string', 'max:255'],
+            'items.*.cantidad' => ['required', 'numeric', 'gt:0'],
+            'items.*.costo_unitario' => ['required', 'numeric', 'min:0'],
+        ], [], ['proveedor_id' => 'proveedor', 'sucursal_id' => 'sucursal']);
+
+        $sinStock = $request->boolean('sin_stock', true);
+        $condicion = $datos['condicion'] ?? 'contado';
+        $obs = trim((string) ($datos['observaciones'] ?? ''));
+        $observaciones = $obs !== '' ? $obs."\nCreada desde OCR (borrador)." : 'Creada desde OCR (borrador).';
+
+        $compra = DB::transaction(function () use ($datos, $stockService, $sinStock, $condicion, $observaciones) {
+            $total = 0.0;
+            $items = [];
+
+            foreach ($datos['items'] as $item) {
+                $producto = isset($item['producto_id']) ? Producto::find($item['producto_id']) : null;
+                $totalItem = round((float) $item['cantidad'] * (float) $item['costo_unitario'], 2);
+                $total += $totalItem;
+                $items[] = [...$item, 'producto' => $producto, 'total' => $totalItem];
+            }
+
+            $compra = Compra::create([
+                'empresa_id' => auth()->user()->empresa_id,
+                'sucursal_id' => $datos['sucursal_id'],
+                'proveedor_id' => $datos['proveedor_id'],
+                'user_id' => auth()->id(),
+                'factura_numero' => $datos['factura_numero'] ?? null,
+                'condicion' => $condicion,
+                'total' => round($total, 2),
+                'estado' => 'completada',
+                'observaciones' => $observaciones,
+                'fecha' => $datos['fecha'],
+            ]);
+
+            foreach ($items as $item) {
+                CompraItem::create([
+                    'compra_id' => $compra->id,
+                    'producto_id' => $item['producto']?->id,
+                    'descripcion' => $item['descripcion'] ?? $item['producto']?->nombre ?? 'Ítem',
+                    'cantidad' => $item['cantidad'],
+                    'costo_unitario' => $item['costo_unitario'],
+                    'total' => $item['total'],
+                ]);
+
+                if (! $sinStock && $item['producto']) {
+                    $stockService->mover(
+                        $item['producto'],
+                        (int) $datos['sucursal_id'],
+                        (float) $item['cantidad'],
+                        'compra',
+                        "Compra #{$compra->id} (OCR)".($compra->factura_numero ? " ({$compra->factura_numero})" : ''),
+                        $compra,
+                        auth()->id(),
+                    );
+                }
+            }
+
+            if (! $sinStock && $condicion === 'cuenta_corriente') {
+                $proveedor = Proveedor::find($datos['proveedor_id']);
+                MovimientoCuenta::create([
+                    'titular_type' => $proveedor->getMorphClass(),
+                    'titular_id' => $proveedor->id,
+                    'tipo' => 'compra',
+                    'concepto' => "Compra #{$compra->id} (OCR)".($compra->factura_numero ? " ({$compra->factura_numero})" : ''),
+                    'importe' => round($total, 2),
+                    'referencia_type' => $compra->getMorphClass(),
+                    'referencia_id' => $compra->id,
+                    'user_id' => auth()->id(),
+                    'fecha' => $datos['fecha'],
+                ]);
+            }
+
+            return $compra;
+        });
+
+        $msg = $sinStock
+            ? "Compra #{$compra->id} creada desde OCR (sin movimiento de stock). Revisá y ajustá si hace falta."
+            : "Compra #{$compra->id} creada desde OCR. Stock actualizado.";
+
+        return redirect()->route('compras.show', $compra)->with('ok', $msg);
+    }
+
     public function show(Compra $compra): View
     {
         return view('compras.show', [

@@ -36,26 +36,58 @@ class FacturaMailService
         </div>
         HTML;
 
-        Mail::html($html, function ($message) use ($email, $tipo, $numero, $c) {
+        $textoPlano = implode("\n", [
+            "{$tipo} {$numero}",
+            'Receptor: '.$c->receptor_nombre,
+            "Fecha: {$fecha}",
+            "Neto: $ {$neto}",
+            "IVA: $ {$iva}",
+            "Total: $ {$total}",
+            'CAE: '.$c->cae,
+        ]);
+
+        $pdfBytes = null;
+        if (class_exists(\TCPDF::class) && View::exists('facturacion.factura')) {
+            try {
+                $pdfHtml = $this->sanitizarHtmlPdf(
+                    view('facturacion.factura', ['comprobante' => $c])->render()
+                );
+
+                $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+                $pdf->SetCreator('POSMoon');
+                $pdf->SetTitle("{$tipo} {$numero}");
+                $pdf->setPrintHeader(false);
+                $pdf->setPrintFooter(false);
+                $pdf->SetMargins(10, 10, 10);
+                $pdf->SetAutoPageBreak(true, 10);
+                $pdf->AddPage();
+                $pdf->writeHTMLCell(0, 0, '', '', $pdfHtml, 0, 1, false, true, '', true);
+                $pdfBytes = $pdf->Output('', 'S');
+            } catch (\Throwable) {
+                $pdfBytes = null;
+            }
+        }
+
+        Mail::html($html, function ($message) use ($email, $tipo, $numero, $pdfBytes, $textoPlano) {
             $message->to($email)->subject("{$tipo} {$numero}");
 
-            if (class_exists(\TCPDF::class) && View::exists('facturacion.factura')) {
-                try {
-                    $pdfHtml = view('facturacion.factura', ['comprobante' => $c])->render();
-                    $pdf = new \TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
-                    $pdf->SetCreator('POSMoon');
-                    $pdf->SetTitle("{$tipo} {$numero}");
-                    $pdf->setPrintHeader(false);
-                    $pdf->setPrintFooter(false);
-                    $pdf->AddPage();
-                    $pdf->writeHTML($pdfHtml, true, false, true, false, '');
-                    $message->attachData($pdf->Output('', 'S'), "{$numero}.pdf", [
-                        'mime' => 'application/pdf',
-                    ]);
-                } catch (\Throwable) {
-                    // HTML-only si el PDF falla
-                }
+            if ($pdfBytes !== null && $pdfBytes !== '') {
+                $message->attachData($pdfBytes, "{$numero}.pdf", [
+                    'mime' => 'application/pdf',
+                ]);
+            } else {
+                $message->attachData($textoPlano, "{$numero}.txt", [
+                    'mime' => 'text/plain',
+                ]);
             }
         });
+    }
+
+    private function sanitizarHtmlPdf(string $html): string
+    {
+        $html = preg_replace('#<script\b[^>]*>.*?</script>#is', '', $html) ?? $html;
+        $html = preg_replace('#on[a-z]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)#i', '', $html) ?? $html;
+
+        return $html;
     }
 }

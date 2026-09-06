@@ -20,26 +20,39 @@ class CrmController extends Controller
         'perdido' => 'Perdido',
     ];
 
-    public function index(): View
+    public function index(Request $request): View
     {
+        $etapaFiltro = $request->query('etapa');
+        if ($etapaFiltro && ! array_key_exists($etapaFiltro, self::ETAPAS)) {
+            $etapaFiltro = null;
+        }
+
         $oportunidades = CrmOportunidad::with(['cliente', 'usuario'])
+            ->when($etapaFiltro, fn ($q) => $q->where('etapa', $etapaFiltro))
             ->orderByDesc('updated_at')
             ->get()
             ->groupBy('etapa');
 
-        $porEtapa = collect(self::ETAPAS)->mapWithKeys(
+        $etapasVisibles = $etapaFiltro
+            ? [$etapaFiltro => self::ETAPAS[$etapaFiltro]]
+            : self::ETAPAS;
+
+        $porEtapa = collect($etapasVisibles)->mapWithKeys(
             fn ($label, $key) => [$key => $oportunidades->get($key, collect())]
         );
 
         return view('crm.index', [
             'porEtapa' => $porEtapa,
             'etapas' => self::ETAPAS,
+            'etapaFiltro' => $etapaFiltro,
             'clientes' => Cliente::where('activo', true)->orderBy('nombre')->limit(500)->get(['id', 'nombre']),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
+        abort_unless(auth()->user()->can('crm.gestionar'), 403);
+
         $datos = $request->validate([
             'titulo' => ['required', 'string', 'max:255'],
             'cliente_id' => ['nullable', 'exists:clientes,id'],
@@ -67,6 +80,8 @@ class CrmController extends Controller
 
     public function updateEtapa(Request $request, CrmOportunidad $oportunidad): RedirectResponse
     {
+        abort_unless(auth()->user()->can('crm.gestionar'), 403);
+
         $datos = $request->validate([
             'etapa' => ['required', 'in:'.implode(',', array_keys(self::ETAPAS))],
         ]);
@@ -78,6 +93,8 @@ class CrmController extends Controller
 
     public function addActividad(Request $request, CrmOportunidad $oportunidad): RedirectResponse
     {
+        abort_unless(auth()->user()->can('crm.gestionar'), 403);
+
         $datos = $request->validate([
             'tipo' => ['nullable', 'string', 'max:30'],
             'titulo' => ['required', 'string', 'max:255'],

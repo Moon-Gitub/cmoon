@@ -67,6 +67,17 @@ class PresupuestoService
         });
     }
 
+    public function marcarComoPedido(Presupuesto $presupuesto): Presupuesto
+    {
+        if (! in_array($presupuesto->estado, ['pendiente', 'aprobado'], true)) {
+            abort(422, 'Solo se puede marcar como pedido un presupuesto pendiente o aprobado.');
+        }
+
+        $presupuesto->update(['estado' => 'pedido']);
+
+        return $presupuesto->fresh();
+    }
+
     public function aprobar(Presupuesto $presupuesto): Presupuesto
     {
         abort_unless($presupuesto->estado === 'pendiente_aprobacion', 422, 'Solo se pueden aprobar pedidos pendientes de revisión.');

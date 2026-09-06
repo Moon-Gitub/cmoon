@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\CuentaBancaria;
 use App\Models\MovimientoBancario;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -64,6 +65,29 @@ class BancoService
         });
 
         return $creados;
+    }
+
+    public function conciliar(MovimientoBancario $movimiento, ?Model $ref = null): MovimientoBancario
+    {
+        $movimiento->conciliado = true;
+        if ($ref) {
+            $movimiento->conciliado_con_type = $ref->getMorphClass();
+            $movimiento->conciliado_con_id = $ref->getKey();
+        }
+        $movimiento->save();
+
+        return $movimiento;
+    }
+
+    public function desconciliar(MovimientoBancario $movimiento): MovimientoBancario
+    {
+        $movimiento->update([
+            'conciliado' => false,
+            'conciliado_con_type' => null,
+            'conciliado_con_id' => null,
+        ]);
+
+        return $movimiento;
     }
 
     private function parseFecha(string $raw): ?Carbon

@@ -29,6 +29,7 @@
                 @foreach ([
                     'pendiente_aprobacion' => 'Pendiente aprobación',
                     'aprobado' => 'Aprobado',
+                    'pedido' => 'Pedido',
                     'pendiente' => 'Pendiente',
                     'convertido' => 'Convertido',
                     'rechazado' => 'Rechazado',

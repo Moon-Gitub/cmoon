@@ -113,6 +113,10 @@
                                         <a href="{{ route('productos.stock', $p) }}"
                                            class="rounded-lg border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-100">Stock</a>
                                     @endcan
+                                    @can('productos.ver')
+                                        <a href="{{ route('productos.lotes', $p) }}"
+                                           class="rounded-lg border border-slate-300 px-2.5 py-1 text-xs hover:bg-slate-100">Lotes</a>
+                                    @endcan
                                 @endif
                                 @can('productos.editar')
                                     <a href="{{ route('productos.edit', $p) }}"

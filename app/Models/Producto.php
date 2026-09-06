@@ -82,6 +82,11 @@ class Producto extends Model
         return $this->hasMany(MovimientoStock::class);
     }
 
+    public function lotes(): HasMany
+    {
+        return $this->hasMany(ProductoLote::class);
+    }
+
     public function stockTotal(): float
     {
         return (float) $this->stocks->sum('cantidad');

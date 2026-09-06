@@ -35,7 +35,30 @@
                     <div class="flex justify-between"><dt class="text-slate-500">Fecha</dt><dd class="font-medium">{{ $remito->fecha->format('d/m/Y') }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">Cliente</dt><dd class="font-medium">{{ $remito->cliente?->nombre ?? '—' }}</dd></div>
                     <div class="flex justify-between"><dt class="text-slate-500">Presupuesto</dt>
-                        <dd class="font-medium">{{ $remito->presupuesto ? '#'.$remito->presupuesto->numero : '—' }}</dd>
+                        <dd class="font-medium">
+                            @if ($remito->presupuesto)
+                                <a href="{{ route('presupuestos.show', $remito->presupuesto) }}" class="text-indigo-600 hover:underline">
+                                    #{{ $remito->presupuesto->numero }}
+                                </a>
+                            @else
+                                —
+                            @endif
+                        </dd>
+                    </div>
+                    <div class="flex justify-between"><dt class="text-slate-500">Venta</dt>
+                        <dd class="font-medium">
+                            @if ($remito->venta)
+                                @can('ventas.ver')
+                                    <a href="{{ route('ventas.show', $remito->venta) }}" class="text-indigo-600 hover:underline">
+                                        #{{ str_pad($remito->venta->numero, 6, '0', STR_PAD_LEFT) }}
+                                    </a>
+                                @else
+                                    #{{ str_pad($remito->venta->numero, 6, '0', STR_PAD_LEFT) }}
+                                @endcan
+                            @else
+                                —
+                            @endif
+                        </dd>
                     </div>
                     <div class="flex justify-between"><dt class="text-slate-500">Sucursal</dt><dd class="font-medium">{{ $remito->sucursal?->nombre ?? '—' }}</dd></div>
                 </dl>
@@ -52,6 +75,29 @@
                         Marcar entregado
                     </button>
                 </form>
+            @endif
+
+            @if (! $remito->venta_id && $remito->estado !== 'anulado')
+                @canany(['remitos.gestionar', 'pos.vender'])
+                    <form method="POST" action="{{ route('remitos.facturar', $remito) }}"
+                          onsubmit="return confirm('¿Convertir este remito en venta?')">
+                        @csrf
+                        <button class="w-full rounded-xl bg-indigo-600 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">
+                            @can('facturacion.emitir')
+                                Convertir a venta / Facturar
+                            @else
+                                Convertir a venta
+                            @endcan
+                        </button>
+                    </form>
+                @endcanany
+            @elseif ($remito->venta_id)
+                @can('ventas.ver')
+                    <a href="{{ route('ventas.show', $remito->venta_id) }}"
+                       class="block w-full rounded-xl border border-indigo-200 bg-indigo-50 py-2.5 text-center text-sm font-semibold text-indigo-700 hover:bg-indigo-100">
+                        Ver venta / Facturar
+                    </a>
+                @endcan
             @endif
 
             <a href="{{ route('remitos.index') }}" class="block text-center text-sm text-indigo-600 hover:text-indigo-800">← Volver</a>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Compra;
 use App\Models\Comprobante;
 use App\Models\MedioPago;
 use App\Models\Sucursal;
@@ -338,6 +339,66 @@ class InformeController extends Controller
         }
 
         return view('informes.libro-iva', compact('comprobantes', 'totales', 'desde', 'hasta', 'sort', 'dir'));
+    }
+
+    public function libroIvaCompras(Request $request): View|StreamedResponse
+    {
+        $desde = $request->date('desde') ?? now()->startOfMonth();
+        $hasta = $request->date('hasta') ?? now();
+
+        $query = Compra::with('proveedor')
+            ->where('estado', 'completada')
+            ->whereBetween('fecha', [$desde->toDateString(), $hasta->toDateString()]);
+
+        [$sort, $dir] = TableSort::apply($query, $request, [
+            'fecha' => 'fecha',
+            'factura' => 'factura_numero',
+            'proveedor' => fn ($q, $d) => $q->orderBy(
+                \App\Models\Proveedor::select('razon_social')->whereColumn('proveedores.id', 'compras.proveedor_id'),
+                $d
+            ),
+            'total' => 'total',
+        ], 'fecha', 'asc');
+
+        $compras = $query->get()->map(function (Compra $compra) {
+            $total = (float) $compra->total;
+            $neto = round($total / 1.21, 2);
+            $iva = round($total - $neto, 2);
+
+            return (object) [
+                'fecha' => $compra->fecha,
+                'factura_numero' => $compra->factura_numero,
+                'proveedor' => $compra->proveedor?->razon_social ?? '—',
+                'documento' => $compra->proveedor?->cuit ?? '',
+                'neto' => $neto,
+                'iva' => $iva,
+                'total' => $total,
+            ];
+        });
+
+        $totales = [
+            'neto' => (float) $compras->sum('neto'),
+            'iva' => (float) $compras->sum('iva'),
+            'total' => (float) $compras->sum('total'),
+        ];
+
+        if ($request->input('exportar') === 'csv') {
+            return CsvExport::download(
+                'libro-iva-compras-'.$desde->format('Ymd').'-'.$hasta->format('Ymd').'.csv',
+                ['Fecha', 'Proveedor', 'Documento', 'Factura', 'Neto', 'IVA 21%', 'Total'],
+                $compras->map(fn ($c) => [
+                    $c->fecha?->format('d/m/Y'),
+                    $c->proveedor,
+                    $c->documento,
+                    $c->factura_numero,
+                    CsvExport::money($c->neto),
+                    CsvExport::money($c->iva),
+                    CsvExport::money($c->total),
+                ])
+            );
+        }
+
+        return view('informes.libro-iva-compras', compact('compras', 'totales', 'desde', 'hasta', 'sort', 'dir'));
     }
 
     public function citiVentas(Request $request): View|StreamedResponse

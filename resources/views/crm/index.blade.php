@@ -3,6 +3,20 @@
 @section('titulo', 'CRM — Oportunidades')
 
 @section('contenido')
+    <div class="mb-4 flex flex-wrap gap-2">
+        <a href="{{ route('crm.index') }}"
+           class="rounded-lg border px-3 py-1.5 text-xs font-medium {{ empty($etapaFiltro) ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-300 text-slate-600 hover:bg-slate-50' }}">
+            Todas
+        </a>
+        @foreach ($etapas as $key => $label)
+            <a href="{{ route('crm.index', ['etapa' => $key]) }}"
+               class="rounded-lg border px-3 py-1.5 text-xs font-medium {{ ($etapaFiltro ?? null) === $key ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-slate-300 text-slate-600 hover:bg-slate-50' }}">
+                {{ $label }}
+            </a>
+        @endforeach
+    </div>
+
+    @can('crm.gestionar')
     <form method="POST" action="{{ route('crm.store') }}"
           class="mb-6 grid grid-cols-1 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-6">
         @csrf
@@ -35,6 +49,7 @@
             <button class="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Crear</button>
         </div>
     </form>
+    @endcan
 
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         @foreach ($porEtapa as $etapaKey => $items)
@@ -52,6 +67,7 @@
                                 <p class="mt-1 font-medium text-indigo-600">$ {{ number_format((float) $op->monto, 2, ',', '.') }}</p>
                             @endif
 
+                            @can('crm.gestionar')
                             <form method="POST" action="{{ route('crm.etapa', $op) }}" class="mt-2 flex gap-1">
                                 @csrf
                                 <select name="etapa" class="flex-1 rounded border border-slate-300 px-1 py-1 text-xs">
@@ -68,6 +84,7 @@
                                        class="w-full rounded border border-slate-300 px-2 py-1 text-xs">
                                 <button class="text-xs text-indigo-600 hover:underline">+ Actividad</button>
                             </form>
+                            @endcan
                         </div>
                     @empty
                         <p class="py-6 text-center text-xs text-slate-400">Vacío</p>

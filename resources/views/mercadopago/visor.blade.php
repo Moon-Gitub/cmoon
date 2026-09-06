@@ -16,32 +16,80 @@
         </div>
     @endunless
 
-    @if ($puedeListar && is_iterable($pagosMp))
+    @if (! empty($errorMp))
+        <div class="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {{ $errorMp }}
+        </div>
+    @endif
+
+    @if (is_iterable($liquidaciones))
         <div class="mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <h2 class="border-b border-slate-100 px-4 py-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Pagos Mercado Pago</h2>
+            <h2 class="border-b border-slate-100 px-4 py-3 text-sm font-semibold uppercase tracking-wider text-slate-500">
+                Liquidaciones / pagos aprobados (API MP)
+                @if ($liquidacionesFuente === 'pagos_aprobados_aproximados')
+                    <span class="ml-2 font-normal normal-case text-amber-600">(aproximadas: settlement no disponible)</span>
+                @elseif ($liquidacionesFuente)
+                    <span class="ml-2 font-normal normal-case text-slate-400">({{ $liquidacionesFuente }})</span>
+                @endif
+            </h2>
             <table class="w-full text-sm">
                 <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                     <tr>
                         <th class="px-4 py-3">ID</th>
+                        <th class="px-4 py-3">Fecha</th>
                         <th class="px-4 py-3">Estado</th>
                         <th class="px-4 py-3">Referencia</th>
                         <th class="px-4 py-3 text-right">Importe</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                    @foreach ($pagosMp as $pago)
-                        @php
-                            $row = is_array($pago) ? $pago : (array) $pago;
-                        @endphp
+                    @forelse ($liquidaciones as $pago)
+                        @php $row = is_array($pago) ? $pago : (array) $pago; @endphp
                         <tr class="hover:bg-slate-50">
                             <td class="px-4 py-3 font-mono text-xs">{{ $row['id'] ?? $row['payment_id'] ?? '—' }}</td>
+                            <td class="px-4 py-3">{{ $row['date_created'] ?? $row['date_approved'] ?? $row['begin_date'] ?? '—' }}</td>
+                            <td class="px-4 py-3">{{ $row['status'] ?? $row['estado'] ?? '—' }}</td>
+                            <td class="px-4 py-3">{{ $row['external_reference'] ?? $row['referencia'] ?? $row['file_name'] ?? '—' }}</td>
+                            <td class="px-4 py-3 text-right font-semibold">
+                                $ {{ number_format((float) ($row['transaction_amount'] ?? $row['net_received_amount'] ?? $row['importe'] ?? 0), 2, ',', '.') }}
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">Sin liquidaciones en el período.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    @endif
+
+    @if (is_iterable($pagosMp))
+        <div class="mb-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <h2 class="border-b border-slate-100 px-4 py-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Pagos Mercado Pago (API)</h2>
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <tr>
+                        <th class="px-4 py-3">ID</th>
+                        <th class="px-4 py-3">Fecha</th>
+                        <th class="px-4 py-3">Estado</th>
+                        <th class="px-4 py-3">Referencia</th>
+                        <th class="px-4 py-3 text-right">Importe</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse ($pagosMp as $pago)
+                        @php $row = is_array($pago) ? $pago : (array) $pago; @endphp
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-4 py-3 font-mono text-xs">{{ $row['id'] ?? $row['payment_id'] ?? '—' }}</td>
+                            <td class="px-4 py-3">{{ $row['date_created'] ?? '—' }}</td>
                             <td class="px-4 py-3">{{ $row['status'] ?? $row['estado'] ?? '—' }}</td>
                             <td class="px-4 py-3">{{ $row['external_reference'] ?? $row['referencia'] ?? '—' }}</td>
                             <td class="px-4 py-3 text-right font-semibold">
                                 $ {{ number_format((float) ($row['transaction_amount'] ?? $row['importe'] ?? 0), 2, ',', '.') }}
                             </td>
                         </tr>
-                    @endforeach
+                    @empty
+                        <tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">Sin pagos en el período.</td></tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -49,7 +97,7 @@
 
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <h2 class="border-b border-slate-100 px-4 py-3 text-sm font-semibold uppercase tracking-wider text-slate-500">
-            Ventas recientes con medio QR
+            Ventas recientes con medio QR (locales)
         </h2>
         <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">

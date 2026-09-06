@@ -11,9 +11,11 @@ use App\Http\Controllers\EmpresasAdminController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\PresupuestoController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DepositoController;
 use App\Http\Controllers\EmisorController;
 use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\FacturacionController;
+use App\Http\Controllers\FacturaRecurrenteController;
 use App\Http\Controllers\InformeController;
 use App\Http\Controllers\ListaPrecioController;
 use App\Http\Controllers\MedioPagoController;
@@ -141,6 +143,12 @@ Route::middleware('auth')->group(function () {
             ->parameters(['sucursales' => 'sucursal']);
     });
 
+    Route::middleware('permission:depositos.ver')->group(function () {
+        Route::get('/depositos', [DepositoController::class, 'index'])->name('depositos.index');
+        Route::post('/depositos', [DepositoController::class, 'store'])->name('depositos.store');
+        Route::put('/depositos/{deposito}', [DepositoController::class, 'update'])->name('depositos.update');
+    });
+
     Route::middleware('permission:empresa.ver')->group(function () {
         Route::get('/empresa', [EmpresaController::class, 'edit'])->name('empresa.edit');
         Route::put('/empresa', [EmpresaController::class, 'update'])->name('empresa.update');
@@ -157,6 +165,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/productos/{producto}/auditoria', [ProductoController::class, 'auditoria'])->name('productos.auditoria');
         Route::get('/productos/{producto}/stock', [ProductoController::class, 'stock'])->name('productos.stock');
         Route::post('/productos/{producto}/stock', [ProductoController::class, 'ajustarStock'])->name('productos.stock.ajustar');
+        Route::get('/productos/{producto}/lotes', [ProductoController::class, 'lotes'])->name('productos.lotes');
+        Route::post('/productos/{producto}/lotes', [ProductoController::class, 'storeLote'])->name('productos.lotes.store');
         Route::get('/productos/{producto}/combo', [ProductoController::class, 'combo'])->name('productos.combo');
         Route::post('/productos/{producto}/combo', [ProductoController::class, 'agregarComponente'])->name('productos.combo.agregar');
         Route::delete('/productos/{producto}/combo/{componente}', [ProductoController::class, 'quitarComponente'])->name('productos.combo.quitar');
@@ -256,6 +266,19 @@ Route::middleware('auth')->group(function () {
         Route::post('/ventas/{venta}/facturar', [FacturacionController::class, 'facturar'])->name('ventas.facturar');
         Route::post('/facturacion/facturar-lote', [FacturacionController::class, 'facturarLote'])->name('facturacion.facturar-lote');
         Route::post('/facturacion/{comprobante}/reintentar', [FacturacionController::class, 'reintentar'])->name('facturacion.reintentar');
+
+        Route::get('/facturas-recurrentes', [FacturaRecurrenteController::class, 'index'])->name('facturas-recurrentes.index');
+        Route::post('/facturas-recurrentes', [FacturaRecurrenteController::class, 'store'])
+            ->middleware('permission:facturacion.emitir')
+            ->name('facturas-recurrentes.store');
+        Route::post('/facturas-recurrentes/{facturaRecurrente}/toggle', [FacturaRecurrenteController::class, 'toggle'])
+            ->whereNumber('facturaRecurrente')
+            ->middleware('permission:facturacion.emitir')
+            ->name('facturas-recurrentes.toggle');
+        Route::delete('/facturas-recurrentes/{facturaRecurrente}', [FacturaRecurrenteController::class, 'destroy'])
+            ->whereNumber('facturaRecurrente')
+            ->middleware('permission:facturacion.emitir')
+            ->name('facturas-recurrentes.destroy');
     });
 
     Route::middleware('permission:emisores.ver')->group(function () {
@@ -277,6 +300,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/pedidos', [InformeController::class, 'pedidos'])->name('pedidos');
         Route::get('/stock', [InformeController::class, 'stock'])->name('stock');
         Route::get('/libro-iva', [InformeController::class, 'libroIva'])->name('libro-iva');
+        Route::get('/libro-iva-compras', [InformeController::class, 'libroIvaCompras'])->name('libro-iva-compras');
         Route::get('/citi-ventas', [InformeController::class, 'citiVentas'])->name('citi-ventas');
         Route::get('/cuentas-corrientes', [InformeController::class, 'cuentasCorrientes'])->name('cuentas-corrientes');
         Route::get('/cajas', [InformeController::class, 'cajas'])->name('cajas');
@@ -308,6 +332,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/remitos', [RemitoController::class, 'store'])->name('remitos.store');
         Route::get('/remitos/{remito}', [RemitoController::class, 'show'])->whereNumber('remito')->name('remitos.show');
         Route::post('/remitos/{remito}/entregar', [RemitoController::class, 'entregar'])->name('remitos.entregar');
+        Route::post('/remitos/{remito}/facturar', [RemitoController::class, 'facturar'])->name('remitos.facturar');
     });
 
     Route::middleware('permission:bancos.ver')->group(function () {
@@ -315,6 +340,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/bancos', [BancoController::class, 'store'])->name('bancos.store');
         Route::get('/bancos/{cuentaBancaria}', [BancoController::class, 'show'])->whereNumber('cuentaBancaria')->name('bancos.show');
         Route::post('/bancos/{cuentaBancaria}/importar', [BancoController::class, 'importCsv'])->name('bancos.importar');
+        Route::post('/bancos/{cuentaBancaria}/movimientos/{movimiento}/conciliar', [BancoController::class, 'conciliar'])
+            ->whereNumber(['cuentaBancaria', 'movimiento'])
+            ->name('bancos.conciliar');
+        Route::post('/bancos/{cuentaBancaria}/movimientos/{movimiento}/desconciliar', [BancoController::class, 'desconciliar'])
+            ->whereNumber(['cuentaBancaria', 'movimiento'])
+            ->name('bancos.desconciliar');
     });
 
     Route::middleware('permission:crm.ver')->group(function () {
@@ -345,6 +376,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/compras', [CompraController::class, 'index'])->name('compras.index');
         Route::get('/compras/nueva', [CompraController::class, 'create'])->name('compras.create');
         Route::post('/compras', [CompraController::class, 'store'])->name('compras.store');
+        Route::post('/compras/desde-ocr', [CompraController::class, 'desdeOcr'])->name('compras.desde-ocr');
         Route::get('/compras/{compra}', [CompraController::class, 'show'])->whereNumber('compra')->name('compras.show');
         Route::post('/compras/{compra}/anular', [CompraController::class, 'anular'])->name('compras.anular');
     });
@@ -357,6 +389,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/presupuestos/{presupuesto}/anular', [PresupuestoController::class, 'anular'])->name('presupuestos.anular');
         Route::post('/presupuestos/{presupuesto}/aprobar', [PresupuestoController::class, 'aprobar'])->name('presupuestos.aprobar');
         Route::post('/presupuestos/{presupuesto}/rechazar', [PresupuestoController::class, 'rechazar'])->name('presupuestos.rechazar');
+        Route::post('/presupuestos/{presupuesto}/pedido', [PresupuestoController::class, 'marcarPedido'])->name('presupuestos.pedido');
     });
 
     Route::middleware('permission:retenciones.ver')->group(function () {

@@ -78,10 +78,27 @@
             @endif
 
             @if (in_array($presupuesto->estado, ['pendiente', 'aprobado']))
+                @can('presupuestos.gestionar')
+                    <form method="POST" action="{{ route('presupuestos.pedido', $presupuesto) }}">
+                        @csrf
+                        <button class="w-full rounded-xl bg-sky-600 py-3 text-center text-sm font-bold text-white hover:bg-sky-700">
+                            Marcar como pedido
+                        </button>
+                    </form>
+                @endcan
+            @endif
+
+            @if (in_array($presupuesto->estado, ['pendiente', 'aprobado', 'pedido']))
                 @can('pos.vender')
                     <a href="{{ route('pos', ['presupuesto' => $presupuesto->id]) }}"
                        class="block w-full rounded-xl bg-indigo-600 py-3 text-center text-sm font-bold text-white hover:bg-indigo-700">
                         Convertir en venta (abrir en POS)
+                    </a>
+                @endcan
+                @can('remitos.gestionar')
+                    <a href="{{ route('remitos.create', ['presupuesto_id' => $presupuesto->id]) }}"
+                       class="block w-full rounded-xl border border-indigo-200 bg-indigo-50 py-2.5 text-center text-sm font-semibold text-indigo-700 hover:bg-indigo-100">
+                        Emitir remito
                     </a>
                 @endcan
                 @can('presupuestos.gestionar')

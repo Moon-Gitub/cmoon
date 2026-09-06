@@ -11,15 +11,25 @@ class MercadoPagoVisorController extends Controller
     public function index(MercadoPagoQrService $mp): View
     {
         $pagosMp = null;
-        $puedeListar = method_exists($mp, 'listarPagos') || method_exists($mp, 'buscarPagos');
+        $liquidaciones = null;
+        $liquidacionesFuente = null;
+        $errorMp = null;
 
-        if ($puedeListar) {
+        if ($mp->configurado()) {
             try {
-                $pagosMp = method_exists($mp, 'listarPagos')
-                    ? $mp->listarPagos()
-                    : $mp->buscarPagos();
-            } catch (\Throwable) {
+                $pagosMp = $mp->listarPagos();
+            } catch (\Throwable $e) {
                 $pagosMp = null;
+                $errorMp = $e->getMessage();
+            }
+
+            try {
+                $liq = $mp->listarLiquidaciones();
+                $liquidaciones = $liq['items'] ?? [];
+                $liquidacionesFuente = $liq['fuente'] ?? null;
+            } catch (\Throwable $e) {
+                $liquidaciones = null;
+                $errorMp = $errorMp ?: $e->getMessage();
             }
         }
 
@@ -33,8 +43,10 @@ class MercadoPagoVisorController extends Controller
         return view('mercadopago.visor', [
             'configurado' => $mp->configurado(),
             'pagosMp' => $pagosMp,
+            'liquidaciones' => $liquidaciones,
+            'liquidacionesFuente' => $liquidacionesFuente,
             'ventasQr' => $ventasQr,
-            'puedeListar' => $puedeListar && $pagosMp !== null,
+            'errorMp' => $errorMp,
         ]);
     }
 }

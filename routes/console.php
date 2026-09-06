@@ -8,6 +8,12 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+Schedule::command('facturas:recurrentes')
+    ->dailyAt('07:00')
+    ->name('facturas:recurrentes')
+    ->withoutOverlapping()
+    ->runInBackground();
+
 // Tareas programadas de Tiendanube (solo si está configurado)
 if (config('tiendanube.client_id')) {
     Schedule::command('tiendanube:import-abandoned --days=1')

@@ -234,7 +234,7 @@ class PosController extends Controller
 
         if (! empty($datos['presupuesto_id']) && ! $venta->esDevolucion()) {
             \App\Models\Presupuesto::where('id', $datos['presupuesto_id'])
-                ->whereIn('estado', ['pendiente', 'aprobado'])
+                ->whereIn('estado', ['pendiente', 'aprobado', 'pedido'])
                 ->update(['estado' => 'convertido', 'venta_id' => $venta->id]);
         }
 

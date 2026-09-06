@@ -46,6 +46,7 @@
             ['informes.pedidos', '¿Qué debo pedir?', 'Cobertura, cantidad sugerida, inversión y ROI', 'amber'],
             ['informes.stock', 'Stock valorizado', 'Inventario a costo y venta, alertas de mínimo', 'slate'],
             ['informes.libro-iva', 'Libro IVA', 'Comprobantes autorizados + export CSV', 'rose'],
+            ['informes.libro-iva-compras', 'Libro IVA compras', 'Compras completadas con neto/IVA 21% estimado + CSV', 'pink'],
             ['informes.cuentas-corrientes', 'Cuentas corrientes', 'Saldos de clientes + export', 'teal'],
             ['informes.cajas', 'Cajas', 'Sesiones, totales y cierres del período', 'orange'],
         ] as [$route, $titulo, $desc, $color])

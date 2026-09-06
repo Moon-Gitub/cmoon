@@ -12,6 +12,8 @@ use InvalidArgumentException;
 
 class OrdenCompraService
 {
+    public function __construct(private StockService $stockService) {}
+
     /**
      * @param  array{
      *   empresa_id?: int,
@@ -79,11 +81,13 @@ class OrdenCompraService
     /**
      * @param  list<array{id?: int, orden_compra_item_id?: int, cantidad_recibir: float}>  $items
      */
-    public function recibirParcial(OrdenCompra $orden, array $items, StockService $stockService): OrdenCompra
+    public function recibirParcial(OrdenCompra $orden, array $items): OrdenCompra
     {
         if (in_array($orden->estado, ['anulada', 'recibida'], true)) {
             throw new InvalidArgumentException('La orden no admite más recepciones.');
         }
+
+        $stockService = $this->stockService;
 
         return DB::transaction(function () use ($orden, $items, $stockService) {
             $orden->load('items.producto');

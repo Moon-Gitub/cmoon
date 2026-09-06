@@ -2,6 +2,7 @@
     $estadosPresupuesto = [
         'pendiente_aprobacion' => ['label' => 'Pendiente aprobación', 'class' => 'bg-orange-50 text-orange-700'],
         'aprobado' => ['label' => 'Aprobado', 'class' => 'bg-sky-50 text-sky-700'],
+        'pedido' => ['label' => 'Pedido', 'class' => 'bg-indigo-50 text-indigo-700'],
         'pendiente' => ['label' => 'Pendiente', 'class' => 'bg-amber-50 text-amber-700'],
         'convertido' => ['label' => 'Convertido', 'class' => 'bg-emerald-50 text-emerald-700'],
         'rechazado' => ['label' => 'Rechazado', 'class' => 'bg-red-50 text-red-600'],

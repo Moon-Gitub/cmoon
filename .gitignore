@@ -42,3 +42,6 @@ CREDENCIALES.local.md
 # AppImage completo (se versiona en .part* y se recompone en el Dockerfile)
 /public/descargas/*.AppImage
 !/public/descargas/*.AppImage.part*
+
+# Instaladores locales (no versionar)
+desktop/entregas/*.exe

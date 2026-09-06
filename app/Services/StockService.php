@@ -16,6 +16,7 @@ class StockService
      * y deja registro en el historial.
      *
      * @param  float  $cantidad  Positiva entra, negativa sale
+     * @param  array{deposito_id?: int|null, lote_id?: int|null}  $options  Opcional: si viene deposito_id/lote_id se puede ajustar ProductoLote (CRUD independiente por ahora).
      */
     public function mover(
         Producto $producto,
@@ -25,8 +26,9 @@ class StockService
         ?string $observacion = null,
         ?Model $referencia = null,
         ?int $userId = null,
+        array $options = [],
     ): Stock {
-        $stock = DB::transaction(function () use ($producto, $sucursalId, $cantidad, $tipo, $observacion, $referencia, $userId) {
+        $stock = DB::transaction(function () use ($producto, $sucursalId, $cantidad, $tipo, $observacion, $referencia, $userId, $options) {
             $stock = Stock::lockForUpdate()->firstOrCreate(
                 ['producto_id' => $producto->id, 'sucursal_id' => $sucursalId],
                 ['cantidad' => 0]
@@ -46,6 +48,18 @@ class StockService
                 'referencia_type' => $referencia?->getMorphClass(),
                 'referencia_id' => $referencia?->getKey(),
             ]);
+
+            // Hook liviano: actualizar cantidad de lote si se indica lote_id.
+            if (! empty($options['lote_id']) && class_exists(\App\Models\ProductoLote::class)) {
+                $lote = \App\Models\ProductoLote::lockForUpdate()->find($options['lote_id']);
+                if ($lote && (int) $lote->producto_id === (int) $producto->id) {
+                    if (! empty($options['deposito_id'])) {
+                        $lote->deposito_id = (int) $options['deposito_id'];
+                    }
+                    $lote->cantidad = (float) $lote->cantidad + $cantidad;
+                    $lote->save();
+                }
+            }
 
             return $stock;
         });

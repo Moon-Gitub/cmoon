@@ -10,10 +10,10 @@
             <select name="presupuesto_id" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <option value="">Elegí un presupuesto…</option>
                 @foreach ($presupuestos as $p)
-                    <option value="{{ $p->id }}" @selected(old('presupuesto_id') == $p->id)>
+                    <option value="{{ $p->id }}" @selected(old('presupuesto_id', request('presupuesto_id')) == $p->id)>
                         #{{ $p->numero }} — {{ $p->cliente?->nombre ?? 'Sin cliente' }}
                         — $ {{ number_format((float) $p->total, 2, ',', '.') }}
-                        ({{ $p->fecha?->format('d/m/Y') }})
+                        ({{ $p->fecha?->format('d/m/Y') }}) [{{ $p->estado }}]
                     </option>
                 @endforeach
             </select>

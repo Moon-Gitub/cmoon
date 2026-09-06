@@ -100,6 +100,15 @@ class PresupuestoController extends Controller
         ]);
     }
 
+    public function marcarPedido(Presupuesto $presupuesto): RedirectResponse
+    {
+        abort_unless(auth()->user()->can('presupuestos.gestionar'), 403);
+
+        $this->presupuestos->marcarComoPedido($presupuesto);
+
+        return back()->with('ok', "Presupuesto #{$presupuesto->numero} marcado como pedido.");
+    }
+
     public function aprobar(Presupuesto $presupuesto): RedirectResponse
     {
         abort_unless(auth()->user()->can('presupuestos.aprobar'), 403);

@@ -106,4 +106,90 @@ class MercadoPagoQrService
             'payment_id' => isset($pago['id']) ? (string) $pago['id'] : null,
         ];
     }
+
+    /**
+     * Lista pagos recientes de la cuenta MP.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listarPagos(int $dias = 30): array
+    {
+        if (! filled(config('mercadopago.access_token'))) {
+            throw new RuntimeException('Mercado Pago no está configurado.');
+        }
+
+        $dias = max(1, min(90, $dias));
+
+        $respuesta = Http::withToken((string) config('mercadopago.access_token'))
+            ->acceptJson()
+            ->get('https://api.mercadopago.com/v1/payments/search', [
+                'sort' => 'date_created',
+                'criteria' => 'desc',
+                'range' => 'date_created',
+                'begin_date' => "NOW-{$dias}DAYS",
+                'end_date' => 'NOW',
+            ]);
+
+        if (! $respuesta->successful()) {
+            $detalle = $respuesta->json('message') ?? $respuesta->body();
+            throw new RuntimeException("No se pudieron listar pagos MP: {$detalle}");
+        }
+
+        return array_values($respuesta->json('results') ?? []);
+    }
+
+    /**
+     * Intenta liquidaciones / settlement; si falla, usa pagos approved como aproximación.
+     *
+     * @return array{fuente: string, items: list<array<string, mixed>>}
+     */
+    public function listarLiquidaciones(int $dias = 30): array
+    {
+        if (! filled(config('mercadopago.access_token'))) {
+            throw new RuntimeException('Mercado Pago no está configurado.');
+        }
+
+        $token = (string) config('mercadopago.access_token');
+
+        try {
+            $respuesta = Http::withToken($token)
+                ->acceptJson()
+                ->timeout(15)
+                ->get('https://api.mercadopago.com/v1/account/settlement_report/config');
+
+            if ($respuesta->successful()) {
+                $datos = $respuesta->json();
+                $items = is_array($datos) ? (isset($datos[0]) ? $datos : [$datos]) : [];
+
+                return [
+                    'fuente' => 'settlement_report',
+                    'items' => array_values($items),
+                ];
+            }
+        } catch (\Throwable) {
+            // fallback abajo
+        }
+
+        $dias = max(1, min(90, $dias));
+        $respuesta = Http::withToken($token)
+            ->acceptJson()
+            ->get('https://api.mercadopago.com/v1/payments/search', [
+                'sort' => 'date_created',
+                'criteria' => 'desc',
+                'range' => 'date_created',
+                'begin_date' => "NOW-{$dias}DAYS",
+                'end_date' => 'NOW',
+                'status' => 'approved',
+            ]);
+
+        if (! $respuesta->successful()) {
+            $detalle = $respuesta->json('message') ?? $respuesta->body();
+            throw new RuntimeException("No se pudieron listar liquidaciones MP: {$detalle}");
+        }
+
+        return [
+            'fuente' => 'pagos_aprobados_aproximados',
+            'items' => array_values($respuesta->json('results') ?? []),
+        ];
+    }
 }

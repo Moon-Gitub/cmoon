@@ -108,10 +108,20 @@
             </div>
         @endif
 
-        <div class="flex gap-3">
+        <div class="flex flex-wrap gap-3">
             <a href="{{ route('ordenes-compra.index') }}" class="rounded-xl border border-slate-300 px-6 py-2.5 text-sm font-medium hover:bg-slate-50">Cancelar</a>
             <button class="rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">Guardar OC</button>
+            @can('compras.gestionar')
+                <button type="button" @click="crearCompraDesdeOcr()"
+                        class="rounded-xl border border-emerald-300 bg-emerald-50 px-6 py-2.5 text-sm font-semibold text-emerald-800 hover:bg-emerald-100">
+                    Crear compra desde OCR
+                </button>
+            @endcan
         </div>
+    </form>
+
+    <form id="form-compra-ocr" method="POST" action="{{ route('compras.desde-ocr') }}" class="hidden">
+        @csrf
     </form>
 
     <script>
@@ -187,9 +197,51 @@
                         this.ocrLoading = false;
                     }
                 },
+                crearCompraDesdeOcr() {
+                    const proveedorId = document.querySelector('input[name="proveedor_id"]')?.value
+                        || document.querySelector('select[name="proveedor_id"]')?.value;
+                    if (! proveedorId) {
+                        alert('Seleccioná un proveedor antes de crear la compra.');
+                        return;
+                    }
+                    if (! this.lineas.length || ! this.lineas.some(l => (l.cantidad || 0) > 0)) {
+                        alert('Interpretá el OCR o cargá al menos un ítem.');
+                        return;
+                    }
+
+                    const form = document.getElementById('form-compra-ocr');
+                    form.querySelectorAll('.ocr-dyn').forEach(el => el.remove());
+
+                    const addHidden = (name, value) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = name;
+                        input.value = value ?? '';
+                        input.className = 'ocr-dyn';
+                        form.appendChild(input);
+                    };
+
+                    addHidden('proveedor_id', proveedorId);
+                    addHidden('sucursal_id', document.querySelector('select[name="sucursal_id"]')?.value || '');
+                    addHidden('fecha', document.querySelector('input[name="fecha"]')?.value || '');
+                    addHidden('observaciones', document.querySelector('input[name="observaciones"]')?.value || '');
+                    addHidden('condicion', 'contado');
+                    addHidden('sin_stock', '1');
+
+                    this.lineas.forEach((item, idx) => {
+                        addHidden(`items[${idx}][producto_id]`, item.producto_id || '');
+                        addHidden(`items[${idx}][descripcion]`, item.descripcion || item.q || 'Ítem');
+                        addHidden(`items[${idx}][cantidad]`, item.cantidad || 1);
+                        addHidden(`items[${idx}][costo_unitario]`, item.precio ?? 0);
+                    });
+
+                    if (! confirm('¿Crear compra borrador (sin stock) con estos ítems?')) return;
+                    form.submit();
+                },
                 total() { return this.lineas.reduce((s, i) => s + (i.cantidad || 0) * (i.precio || 0), 0); },
                 fmt(n) { return '$ ' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
             };
         }
     </script>
 @endsection
+

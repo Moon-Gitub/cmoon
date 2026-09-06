@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Categoria;
+use App\Models\Deposito;
 use App\Models\Empresa;
 use App\Models\Producto;
+use App\Models\ProductoLote;
 use App\Models\Sucursal;
 use App\Services\StockService;
 use App\Support\TableSort;
@@ -143,6 +145,56 @@ class ProductoController extends Controller
         );
 
         return back()->with('ok', 'Stock ajustado.');
+    }
+
+    public function lotes(Producto $producto): View
+    {
+        return view('productos.lotes', [
+            'producto' => $producto,
+            'lotes' => $producto->lotes()->with('deposito')->orderBy('codigo_lote')->orderBy('serie')->get(),
+            'depositos' => Deposito::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']),
+        ]);
+    }
+
+    public function storeLote(Request $request, Producto $producto): RedirectResponse
+    {
+        abort_unless(auth()->user()->can('productos.editar') || auth()->user()->can('stock.ajustar'), 403);
+
+        $datos = $request->validate([
+            'codigo_lote' => ['required', 'string', 'max:100'],
+            'serie' => ['nullable', 'string', 'max:100'],
+            'deposito_id' => ['nullable', 'exists:depositos,id'],
+            'vencimiento' => ['nullable', 'date'],
+            'cantidad' => ['required', 'numeric'],
+        ]);
+
+        $serie = trim((string) ($datos['serie'] ?? ''));
+        $serie = $serie === '' ? null : $serie;
+
+        $lote = ProductoLote::query()
+            ->where('producto_id', $producto->id)
+            ->where('codigo_lote', $datos['codigo_lote'])
+            ->when(
+                $serie === null,
+                fn ($q) => $q->where(fn ($q2) => $q2->whereNull('serie')->orWhere('serie', '')),
+                fn ($q) => $q->where('serie', $serie),
+            )
+            ->first() ?? new ProductoLote([
+                'producto_id' => $producto->id,
+                'codigo_lote' => $datos['codigo_lote'],
+                'serie' => $serie,
+            ]);
+
+        $lote->empresa_id = $producto->empresa_id;
+        $lote->serie = $serie;
+        $lote->deposito_id = array_key_exists('deposito_id', $datos) ? $datos['deposito_id'] : $lote->deposito_id;
+        if (array_key_exists('vencimiento', $datos)) {
+            $lote->vencimiento = $datos['vencimiento'];
+        }
+        $lote->cantidad = $datos['cantidad'];
+        $lote->save();
+
+        return back()->with('ok', 'Lote actualizado.');
     }
 
     private function validar(Request $request, ?Producto $producto = null): array
