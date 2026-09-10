@@ -224,6 +224,32 @@
                     @endunless
                 </div>
             </div>
+
+            <div class="rounded-lg border border-red-100 bg-red-50/40 p-4">
+                <p class="mb-3 text-sm font-semibold text-slate-700">Oferta / promo (opcional)</p>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-slate-700">Precio oferta</label>
+                        <input type="number" step="0.01" min="0" name="precio_promocional"
+                               value="{{ old('precio_promocional', $producto->precio_promocional) }}"
+                               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                        @error('precio_promocional')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-slate-700">Desde</label>
+                        <input type="date" name="promo_desde"
+                               value="{{ old('promo_desde', optional($producto->promo_desde)->format('Y-m-d')) }}"
+                               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-slate-700">Hasta</label>
+                        <input type="date" name="promo_hasta"
+                               value="{{ old('promo_hasta', optional($producto->promo_hasta)->format('Y-m-d')) }}"
+                               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    </div>
+                </div>
+                <p class="mt-2 text-xs text-slate-500">Si está vigente, se usa en etiquetas de góndola/oferta/QR.</p>
+            </div>
         </div>
 
         <label class="flex items-center gap-2 text-sm text-slate-700">

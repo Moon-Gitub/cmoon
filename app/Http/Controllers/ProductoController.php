@@ -245,6 +245,9 @@ class ProductoController extends Controller
             'precio_compra_dolar' => ['nullable', 'numeric', 'min:0'],
             'margen_ganancia' => ['nullable', 'numeric', 'min:0', 'max:9999'],
             'precio_venta' => ['required', 'numeric', 'min:0'],
+            'precio_promocional' => ['nullable', 'numeric', 'min:0'],
+            'promo_desde' => ['nullable', 'date'],
+            'promo_hasta' => ['nullable', 'date', 'after_or_equal:promo_desde'],
             'alicuota_iva' => ['nullable', 'numeric', Rule::in([0, 10.5, 21, 27])],
             'stock_minimo' => ['nullable', 'numeric', 'min:0'],
             'stock_inicial' => ['nullable', 'numeric', 'min:0'],
@@ -259,6 +262,9 @@ class ProductoController extends Controller
             'precio_compra_dolar' => 'precio de compra en dólares',
             'margen_ganancia' => 'margen de ganancia',
             'precio_venta' => 'precio de venta',
+            'precio_promocional' => 'precio promocional',
+            'promo_desde' => 'inicio de promo',
+            'promo_hasta' => 'fin de promo',
             'alicuota_iva' => 'alícuota de IVA',
             'stock_minimo' => 'stock mínimo',
             'stock_inicial' => 'stock inicial',
@@ -279,6 +285,11 @@ class ProductoController extends Controller
                 : null,
             'sucursal_stock_id' => isset($datos['sucursal_stock_id']) ? (int) $datos['sucursal_stock_id'] : null,
             'precio_compra_dolar' => (float) ($datos['precio_compra_dolar'] ?? 0),
+            'precio_promocional' => isset($datos['precio_promocional']) && $datos['precio_promocional'] !== ''
+                ? (float) $datos['precio_promocional']
+                : null,
+            'promo_desde' => $datos['promo_desde'] ?? null,
+            'promo_hasta' => $datos['promo_hasta'] ?? null,
             'margen_ganancia' => $request->boolean('utilizar_porcentaje')
                 ? (float) ($datos['margen_ganancia'] ?? 0)
                 : 0,

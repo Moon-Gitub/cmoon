@@ -13,7 +13,7 @@ use App\Http\Controllers\PresupuestoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepositoController;
 use App\Http\Controllers\EmisorController;
-use App\Http\Controllers\EmpresaController;
+use App\Http\Controllers\EtiquetaController;
 use App\Http\Controllers\FacturacionController;
 use App\Http\Controllers\FacturaRecurrenteController;
 use App\Http\Controllers\InformeController;
@@ -74,6 +74,11 @@ Route::post('/webhooks/n8n', [N8nWebhookController::class, 'handle'])
 Route::get('/catalogo/{token}/categoria/{categoria}', [CatalogoCategoriaController::class, 'publico'])
     ->whereNumber('categoria')
     ->name('catalogo.categoria.publico');
+
+// Consulta de precio por QR de góndola (público por dominio del tenant)
+Route::get('/consulta-precio/{codigo}', [EtiquetaController::class, 'consultaPrecio'])
+    ->where('codigo', '[^/]+')
+    ->name('consulta.precio');
 
 // Diagnóstico de salida a AFIP (token = sha256(APP_KEY) primeros 16 hex)
 Route::get('/_diag/afip', function () {
@@ -172,6 +177,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/productos/plantilla-csv', [ProductoController::class, 'plantillaCsv'])->name('productos.plantilla');
         Route::get('/productos/precio-masivo', [ProductoController::class, 'precioMasivoForm'])->name('productos.precio-masivo');
         Route::post('/productos/precio-masivo', [ProductoController::class, 'precioMasivo'])->name('productos.precio-masivo.aplicar');
+        Route::get('/productos/etiquetas', [EtiquetaController::class, 'index'])->name('productos.etiquetas');
+        Route::post('/productos/etiquetas/agregar', [EtiquetaController::class, 'agregar'])->name('productos.etiquetas.agregar');
+        Route::post('/productos/etiquetas/quitar', [EtiquetaController::class, 'quitar'])->name('productos.etiquetas.quitar');
+        Route::post('/productos/etiquetas/limpiar', [EtiquetaController::class, 'limpiar'])->name('productos.etiquetas.limpiar');
+        Route::get('/productos/etiquetas/pdf', [EtiquetaController::class, 'pdf'])->name('productos.etiquetas.pdf');
         Route::get('/productos/canales', [ProductoController::class, 'canales'])->name('productos.canales');
         Route::post('/productos/canales', [ProductoController::class, 'canalesAplicar'])->name('productos.canales.aplicar');
         Route::get('/productos/{producto}/auditoria', [ProductoController::class, 'auditoria'])->name('productos.auditoria');

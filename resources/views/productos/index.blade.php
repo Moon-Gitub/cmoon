@@ -57,11 +57,18 @@
         </p>
         @can('productos.editar')
             <div class="flex gap-3">
+                <a href="{{ route('productos.etiquetas') }}"
+                   class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Imprimir etiquetas →</a>
                 <a href="{{ route('productos.canales') }}"
                    class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Publicar en canales →</a>
                 <a href="{{ route('productos.precio-masivo') }}"
                    class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Cambio de precio masivo →</a>
             </div>
+        @else
+            @can('productos.ver')
+                <a href="{{ route('productos.etiquetas') }}"
+                   class="text-sm font-medium text-indigo-600 hover:text-indigo-800">Imprimir etiquetas →</a>
+            @endcan
         @endcan
     </div>
 
