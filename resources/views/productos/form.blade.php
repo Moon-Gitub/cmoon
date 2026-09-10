@@ -165,7 +165,7 @@
                         <select name="alicuota_iva" required x-model.number="iva" @change="recalcular()"
                                 class="w-full rounded-lg border border-slate-300 py-2 pl-7 pr-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
                             @foreach (['21' => '21%', '10.5' => '10,5%', '27' => '27%', '0' => '0% (exento)'] as $valor => $texto)
-                                <option value="{{ $valor }}">{{ $texto }}</option>
+                                <option value="{{ $valor }}" @selected((float) old('alicuota_iva', $producto->alicuota_iva ?? 21) == (float) $valor)>{{ $texto }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -186,11 +186,43 @@
                 </div>
             </div>
 
-            <div>
-                <label class="mb-1 block text-sm font-medium text-slate-700">Stock mínimo</label>
-                <input type="number" step="0.01" min="0" name="stock_minimo"
-                       value="{{ \App\Support\Cantidad::input(old('stock_minimo', $producto->stock_minimo ?? 0)) }}"
-                       class="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-{{ $esNuevo ? '2' : '1' }}">
+                @if ($esNuevo)
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-slate-700">Stock inicial</label>
+                        <input type="number" step="0.001" min="0" name="stock_inicial"
+                               value="{{ \App\Support\Cantidad::input(old('stock_inicial', 0)) }}"
+                               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                        @error('stock_inicial')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                        @if (($sucursales ?? collect())->count() > 1)
+                            <label class="mt-2 mb-1 block text-xs font-medium text-slate-600">Sucursal</label>
+                            <select name="sucursal_stock_id"
+                                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                @foreach ($sucursales as $suc)
+                                    <option value="{{ $suc->id }}" @selected((int) old('sucursal_stock_id', $sucursales->first()->id) === $suc->id)>
+                                        {{ $suc->nombre }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('sucursal_stock_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                        @elseif (($sucursales ?? collect())->isNotEmpty())
+                            <input type="hidden" name="sucursal_stock_id" value="{{ $sucursales->first()->id }}">
+                        @endif
+                        <p class="mt-1 text-xs text-slate-500">Cantidad con la que arranca el producto. Si es 0, queda sin stock.</p>
+                    </div>
+                @endif
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Stock mínimo</label>
+                    <input type="number" step="0.01" min="0" name="stock_minimo"
+                           value="{{ \App\Support\Cantidad::input(old('stock_minimo', $producto->stock_minimo ?? 0)) }}"
+                           class="w-full {{ $esNuevo ? '' : 'max-w-xs ' }}rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    @unless($esNuevo)
+                        <p class="mt-1 text-xs text-slate-500">
+                            Para cargar o ajustar stock usá
+                            <a href="{{ route('productos.stock', $producto) }}" class="text-indigo-600 hover:underline">Stock</a>.
+                        </p>
+                    @endunless
+                </div>
             </div>
         </div>
 

@@ -8,7 +8,10 @@
         <div>
             <p class="text-sm text-slate-600">
                 Plan <strong>{{ $cupo['plan'] === 'abono' ? 'abono' : 'incluido' }}</strong>
-                · {{ $cupo['usados'] }} / {{ $cupo['cupo'] }} preguntas este mes
+                · {{ $cupo['usados'] }} usados del cupo mensual ({{ $cupo['mensual'] }})
+                @if($cupo['extras'] > 0)
+                    · <strong>{{ $cupo['extras'] }}</strong> créditos extra
+                @endif
                 · quedan <strong x-text="restantes">{{ $cupo['restantes'] }}</strong>
                 @if($cupo['abono_hasta'])
                     · abono hasta {{ $cupo['abono_hasta'] }}
@@ -29,6 +32,35 @@
         @endif
     </div>
 
+    @if($paquetes->isNotEmpty())
+        <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 class="mb-1 text-sm font-semibold text-slate-800">Comprar más créditos</h2>
+            <p class="mb-3 text-xs text-slate-500">Elegí un paquete. Soporte acredita cuando confirma el pago (como en Gauchada).</p>
+            <div class="grid gap-3 sm:grid-cols-3">
+                @foreach ($paquetes as $p)
+                    <form method="POST" action="{{ route('asistente.comprar') }}" class="rounded-lg border border-slate-100 p-3 text-center">
+                        @csrf
+                        <input type="hidden" name="paquete_id" value="{{ $p->id }}">
+                        <p class="font-semibold text-slate-800">{{ $p->nombre }}</p>
+                        <p class="text-2xl font-bold text-indigo-700">{{ number_format($p->creditos, 0, ',', '.') }}</p>
+                        <p class="mb-2 text-xs text-slate-500">consultas · ${{ number_format((float) $p->precio, 0, ',', '.') }} {{ $p->moneda }}</p>
+                        <button class="w-full rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white">Solicitar</button>
+                    </form>
+                @endforeach
+            </div>
+            @if($compras->isNotEmpty())
+                <ul class="mt-3 space-y-1 border-t border-slate-100 pt-3 text-xs text-slate-600">
+                    @foreach ($compras as $c)
+                        <li>
+                            {{ $c->created_at->format('d/m/Y') }} · {{ $c->paquete?->nombre ?? $c->creditos.' créditos' }}
+                            · <span class="font-medium">{{ $c->estado }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </section>
+    @endif
+
     <div class="flex h-[28rem] flex-col rounded-xl border border-slate-200 bg-white shadow-sm">
         <div class="flex-1 space-y-3 overflow-y-auto p-4" x-ref="scroll">
             @foreach ($mensajes as $m)
@@ -47,7 +79,7 @@
         <form class="border-t border-slate-100 p-3" @submit.prevent="enviar">
             <div class="flex gap-2">
                 <input x-model="texto" :disabled="enviando || restantes <= 0" maxlength="2000"
-                       placeholder="{{ $cupo['restantes'] > 0 ? 'Preguntá por un producto, precio, stock…' : 'Sin cupo este mes' }}"
+                       placeholder="{{ $cupo['restantes'] > 0 ? 'Preguntá por un producto, precio, stock…' : 'Sin cupo — comprá créditos arriba' }}"
                        class="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <button :disabled="enviando || restantes <= 0"
                         class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">

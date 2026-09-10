@@ -173,6 +173,13 @@
                         @endif
                         <input type="file" name="catalogo_fondo" accept="image/*" class="block w-full text-sm">
                     </div>
+                    @if ($empresa->catalogo_fondo_path)
+                        <label class="mt-2 flex items-center gap-2 text-sm text-slate-600">
+                            <input type="checkbox" name="eliminar_catalogo_fondo" value="1"
+                                   class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                            Eliminar fondo actual
+                        </label>
+                    @endif
                     <p class="mt-1 text-xs text-slate-400">JPG/PNG, máx. 5 MB. Si no hay fondo, se usa un fondo oscuro.</p>
                     @error('catalogo_fondo')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
@@ -185,6 +192,13 @@
                         @endif
                         <input type="file" name="catalogo_logo" accept="image/*" class="block w-full text-sm">
                     </div>
+                    @if ($empresa->catalogo_logo_path)
+                        <label class="mt-2 flex items-center gap-2 text-sm text-slate-600">
+                            <input type="checkbox" name="eliminar_catalogo_logo" value="1"
+                                   class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                            Eliminar logo del catálogo
+                        </label>
+                    @endif
                     <p class="mt-1 text-xs text-slate-400">Opcional. Si no se carga, usa el logo general de la empresa.</p>
                     @error('catalogo_logo')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>

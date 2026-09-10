@@ -29,6 +29,8 @@ class ChequeController extends Controller
 
     public function create(): View
     {
+        abort_unless(auth()->user()->can('cheques.gestionar'), 403);
+
         return view('cheques.create', [
             'clientes' => Cliente::where('activo', true)->orderBy('nombre')->limit(500)->get(['id', 'nombre']),
             'proveedores' => Proveedor::where('activo', true)->orderBy('razon_social')->limit(500)->get(['id', 'razon_social']),
@@ -37,6 +39,8 @@ class ChequeController extends Controller
 
     public function store(Request $request, ChequeService $cheques): RedirectResponse
     {
+        abort_unless(auth()->user()->can('cheques.gestionar'), 403);
+
         $datos = $request->validate([
             'numero' => ['required', 'string', 'max:50'],
             'banco' => ['nullable', 'string', 'max:100'],
@@ -58,6 +62,8 @@ class ChequeController extends Controller
 
     public function cambiarEstado(Request $request, Cheque $cheque, ChequeService $cheques): RedirectResponse
     {
+        abort_unless(auth()->user()->can('cheques.gestionar'), 403);
+
         $datos = $request->validate([
             'estado' => ['required', 'in:en_cartera,depositado,cobrado,rechazado,anulado'],
         ]);

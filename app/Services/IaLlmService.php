@@ -9,16 +9,17 @@ class IaLlmService
 {
     public function __construct(
         private IaCupoService $cupo,
+        private IaConfigService $config,
     ) {}
 
     /** @return array{ok: bool, texto: string, cupo: array, limite?: bool} */
     public function completar(int $empresaId, string $system, string $user, int $maxTokens = 400): array
     {
-        $apiKey = (string) config('ycloud.openai_api_key');
-        if ($apiKey === '') {
+        $cfg = $this->config->resolver();
+        if ($cfg['api_key'] === '') {
             return [
                 'ok' => false,
-                'texto' => 'IA no configurada (OPENAI_API_KEY). Pedile a soporte que la active; el cupo no se descontó.',
+                'texto' => 'IA no configurada. El supermegaadmin debe cargar OpenAI/OpenRouter en Admin → IA.',
                 'cupo' => $this->cupo->resumen($empresaId),
             ];
         }
@@ -32,15 +33,19 @@ class IaLlmService
             ];
         }
 
-        // Si falló el LLM, devolver el cupo es complejo (ya se consumió). Aceptable: 1 intento.
-        $base = rtrim((string) config('ycloud.openai_base_url'), '/');
-
         try {
+            $headers = [];
+            if ($cfg['provider'] === 'openrouter') {
+                $headers['HTTP-Referer'] = config('app.url');
+                $headers['X-Title'] = config('app.name', 'POSMoon');
+            }
+
             $response = Http::timeout(25)
-                ->withToken($apiKey)
+                ->withToken($cfg['api_key'])
+                ->withHeaders($headers)
                 ->acceptJson()
-                ->post($base.'/chat/completions', [
-                    'model' => config('ycloud.openai_model'),
+                ->post($cfg['base_url'].'/chat/completions', [
+                    'model' => $cfg['model'],
                     'temperature' => 0.2,
                     'max_tokens' => $maxTokens,
                     'messages' => [

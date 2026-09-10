@@ -68,13 +68,15 @@
             </div>
 
             @if ($remito->estado === 'emitido')
-                <form method="POST" action="{{ route('remitos.entregar', $remito) }}"
-                      onsubmit="return confirm('¿Marcar remito como entregado?')">
-                    @csrf
-                    <button class="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
-                        Marcar entregado
-                    </button>
-                </form>
+                @can('remitos.gestionar')
+                    <form method="POST" action="{{ route('remitos.entregar', $remito) }}"
+                          onsubmit="return confirm('¿Marcar remito como entregado?')">
+                        @csrf
+                        <button class="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
+                            Marcar entregado
+                        </button>
+                    </form>
+                @endcan
             @endif
 
             @if (! $remito->venta_id && $remito->estado !== 'anulado')

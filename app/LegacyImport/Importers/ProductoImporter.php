@@ -64,7 +64,7 @@ class ProductoImporter extends AbstractImporter
                     'precio_compra_dolar' => (float) ($row->precio_compra_dolar ?? 0),
                     'margen_ganancia' => (float) ($row->margen_ganancia ?? 0),
                     'precio_venta' => $precioVenta,
-                    'alicuota_iva' => (float) ($row->tipo_iva ?? 21),
+                    'alicuota_iva' => $this->alicuotaIva($row->tipo_iva ?? null),
                     'unidad' => $pesable ? 'KG' : 'UN',
                     'pesable' => $pesable,
                     'stock_minimo' => (float) ($row->stock_bajo ?? 0),
@@ -132,5 +132,21 @@ class ProductoImporter extends AbstractImporter
         $n = mb_strtoupper($nombre);
 
         return (bool) preg_match('/(?:^|[\s\/xX])KG(?:\b|$)|X\s*KG|POR\s*KG|\/\s*KG/', $n);
+    }
+
+    /**
+     * Por defecto 21%. Solo 0 / 10.5 / 27 si vienen explícitos y válidos.
+     * Vacío, null o valores raros del legacy → 21.
+     */
+    private function alicuotaIva(mixed $raw): float
+    {
+        if ($raw === null || $raw === '') {
+            return 21.0;
+        }
+
+        $valor = round((float) str_replace(',', '.', (string) $raw), 2);
+        $permitidas = [0.0, 10.5, 21.0, 27.0];
+
+        return in_array($valor, $permitidas, true) ? $valor : 21.0;
     }
 }

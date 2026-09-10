@@ -35,6 +35,22 @@ class N8nIaCupoTest extends TestCase
         $this->assertSame(10, app(IaCupoService::class)->resumen($empresa->id)['cupo']);
     }
 
+    public function test_creditos_extra_despues_del_mensual(): void
+    {
+        config(['ia.cupo_incluido' => 2]);
+        $empresa = $this->empresa();
+        $cupo = app(IaCupoService::class);
+        $cupo->acreditar($empresa->id, 3);
+
+        $this->assertTrue($cupo->consumir($empresa->id));
+        $this->assertTrue($cupo->consumir($empresa->id));
+        $this->assertTrue($cupo->consumir($empresa->id)); // extra
+        $this->assertTrue($cupo->consumir($empresa->id));
+        $this->assertTrue($cupo->consumir($empresa->id));
+        $this->assertFalse($cupo->consumir($empresa->id));
+        $this->assertSame(0, $empresa->fresh()->ia_creditos_extra);
+    }
+
     public function test_webhook_n8n_exige_secret(): void
     {
         $empresa = $this->empresa();

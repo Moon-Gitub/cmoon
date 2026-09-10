@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Empresa;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class EmpresaController extends Controller
@@ -41,6 +42,8 @@ class EmpresaController extends Controller
             'logo' => ['nullable', 'image', 'max:2048'],
             'catalogo_fondo' => ['nullable', 'image', 'max:5120'],
             'catalogo_logo' => ['nullable', 'image', 'max:2048'],
+            'eliminar_catalogo_fondo' => ['nullable', 'boolean'],
+            'eliminar_catalogo_logo' => ['nullable', 'boolean'],
             'catalogo_color_titulo' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'catalogo_color_texto' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'agente_retencion_iibb' => ['nullable', 'boolean'],
@@ -56,7 +59,7 @@ class EmpresaController extends Controller
             'catalogo_logo' => 'logo del catálogo PDF',
         ]);
 
-        unset($datos['logo'], $datos['catalogo_fondo'], $datos['catalogo_logo']);
+        unset($datos['logo'], $datos['catalogo_fondo'], $datos['catalogo_logo'], $datos['eliminar_catalogo_fondo'], $datos['eliminar_catalogo_logo']);
 
         $datos['agente_retencion_iibb'] = $request->boolean('agente_retencion_iibb');
         $datos['cotizacion_dolar'] = (float) ($datos['cotizacion_dolar'] ?? 0);
@@ -66,10 +69,26 @@ class EmpresaController extends Controller
         if ($request->hasFile('logo')) {
             $datos['logo_path'] = $request->file('logo')->store('logos', 'public');
         }
-        if ($request->hasFile('catalogo_fondo')) {
+        if ($request->boolean('eliminar_catalogo_fondo') && ! $request->hasFile('catalogo_fondo')) {
+            if ($empresa->catalogo_fondo_path) {
+                Storage::disk('public')->delete($empresa->catalogo_fondo_path);
+            }
+            $datos['catalogo_fondo_path'] = null;
+        } elseif ($request->hasFile('catalogo_fondo')) {
+            if ($empresa->catalogo_fondo_path) {
+                Storage::disk('public')->delete($empresa->catalogo_fondo_path);
+            }
             $datos['catalogo_fondo_path'] = $request->file('catalogo_fondo')->store('catalogo', 'public');
         }
-        if ($request->hasFile('catalogo_logo')) {
+        if ($request->boolean('eliminar_catalogo_logo') && ! $request->hasFile('catalogo_logo')) {
+            if ($empresa->catalogo_logo_path) {
+                Storage::disk('public')->delete($empresa->catalogo_logo_path);
+            }
+            $datos['catalogo_logo_path'] = null;
+        } elseif ($request->hasFile('catalogo_logo')) {
+            if ($empresa->catalogo_logo_path) {
+                Storage::disk('public')->delete($empresa->catalogo_logo_path);
+            }
             $datos['catalogo_logo_path'] = $request->file('catalogo_logo')->store('catalogo', 'public');
         }
 

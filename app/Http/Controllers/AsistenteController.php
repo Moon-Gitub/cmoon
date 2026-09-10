@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Empresa;
+use App\Models\IaCompra;
 use App\Models\IaMensaje;
+use App\Models\IaPaquete;
 use App\Services\AsistenteIaService;
 use App\Services\IaCupoService;
 use Illuminate\Http\JsonResponse;
@@ -28,6 +30,13 @@ class AsistenteController extends Controller
                 ->reverse()
                 ->values(),
             'precio' => config('ia.abono_precio'),
+            'paquetes' => IaPaquete::query()->where('activo', true)->orderBy('orden')->get(),
+            'compras' => IaCompra::query()
+                ->where('empresa_id', $empresaId)
+                ->with('paquete')
+                ->latest()
+                ->limit(10)
+                ->get(),
         ]);
     }
 
@@ -54,5 +63,25 @@ class AsistenteController extends Controller
         ]);
 
         return back()->with('ok', 'Pedimos el abono de consultas IA. Cuando esté activo vas a tener más preguntas por mes.');
+    }
+
+    public function comprarPaquete(Request $request, IaCupoService $cupo): RedirectResponse
+    {
+        $datos = $request->validate([
+            'paquete_id' => ['required', 'exists:ia_paquetes,id'],
+        ]);
+
+        $paquete = IaPaquete::query()
+            ->where('id', $datos['paquete_id'])
+            ->where('activo', true)
+            ->firstOrFail();
+
+        $cupo->solicitarPaquete(
+            (int) auth()->user()->empresa_id,
+            (int) auth()->id(),
+            $paquete,
+        );
+
+        return back()->with('ok', "Solicitud enviada: {$paquete->nombre} ({$paquete->creditos} créditos). Te avisamos cuando esté acreditado.");
     }
 }

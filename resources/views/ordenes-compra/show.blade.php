@@ -5,8 +5,10 @@
 @section('contenido')
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="lg:col-span-2 space-y-4">
+            @can('ordenes-compra.gestionar')
             <form method="POST" action="{{ route('ordenes-compra.recibir', $orden) }}">
                 @csrf
+            @endcan
                 <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                     <table class="w-full text-sm">
                         <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -28,15 +30,19 @@
                                     <td class="px-4 py-3 text-right">{{ rtrim(rtrim(number_format((float) $item->cantidad_recibida, 3, ',', '.'), '0'), ',') }}</td>
                                     <td class="px-4 py-3 text-right">{{ rtrim(rtrim(number_format($pend, 3, ',', '.'), '0'), ',') }}</td>
                                     <td class="px-4 py-3 text-right">
-                                        <input type="hidden" name="items[{{ $i }}][id]" value="{{ $item->id }}">
-                                        @if ($pend > 0 && ! in_array($orden->estado, ['anulada', 'recibida'], true))
-                                            <input type="number" step="any" min="0" max="{{ $pend }}" name="items[{{ $i }}][cantidad_recibir]"
-                                                   value="{{ $pend }}"
-                                                   class="w-24 rounded-lg border border-slate-300 px-2 py-1 text-right text-sm">
+                                        @can('ordenes-compra.gestionar')
+                                            <input type="hidden" name="items[{{ $i }}][id]" value="{{ $item->id }}">
+                                            @if ($pend > 0 && ! in_array($orden->estado, ['anulada', 'recibida'], true))
+                                                <input type="number" step="any" min="0" max="{{ $pend }}" name="items[{{ $i }}][cantidad_recibir]"
+                                                       value="{{ $pend }}"
+                                                       class="w-24 rounded-lg border border-slate-300 px-2 py-1 text-right text-sm">
+                                            @else
+                                                <input type="hidden" name="items[{{ $i }}][cantidad_recibir]" value="0">
+                                                <span class="text-slate-400">—</span>
+                                            @endif
                                         @else
-                                            <input type="hidden" name="items[{{ $i }}][cantidad_recibir]" value="0">
                                             <span class="text-slate-400">—</span>
-                                        @endif
+                                        @endcan
                                     </td>
                                     <td class="px-4 py-3 text-right">$ {{ number_format((float) $item->precio_unitario, 2, ',', '.') }}</td>
                                 </tr>
@@ -50,12 +56,14 @@
                         </tfoot>
                     </table>
                 </div>
-                @if (! in_array($orden->estado, ['anulada', 'recibida'], true))
-                    <button class="mt-3 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
-                        Registrar recepción
-                    </button>
-                @endif
+                @can('ordenes-compra.gestionar')
+                    @if (! in_array($orden->estado, ['anulada', 'recibida'], true))
+                        <button class="mt-3 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
+                            Registrar recepción
+                        </button>
+                    @endif
             </form>
+                @endcan
         </div>
 
         <div class="space-y-4">

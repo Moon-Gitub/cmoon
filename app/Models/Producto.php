@@ -16,6 +16,13 @@ class Producto extends Model
 
     protected $table = 'productos';
 
+    /** @var array<string, mixed> */
+    protected $attributes = [
+        'alicuota_iva' => 21,
+        'unidad' => 'UN',
+        'activo' => true,
+    ];
+
     protected $fillable = [
         'empresa_id',
         'categoria_id',

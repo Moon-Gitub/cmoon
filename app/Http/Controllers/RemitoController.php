@@ -26,6 +26,8 @@ class RemitoController extends Controller
 
     public function createFromPresupuesto(): View
     {
+        abort_unless(auth()->user()->can('remitos.gestionar'), 403);
+
         $presupuestos = Presupuesto::with('cliente')
             ->whereIn('estado', ['pedido', 'aprobado', 'pendiente'])
             ->whereDoesntHave('remitos')
@@ -38,6 +40,8 @@ class RemitoController extends Controller
 
     public function store(Request $request, RemitoService $servicio): RedirectResponse
     {
+        abort_unless(auth()->user()->can('remitos.gestionar'), 403);
+
         $datos = $request->validate([
             'presupuesto_id' => ['required', 'exists:presupuestos,id'],
         ]);
@@ -63,6 +67,8 @@ class RemitoController extends Controller
 
     public function entregar(Remito $remito, RemitoService $servicio): RedirectResponse
     {
+        abort_unless(auth()->user()->can('remitos.gestionar'), 403);
+
         try {
             $servicio->marcarEntregado($remito);
         } catch (\InvalidArgumentException $e) {

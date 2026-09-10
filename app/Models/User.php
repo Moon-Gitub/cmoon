@@ -21,6 +21,7 @@ use Laravel\Sanctum\HasApiTokens;
     'empresa_id',
     'sucursal_id',
     'activo',
+    'es_superadmin',
     'foto_path',
     'ultimo_acceso_at',
 ])]
@@ -36,8 +37,14 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'activo' => 'boolean',
+            'es_superadmin' => 'boolean',
             'ultimo_acceso_at' => 'datetime',
         ];
+    }
+
+    public function esSuperadmin(): bool
+    {
+        return (bool) $this->es_superadmin;
     }
 
     public function empresa(): BelongsTo

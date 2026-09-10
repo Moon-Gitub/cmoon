@@ -28,9 +28,13 @@
                 @forelse ($agenda as $row)
                     <tr class="hover:bg-slate-50">
                         <td class="px-4 py-3 font-medium">
-                            <a href="{{ route('clientes.cuenta', $row->cliente) }}" class="text-indigo-600 hover:underline">
+                            @can('cuentas.ver')
+                                <a href="{{ route('clientes.cuenta', $row->cliente) }}" class="text-indigo-600 hover:underline">
+                                    {{ $row->nombre }}
+                                </a>
+                            @else
                                 {{ $row->nombre }}
-                            </a>
+                            @endcan
                         </td>
                         <td class="px-4 py-3 text-right font-semibold">$ {{ number_format((float) $row->saldo, 2, ',', '.') }}</td>
                         <td class="px-4 py-3">

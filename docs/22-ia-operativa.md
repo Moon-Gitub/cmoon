@@ -1,6 +1,8 @@
 # IA operativa (cupo free / abono)
 
-Mismo cupo que el **Asistente IA** y WhatsApp: 50/mes incluido, 500 con abono (`IA_CUPO_*`).
+Mismo cupo que el **Asistente IA** y WhatsApp: 50/mes incluido, 500 con abono (`IA_CUPO_*`), más **créditos extra** comprados.
+
+Configuración del proveedor LLM y acreditación: solo **supermegaadmin** en `/admin/ia` (ver [21-n8n-ia.md](./21-n8n-ia.md)).
 
 ## Ya disponible (vale la pena)
 

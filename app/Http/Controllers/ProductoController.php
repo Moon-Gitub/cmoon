@@ -64,18 +64,38 @@ class ProductoController extends Controller
                 'margen_ganancia' => 40,
             ]),
             'categorias' => Categoria::where('activa', true)->orderBy('nombre')->get(),
+            'sucursales' => Sucursal::where('activa', true)->orderBy('nombre')->get(['id', 'nombre']),
             'cotizacionDolar' => (float) (auth()->user()->empresa?->cotizacion_dolar ?? 0),
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, StockService $stockService): RedirectResponse
     {
         abort_unless(auth()->user()->can('productos.crear'), 403);
 
+        $datos = $this->validar($request);
+        $stockInicial = $datos['stock_inicial'] ?? null;
+        $sucursalStockId = $datos['sucursal_stock_id'] ?? null;
+        unset($datos['stock_inicial'], $datos['sucursal_stock_id']);
+
         $producto = Producto::create([
-            ...$this->validar($request),
+            ...$datos,
             'empresa_id' => auth()->user()->empresa_id,
         ]);
+
+        if ($stockInicial !== null && $stockInicial > 0) {
+            $sucursalId = $sucursalStockId
+                ?? Sucursal::where('activa', true)->orderBy('id')->value('id');
+
+            if ($sucursalId) {
+                $stockService->ajustarA(
+                    $producto,
+                    (int) $sucursalId,
+                    (float) $stockInicial,
+                    'Stock inicial al crear producto'
+                );
+            }
+        }
 
         return redirect()->route('productos.index')
             ->with('ok', "Producto {$producto->nombre} creado.");
@@ -88,6 +108,7 @@ class ProductoController extends Controller
         return view('productos.form', [
             'producto' => $producto,
             'categorias' => Categoria::where('activa', true)->orderBy('nombre')->get(),
+            'sucursales' => Sucursal::where('activa', true)->orderBy('nombre')->get(['id', 'nombre']),
             'cotizacionDolar' => (float) (auth()->user()->empresa?->cotizacion_dolar ?? 0),
         ]);
     }
@@ -96,7 +117,9 @@ class ProductoController extends Controller
     {
         abort_unless(auth()->user()->can('productos.editar'), 403);
 
-        $producto->update($this->validar($request, $producto));
+        $datos = $this->validar($request, $producto);
+        unset($datos['stock_inicial'], $datos['sucursal_stock_id']);
+        $producto->update($datos);
 
         return redirect()->route('productos.index')
             ->with('ok', "Producto {$producto->nombre} actualizado.");
@@ -222,8 +245,13 @@ class ProductoController extends Controller
             'precio_compra_dolar' => ['nullable', 'numeric', 'min:0'],
             'margen_ganancia' => ['nullable', 'numeric', 'min:0', 'max:9999'],
             'precio_venta' => ['required', 'numeric', 'min:0'],
-            'alicuota_iva' => ['required', 'numeric', Rule::in([0, 10.5, 21, 27])],
+            'alicuota_iva' => ['nullable', 'numeric', Rule::in([0, 10.5, 21, 27])],
             'stock_minimo' => ['nullable', 'numeric', 'min:0'],
+            'stock_inicial' => ['nullable', 'numeric', 'min:0'],
+            'sucursal_stock_id' => [
+                'nullable',
+                Rule::exists('sucursales', 'id')->where('empresa_id', auth()->user()->empresa_id),
+            ],
         ], [], [
             'codigo' => 'código',
             'categoria_id' => 'categoría',
@@ -233,6 +261,8 @@ class ProductoController extends Controller
             'precio_venta' => 'precio de venta',
             'alicuota_iva' => 'alícuota de IVA',
             'stock_minimo' => 'stock mínimo',
+            'stock_inicial' => 'stock inicial',
+            'sucursal_stock_id' => 'sucursal del stock',
         ]);
 
         return [
@@ -244,12 +274,31 @@ class ProductoController extends Controller
             'publicar_whatsapp' => $request->boolean('publicar_whatsapp'),
             'publicar_tiendanube' => $request->boolean('publicar_tiendanube'),
             'stock_minimo' => isset($datos['stock_minimo']) ? (float) $datos['stock_minimo'] : 0,
+            'stock_inicial' => isset($datos['stock_inicial']) && $datos['stock_inicial'] !== ''
+                ? (float) $datos['stock_inicial']
+                : null,
+            'sucursal_stock_id' => isset($datos['sucursal_stock_id']) ? (int) $datos['sucursal_stock_id'] : null,
             'precio_compra_dolar' => (float) ($datos['precio_compra_dolar'] ?? 0),
             'margen_ganancia' => $request->boolean('utilizar_porcentaje')
                 ? (float) ($datos['margen_ganancia'] ?? 0)
                 : 0,
-            'alicuota_iva' => (float) $datos['alicuota_iva'],
+            'alicuota_iva' => array_key_exists('alicuota_iva', $datos) && $datos['alicuota_iva'] !== null
+                ? (float) $datos['alicuota_iva']
+                : 21.0,
         ];
+    }
+
+    /** Vacío o inválido → 21%. 0 / 10.5 / 27 solo si vienen explícitos. */
+    private function alicuotaDesdeImport(mixed $raw): float
+    {
+        if ($raw === null || $raw === '') {
+            return 21.0;
+        }
+
+        $valor = round((float) str_replace(',', '.', (string) $raw), 2);
+        $permitidas = [0.0, 10.5, 21.0, 27.0];
+
+        return in_array($valor, $permitidas, true) ? $valor : 21.0;
     }
 
     public function canales(Request $request): View
@@ -416,7 +465,7 @@ class ProductoController extends Controller
                 'nombre' => trim($fila['nombre']),
                 'precio_venta' => $decimal($fila['precio_venta']),
                 'precio_compra' => $decimal($fila['precio_compra'] ?? null) ?? 0,
-                'alicuota_iva' => $decimal($fila['iva'] ?? null) ?? 21,
+                'alicuota_iva' => $this->alicuotaDesdeImport($fila['iva'] ?? null),
                 'categoria_id' => $categoria?->id,
                 'unidad' => in_array(strtoupper($fila['unidad'] ?? ''), ['UN', 'KG', 'LT', 'MT']) ? strtoupper($fila['unidad']) : 'UN',
                 'stock_minimo' => $decimal($fila['stock_minimo'] ?? null) ?? 0,
@@ -475,10 +524,16 @@ class ProductoController extends Controller
             'modo' => ['required', 'in:porcentaje,fijo'],
             'campo' => ['required', 'in:precio_venta,precio_compra'],
             'valor' => ['required', 'numeric'],
+            'base_iva' => ['nullable', 'in:con_iva,sin_iva'],
         ], [], [
             'categoria_id' => 'categoría',
             'campo' => 'campo de precio',
+            'base_iva' => 'tratamiento de IVA',
         ]);
+
+        $baseIva = $datos['campo'] === 'precio_venta'
+            ? ($datos['base_iva'] ?? 'con_iva')
+            : 'con_iva';
 
         $query = Producto::query()->where('activo', true);
         if (! empty($datos['categoria_id'])) {
@@ -486,12 +541,27 @@ class ProductoController extends Controller
         }
 
         $afectados = 0;
-        $query->orderBy('id')->chunkById(100, function ($productos) use ($datos, &$afectados) {
+        $query->orderBy('id')->chunkById(100, function ($productos) use ($datos, $baseIva, &$afectados) {
             foreach ($productos as $producto) {
                 $actual = (float) $producto->{$datos['campo']};
-                $nuevo = $datos['modo'] === 'porcentaje'
-                    ? round($actual * (1 + ((float) $datos['valor'] / 100)), 2)
-                    : round($actual + (float) $datos['valor'], 2);
+                $base = $actual;
+
+                if ($baseIva === 'sin_iva' && $datos['campo'] === 'precio_venta') {
+                    $alicuota = (float) $producto->alicuota_iva;
+                    $factor = 1 + ($alicuota / 100);
+                    $base = $factor > 0 ? round($actual / $factor, 4) : $actual;
+                }
+
+                $nuevoBase = $datos['modo'] === 'porcentaje'
+                    ? $base * (1 + ((float) $datos['valor'] / 100))
+                    : $base + (float) $datos['valor'];
+
+                if ($baseIva === 'sin_iva' && $datos['campo'] === 'precio_venta') {
+                    $alicuota = (float) $producto->alicuota_iva;
+                    $nuevo = round($nuevoBase * (1 + ($alicuota / 100)), 2);
+                } else {
+                    $nuevo = round($nuevoBase, 2);
+                }
 
                 if ($nuevo < 0) {
                     $nuevo = 0;
@@ -515,8 +585,12 @@ class ProductoController extends Controller
             }
         });
 
+        $detalleIva = $datos['campo'] === 'precio_venta'
+            ? ($baseIva === 'sin_iva' ? ' (sobre neto + IVA)' : ' (con IVA incluido)')
+            : '';
+
         return redirect()->route('productos.index')
-            ->with('ok', "Precio masivo aplicado a {$afectados} producto(s).");
+            ->with('ok', "Precio masivo aplicado a {$afectados} producto(s){$detalleIva}.");
     }
 
     public function auditoria(Producto $producto): View

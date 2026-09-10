@@ -21,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'desktop.auth' => \App\Http\Middleware\AuthenticateDesktop::class,
+            'superadmin' => \App\Http\Middleware\EnsureSuperadmin::class,
         ]);
 
         // El POS sincroniza ventas encoladas offline: el token CSRF de la página

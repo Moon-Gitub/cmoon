@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Log;
 
 class ProductoConsultaIaService
 {
+    public function __construct(private IaConfigService $config) {}
+
     /** @return array{texto: string, producto_ids: array<int>, handoff: bool, quiere_catalogo: bool} */
     public function responder(int $empresaId, string $mensaje): array
     {
@@ -112,8 +114,8 @@ class ProductoConsultaIaService
 
     private function completarConIa(int $empresaId, string $mensaje, Collection $productos): ?string
     {
-        $apiKey = (string) config('ycloud.openai_api_key');
-        if ($apiKey === '') {
+        $cfg = $this->config->resolver();
+        if ($cfg['api_key'] === '') {
             return null;
         }
 
@@ -129,15 +131,19 @@ class ProductoConsultaIaService
             ];
         })->all();
 
-        $base = rtrim((string) config('ycloud.openai_base_url'), '/');
-        $model = (string) config('ycloud.openai_model');
-
         try {
+            $headers = [];
+            if ($cfg['provider'] === 'openrouter') {
+                $headers['HTTP-Referer'] = config('app.url');
+                $headers['X-Title'] = config('app.name', 'POSMoon');
+            }
+
             $response = Http::timeout(25)
-                ->withToken($apiKey)
+                ->withToken($cfg['api_key'])
+                ->withHeaders($headers)
                 ->acceptJson()
-                ->post($base.'/chat/completions', [
-                    'model' => $model,
+                ->post($cfg['base_url'].'/chat/completions', [
+                    'model' => $cfg['model'],
                     'temperature' => 0.3,
                     'max_tokens' => 400,
                     'messages' => [
@@ -156,7 +162,7 @@ class ProductoConsultaIaService
                 ]);
 
             if ($response->failed()) {
-                Log::warning('OpenAI consulta WhatsApp falló', ['status' => $response->status()]);
+                Log::warning('IA consulta WhatsApp falló', ['status' => $response->status()]);
 
                 return null;
             }
@@ -165,7 +171,7 @@ class ProductoConsultaIaService
 
             return $texto !== '' ? $texto : null;
         } catch (\Throwable $e) {
-            Log::warning('OpenAI consulta WhatsApp: '.$e->getMessage());
+            Log::warning('IA consulta WhatsApp: '.$e->getMessage());
 
             return null;
         }

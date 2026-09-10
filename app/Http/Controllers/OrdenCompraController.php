@@ -28,6 +28,8 @@ class OrdenCompraController extends Controller
 
     public function create(): View
     {
+        abort_unless(auth()->user()->can('ordenes-compra.gestionar'), 403);
+
         return view('ordenes-compra.create', [
             'sucursales' => Sucursal::where('activa', true)->orderBy('nombre')->get(['id', 'nombre']),
         ]);
@@ -35,6 +37,8 @@ class OrdenCompraController extends Controller
 
     public function store(Request $request, OrdenCompraService $servicio): RedirectResponse
     {
+        abort_unless(auth()->user()->can('ordenes-compra.gestionar'), 403);
+
         $datos = $request->validate([
             'proveedor_id' => ['required', 'exists:proveedores,id'],
             'sucursal_id' => ['required', 'exists:sucursales,id'],
@@ -63,6 +67,8 @@ class OrdenCompraController extends Controller
 
     public function recibir(Request $request, OrdenCompra $ordenCompra, OrdenCompraService $servicio): RedirectResponse
     {
+        abort_unless(auth()->user()->can('ordenes-compra.gestionar'), 403);
+
         $datos = $request->validate([
             'items' => ['required', 'array', 'min:1'],
             'items.*.id' => ['required', 'integer'],
@@ -81,6 +87,8 @@ class OrdenCompraController extends Controller
 
     public function ocr(Request $request, OcrCompraIaService $ocr): JsonResponse
     {
+        abort_unless(auth()->user()->can('ordenes-compra.gestionar'), 403);
+
         $datos = $request->validate([
             'texto' => ['required', 'string', 'max:50000'],
         ]);

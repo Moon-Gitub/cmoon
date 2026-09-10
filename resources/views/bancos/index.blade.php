@@ -37,15 +37,17 @@
             </table>
         </div>
 
-        <form method="POST" action="{{ route('bancos.store') }}" class="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            @csrf
-            <p class="text-sm font-semibold">Nueva cuenta</p>
-            <input type="text" name="nombre" placeholder="Nombre *" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="text" name="banco" placeholder="Banco" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="text" name="cbu" placeholder="CBU" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="text" name="alias" placeholder="Alias" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <input type="text" name="moneda" value="ARS" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            <button class="w-full rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Crear</button>
-        </form>
+        @can('bancos.gestionar')
+            <form method="POST" action="{{ route('bancos.store') }}" class="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                @csrf
+                <p class="text-sm font-semibold">Nueva cuenta</p>
+                <input type="text" name="nombre" placeholder="Nombre *" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input type="text" name="banco" placeholder="Banco" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input type="text" name="cbu" placeholder="CBU" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input type="text" name="alias" placeholder="Alias" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input type="text" name="moneda" value="ARS" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <button class="w-full rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Crear</button>
+            </form>
+        @endcan
     </div>
 @endsection

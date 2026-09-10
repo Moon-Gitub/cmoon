@@ -12,6 +12,7 @@ class AsistenteIaService
 {
     public function __construct(
         private IaCupoService $cupo,
+        private IaConfigService $config,
         private N8nService $n8n,
         private GestionDatosIaService $gestionDatos,
     ) {}
@@ -97,10 +98,10 @@ class AsistenteIaService
                 ->get(['id', 'codigo', 'nombre', 'precio_venta']);
         }
 
-        $apiKey = (string) config('ycloud.openai_api_key');
-        if ($apiKey === '') {
+        $cfg = $this->config->resolver();
+        if ($cfg['api_key'] === '') {
             if ($productos->isEmpty()) {
-                return "Contexto:\n{$contexto}\n\nNo tengo API de IA configurada ni productos para armar una respuesta. Configurá OPENAI_API_KEY o cargá productos.";
+                return "Contexto:\n{$contexto}\n\nNo tengo API de IA configurada ni productos para armar una respuesta. El supermegaadmin debe configurar el proveedor en Admin → IA.";
             }
 
             $lineas = ["Contexto:\n{$contexto}", '', 'Según el catálogo:'];
@@ -113,14 +114,20 @@ class AsistenteIaService
 
         $empresa = Empresa::query()->find($empresaId);
         $nombre = $empresa?->nombre_fantasia ?: $empresa?->razon_social ?: 'la tienda';
-        $base = rtrim((string) config('ycloud.openai_base_url'), '/');
 
         try {
+            $headers = [];
+            if ($cfg['provider'] === 'openrouter') {
+                $headers['HTTP-Referer'] = config('app.url');
+                $headers['X-Title'] = config('app.name', 'POSMoon');
+            }
+
             $response = Http::timeout(25)
-                ->withToken($apiKey)
+                ->withToken($cfg['api_key'])
+                ->withHeaders($headers)
                 ->acceptJson()
-                ->post($base.'/chat/completions', [
-                    'model' => config('ycloud.openai_model'),
+                ->post($cfg['base_url'].'/chat/completions', [
+                    'model' => $cfg['model'],
                     'temperature' => 0.3,
                     'max_tokens' => 400,
                     'messages' => [

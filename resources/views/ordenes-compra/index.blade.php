@@ -14,10 +14,12 @@
             </select>
         </div>
         <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Filtrar</button>
-        <a href="{{ route('ordenes-compra.create') }}"
-           class="ml-auto rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-            + Nueva OC
-        </a>
+        @can('ordenes-compra.gestionar')
+            <a href="{{ route('ordenes-compra.create') }}"
+               class="ml-auto rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                + Nueva OC
+            </a>
+        @endcan
     </form>
 
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">

@@ -36,6 +36,7 @@ use App\Http\Controllers\YcloudWebhookController;
 use App\Http\Controllers\N8nController;
 use App\Http\Controllers\N8nWebhookController;
 use App\Http\Controllers\AsistenteController;
+use App\Http\Controllers\AdminIaController;
 use App\Http\Controllers\BancoController;
 use App\Http\Controllers\BusquedaController;
 use App\Http\Controllers\ChequeController;
@@ -124,6 +125,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/asistente', [AsistenteController::class, 'index'])->name('asistente.index');
     Route::post('/asistente/preguntar', [AsistenteController::class, 'preguntar'])->name('asistente.preguntar');
     Route::post('/asistente/abono', [AsistenteController::class, 'solicitarAbono'])->name('asistente.abono');
+    Route::post('/asistente/comprar', [AsistenteController::class, 'comprarPaquete'])->name('asistente.comprar');
+
+    Route::middleware('superadmin')->prefix('admin/ia')->name('admin.ia.')->group(function () {
+        Route::get('/', [AdminIaController::class, 'index'])->name('index');
+        Route::post('/config', [AdminIaController::class, 'guardarConfig'])->name('config');
+        Route::post('/acreditar', [AdminIaController::class, 'acreditar'])->name('acreditar');
+        Route::post('/compras/{compra}/aprobar', [AdminIaController::class, 'aprobarCompra'])->name('compras.aprobar');
+        Route::post('/compras/{compra}/rechazar', [AdminIaController::class, 'rechazarCompra'])->name('compras.rechazar');
+        Route::post('/paquetes', [AdminIaController::class, 'guardarPaquete'])->name('paquetes');
+        Route::post('/superadmin', [AdminIaController::class, 'marcarSuperadmin'])->name('superadmin');
+    });
 
     Route::post('/ia/productos/sugerir', [IaOperativaController::class, 'sugerirProducto'])->name('ia.productos.sugerir');
     Route::post('/ia/productos/sugerir-canales', [IaOperativaController::class, 'sugerirCanales'])->name('ia.productos.canales');

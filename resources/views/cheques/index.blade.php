@@ -22,10 +22,12 @@
             </select>
         </div>
         <button class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Filtrar</button>
-        <a href="{{ route('cheques.create') }}"
-           class="ml-auto rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
-            + Nuevo cheque
-        </a>
+        @can('cheques.gestionar')
+            <a href="{{ route('cheques.create') }}"
+               class="ml-auto rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                + Nuevo cheque
+            </a>
+        @endcan
     </form>
 
     <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -57,15 +59,19 @@
                             <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">{{ str_replace('_', ' ', $cheque->estado) }}</span>
                         </td>
                         <td class="px-4 py-3">
-                            <form method="POST" action="{{ route('cheques.cambiar-estado', $cheque) }}" class="flex gap-1">
-                                @csrf
-                                <select name="estado" class="rounded border border-slate-300 px-1 py-1 text-xs">
-                                    @foreach (['en_cartera', 'depositado', 'cobrado', 'rechazado', 'anulado'] as $est)
-                                        <option value="{{ $est }}" @selected($cheque->estado === $est)>{{ $est }}</option>
-                                    @endforeach
-                                </select>
-                                <button class="rounded bg-slate-700 px-2 py-1 text-xs text-white">OK</button>
-                            </form>
+                            @can('cheques.gestionar')
+                                <form method="POST" action="{{ route('cheques.cambiar-estado', $cheque) }}" class="flex gap-1">
+                                    @csrf
+                                    <select name="estado" class="rounded border border-slate-300 px-1 py-1 text-xs">
+                                        @foreach (['en_cartera', 'depositado', 'cobrado', 'rechazado', 'anulado'] as $est)
+                                            <option value="{{ $est }}" @selected($cheque->estado === $est)>{{ $est }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button class="rounded bg-slate-700 px-2 py-1 text-xs text-white">OK</button>
+                                </form>
+                            @else
+                                <span class="text-xs text-slate-400">—</span>
+                            @endcan
                         </td>
                     </tr>
                 @empty
