@@ -196,20 +196,16 @@ class EtiquetaGondolaPdfService
             $pdf->MultiCell($cellW - 3, 3.2, $this->truncar($producto->nombre, 40), 0, 'C');
 
             $url = url('/consulta-precio/'.rawurlencode($producto->codigo));
-            $qrSize = min(32, $cellW - 8);
+            // Solo nombre + QR: el precio se consulta al escanear (dinámico).
+            $qrSize = min(36, $cellW - 6);
             $qrX = $x + ($cellW - $qrSize) / 2;
-            $qrY = $y + 14;
+            $qrY = $y + ($cellH - $qrSize) / 2 + 2;
             $pdf->write2DBarcode($url, 'QRCODE,M', $qrX, $qrY, $qrSize, $qrSize, [
                 'border' => false,
                 'padding' => 1,
                 'fgcolor' => [0, 0, 0],
                 'bgcolor' => [255, 255, 255],
             ], 'N');
-
-            $pdf->SetTextColor(100, 100, 100);
-            $pdf->SetFont('dejavusans', '', 6);
-            $pdf->SetXY($x + 1, $y + $cellH - 7);
-            $pdf->Cell($cellW - 2, 4, '$ '.$this->fmt($this->precioMostrar($producto)), 0, 0, 'C');
 
             $i++;
         }
