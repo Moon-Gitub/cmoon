@@ -13,6 +13,7 @@ use App\Http\Controllers\PresupuestoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepositoController;
 use App\Http\Controllers\EmisorController;
+use App\Http\Controllers\EmpresaController;
 use App\Http\Controllers\EtiquetaController;
 use App\Http\Controllers\FacturacionController;
 use App\Http\Controllers\FacturaRecurrenteController;
