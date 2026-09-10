@@ -25,6 +25,7 @@ class Empresa extends Model
         'logo_path',
         'catalogo_fondo_path',
         'catalogo_logo_path',
+        'catalogo_color_fondo',
         'catalogo_color_titulo',
         'catalogo_color_texto',
         'catalogo_share_token',

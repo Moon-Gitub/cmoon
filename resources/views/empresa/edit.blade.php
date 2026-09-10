@@ -165,7 +165,7 @@
             </p>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-slate-700">Fondo del PDF</label>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Fondo del PDF (imagen)</label>
                     <div class="flex items-start gap-3">
                         @if ($empresa->catalogo_fondo_path)
                             <img src="{{ asset('storage/'.$empresa->catalogo_fondo_path) }}" alt="Fondo"
@@ -180,8 +180,16 @@
                             Eliminar fondo actual
                         </label>
                     @endif
-                    <p class="mt-1 text-xs text-slate-400">JPG/PNG, máx. 5 MB. Si no hay fondo, se usa un fondo oscuro.</p>
+                    <p class="mt-1 text-xs text-slate-400">JPG/PNG, máx. 5 MB. Si hay imagen, tiene prioridad sobre el color.</p>
                     @error('catalogo_fondo')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">Color de fondo del PDF</label>
+                    <input type="color" name="catalogo_color_fondo"
+                           value="{{ old('catalogo_color_fondo', $empresa->catalogo_color_fondo ?? '#202428') }}"
+                           class="h-10 w-full cursor-pointer rounded-lg border border-slate-300">
+                    <p class="mt-1 text-xs text-slate-400">Se usa cuando no hay imagen de fondo.</p>
+                    @error('catalogo_color_fondo')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="mb-1 block text-sm font-medium text-slate-700">Logo del catálogo</label>

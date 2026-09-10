@@ -44,6 +44,7 @@ class EmpresaController extends Controller
             'catalogo_logo' => ['nullable', 'image', 'max:2048'],
             'eliminar_catalogo_fondo' => ['nullable', 'boolean'],
             'eliminar_catalogo_logo' => ['nullable', 'boolean'],
+            'catalogo_color_fondo' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'catalogo_color_titulo' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'catalogo_color_texto' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'agente_retencion_iibb' => ['nullable', 'boolean'],
@@ -63,6 +64,7 @@ class EmpresaController extends Controller
 
         $datos['agente_retencion_iibb'] = $request->boolean('agente_retencion_iibb');
         $datos['cotizacion_dolar'] = (float) ($datos['cotizacion_dolar'] ?? 0);
+        $datos['catalogo_color_fondo'] = $datos['catalogo_color_fondo'] ?? $empresa->catalogo_color_fondo ?? '#202428';
         $datos['catalogo_color_titulo'] = $datos['catalogo_color_titulo'] ?? $empresa->catalogo_color_titulo ?? '#909e23';
         $datos['catalogo_color_texto'] = $datos['catalogo_color_texto'] ?? $empresa->catalogo_color_texto ?? '#f1f0ec';
 

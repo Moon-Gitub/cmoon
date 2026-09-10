@@ -35,7 +35,8 @@ class CatalogoCategoriaPdfService
                 if ($fondo) {
                     $this->Image($fondo, 0, 0, 210, 297, '', '', '', false, 300, '', false, false, 0);
                 } else {
-                    $this->SetFillColor(32, 36, 40);
+                    $rgb = $this->hexToRgbHeader($this->empresaCfg->catalogo_color_fondo ?: '#202428');
+                    $this->SetFillColor($rgb[0], $rgb[1], $rgb[2]);
                     $this->Rect(0, 0, 210, 297, 'F');
                 }
 
@@ -56,6 +57,21 @@ class CatalogoCategoriaPdfService
                 }
                 $full = storage_path('app/public/'.$path);
                 return is_file($full) ? $full : null;
+            }
+
+            /** @return array{0:int,1:int,2:int} */
+            private function hexToRgbHeader(string $hex): array
+            {
+                $hex = ltrim($hex, '#');
+                if (strlen($hex) !== 6) {
+                    return [32, 36, 40];
+                }
+
+                return [
+                    hexdec(substr($hex, 0, 2)),
+                    hexdec(substr($hex, 2, 2)),
+                    hexdec(substr($hex, 4, 2)),
+                ];
             }
         };
 
