@@ -105,21 +105,46 @@ class ProductoController extends Controller
     {
         abort_unless(auth()->user()->can('productos.editar'), 403);
 
+        $sucursales = Sucursal::where('activa', true)->orderBy('nombre')->get(['id', 'nombre']);
+        $producto->load('stocks');
+        $sucursalDefaultId = (int) ($sucursales->first()?->id ?? 0);
+
         return view('productos.form', [
             'producto' => $producto,
             'categorias' => Categoria::where('activa', true)->orderBy('nombre')->get(),
-            'sucursales' => Sucursal::where('activa', true)->orderBy('nombre')->get(['id', 'nombre']),
+            'sucursales' => $sucursales,
+            'stockActual' => $sucursalDefaultId ? $producto->stockEn($sucursalDefaultId) : 0,
             'cotizacionDolar' => (float) (auth()->user()->empresa?->cotizacion_dolar ?? 0),
         ]);
     }
 
-    public function update(Request $request, Producto $producto): RedirectResponse
+    public function update(Request $request, Producto $producto, StockService $stockService): RedirectResponse
     {
         abort_unless(auth()->user()->can('productos.editar'), 403);
 
         $datos = $this->validar($request, $producto);
+        $stockNuevo = $datos['stock_inicial'] ?? null;
+        $sucursalStockId = $datos['sucursal_stock_id'] ?? null;
         unset($datos['stock_inicial'], $datos['sucursal_stock_id']);
         $producto->update($datos);
+
+        if ($stockNuevo !== null && (auth()->user()->can('stock.ajustar') || auth()->user()->can('productos.editar'))) {
+            $sucursalId = $sucursalStockId
+                ?? Sucursal::where('activa', true)->orderBy('id')->value('id');
+
+            if ($sucursalId) {
+                $producto->load('stocks');
+                $actual = $producto->stockEn((int) $sucursalId);
+                if (abs($actual - (float) $stockNuevo) >= 0.0001) {
+                    $stockService->ajustarA(
+                        $producto,
+                        (int) $sucursalId,
+                        (float) $stockNuevo,
+                        'Ajuste de stock desde ficha de producto'
+                    );
+                }
+            }
+        }
 
         return redirect()->route('productos.index')
             ->with('ok', "Producto {$producto->nombre} actualizado.");

@@ -186,42 +186,46 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-{{ $esNuevo ? '2' : '1' }}">
-                @if ($esNuevo)
-                    <div>
-                        <label class="mb-1 block text-sm font-medium text-slate-700">Stock inicial</label>
-                        <input type="number" step="0.001" min="0" name="stock_inicial"
-                               value="{{ \App\Support\Cantidad::input(old('stock_inicial', 0)) }}"
-                               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-                        @error('stock_inicial')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                        @if (($sucursales ?? collect())->count() > 1)
-                            <label class="mt-2 mb-1 block text-xs font-medium text-slate-600">Sucursal</label>
-                            <select name="sucursal_stock_id"
-                                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-                                @foreach ($sucursales as $suc)
-                                    <option value="{{ $suc->id }}" @selected((int) old('sucursal_stock_id', $sucursales->first()->id) === $suc->id)>
-                                        {{ $suc->nombre }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('sucursal_stock_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
-                        @elseif (($sucursales ?? collect())->isNotEmpty())
-                            <input type="hidden" name="sucursal_stock_id" value="{{ $sucursales->first()->id }}">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-slate-700">
+                        {{ $esNuevo ? 'Stock inicial' : 'Stock' }}
+                    </label>
+                    <input type="number" step="0.001" min="0" name="stock_inicial"
+                           value="{{ \App\Support\Cantidad::input(old('stock_inicial', $esNuevo ? 0 : ($stockActual ?? 0))) }}"
+                           class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                    @error('stock_inicial')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    @if (($sucursales ?? collect())->count() > 1)
+                        <label class="mt-2 mb-1 block text-xs font-medium text-slate-600">Sucursal</label>
+                        <select name="sucursal_stock_id"
+                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                            @foreach ($sucursales as $suc)
+                                <option value="{{ $suc->id }}" @selected((int) old('sucursal_stock_id', $sucursales->first()->id) === $suc->id)>
+                                    {{ $suc->nombre }}
+                                    @unless($esNuevo)
+                                        ({{ rtrim(rtrim(number_format($producto->stockEn($suc->id), 3, ',', '.'), '0'), ',') }})
+                                    @endunless
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('sucursal_stock_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    @elseif (($sucursales ?? collect())->isNotEmpty())
+                        <input type="hidden" name="sucursal_stock_id" value="{{ $sucursales->first()->id }}">
+                    @endif
+                    <p class="mt-1 text-xs text-slate-500">
+                        @if ($esNuevo)
+                            Cantidad con la que arranca el producto.
+                        @else
+                            Al guardar se fija este stock en la sucursal (queda en el historial).
+                            <a href="{{ route('productos.stock', $producto) }}" class="text-indigo-600 hover:underline">Ver movimientos</a>
                         @endif
-                        <p class="mt-1 text-xs text-slate-500">Cantidad con la que arranca el producto. Si es 0, queda sin stock.</p>
-                    </div>
-                @endif
+                    </p>
+                </div>
                 <div>
                     <label class="mb-1 block text-sm font-medium text-slate-700">Stock mínimo</label>
                     <input type="number" step="0.01" min="0" name="stock_minimo"
                            value="{{ \App\Support\Cantidad::input(old('stock_minimo', $producto->stock_minimo ?? 0)) }}"
-                           class="w-full {{ $esNuevo ? '' : 'max-w-xs ' }}rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-                    @unless($esNuevo)
-                        <p class="mt-1 text-xs text-slate-500">
-                            Para cargar o ajustar stock usá
-                            <a href="{{ route('productos.stock', $producto) }}" class="text-indigo-600 hover:underline">Stock</a>.
-                        </p>
-                    @endunless
+                           class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
                 </div>
             </div>
 
