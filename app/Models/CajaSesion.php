@@ -61,6 +61,21 @@ class CajaSesion extends Model
         return $this->hasMany(Venta::class);
     }
 
+    public static function abiertaParaUsuario(User $user): ?self
+    {
+        if (! $user->sucursal_id) {
+            return null;
+        }
+
+        return static::query()
+            ->where('estado', 'abierta')
+            ->whereHas('caja', fn ($q) => $q
+                ->where('sucursal_id', $user->sucursal_id)
+                ->where('activa', true))
+            ->latest('abierta_at')
+            ->first();
+    }
+
     /**
      * Efectivo esperado en caja: apertura + ventas en efectivo + ingresos - egresos - devoluciones.
      */
@@ -115,11 +130,21 @@ class CajaSesion extends Model
             ->groupBy('medio_pago_id')
             ->pluck('total', 'medio_pago_id');
 
+        $cobrosCtaCte = MovimientoCuenta::query()
+            ->selectRaw('medio_pago_id, SUM(-importe) as total')
+            ->where('caja_sesion_id', $this->id)
+            ->where('tipo', 'pago')
+            ->where('titular_type', (new Cliente)->getMorphClass())
+            ->whereNotNull('medio_pago_id')
+            ->groupBy('medio_pago_id')
+            ->pluck('total', 'medio_pago_id');
+
         $ingresosManual = (float) $this->movimientos()->where('tipo', 'ingreso')->sum('importe');
         $egresosManual = (float) $this->movimientos()->where('tipo', 'egreso')->sum('importe');
 
         $idsUsados = $pagos->keys()
             ->merge($devoluciones->keys())
+            ->merge($cobrosCtaCte->keys())
             ->map(fn ($id) => (int) $id)
             ->unique()
             ->values()
@@ -138,7 +163,7 @@ class CajaSesion extends Model
 
         $filas = [];
         foreach ($medios as $medio) {
-            $ingresos = round((float) ($pagos[$medio->id] ?? 0), 2);
+            $ingresos = round((float) ($pagos[$medio->id] ?? 0) + (float) ($cobrosCtaCte[$medio->id] ?? 0), 2);
             $egresos = round((float) ($devoluciones[$medio->id] ?? 0), 2);
             $apertura = 0.0;
 

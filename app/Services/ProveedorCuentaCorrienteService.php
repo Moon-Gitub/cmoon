@@ -79,7 +79,7 @@ class ProveedorCuentaCorrienteService
             $cajaSesionId = null;
 
             if (! $bonificacion && $medioPagoId && $montoNeto > 0) {
-                $cajaSesionId = $this->resolverCajaSesion($user)?->id;
+                $cajaSesionId = CajaSesion::abiertaParaUsuario($user)?->id;
             }
 
             $movimiento = MovimientoCuenta::create([
@@ -124,20 +124,5 @@ class ProveedorCuentaCorrienteService
 
             return $movimiento;
         });
-    }
-
-    private function resolverCajaSesion(User $user): ?CajaSesion
-    {
-        if (! $user->sucursal_id) {
-            return null;
-        }
-
-        return CajaSesion::query()
-            ->where('estado', 'abierta')
-            ->whereHas('caja', fn ($q) => $q
-                ->where('sucursal_id', $user->sucursal_id)
-                ->where('activa', true))
-            ->latest('abierta_at')
-            ->first();
     }
 }

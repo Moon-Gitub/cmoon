@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CajaSesion;
 use App\Models\Cliente;
 use App\Models\Empresa;
 use App\Models\MedioPago;
@@ -13,6 +14,7 @@ use App\Support\TableSort;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class CuentaCorrienteController extends Controller
@@ -23,7 +25,13 @@ class CuentaCorrienteController extends Controller
 
     public function cliente(Request $request, Cliente $cliente): View
     {
-        return $this->vistaCuenta($request, $cliente, $cliente->nombre, 'clientes.index');
+        return $this->vistaCuenta($request, $cliente, $cliente->nombre, 'clientes.index', [
+            'mediosPago' => MedioPago::where('activo', true)
+                ->where('tipo', '!=', 'cuenta_corriente')
+                ->orderByRaw("CASE WHEN tipo = 'efectivo' THEN 0 ELSE 1 END")
+                ->orderBy('nombre')
+                ->get(),
+        ]);
     }
 
     public function proveedor(Request $request, Proveedor $proveedor): View
@@ -131,13 +139,27 @@ class CuentaCorrienteController extends Controller
     {
         abort_unless(auth()->user()->can('cuentas.registrar'), 403);
 
+        $esCliente = $titular instanceof Cliente;
+
         $datos = $request->validate([
             'tipo' => ['required', 'in:factura,pago,ajuste'],
             'concepto' => ['required', 'string', 'max:255'],
             'importe' => ['required', 'numeric', 'gt:0'],
             'fecha' => ['required', 'date'],
             'vencimiento' => ['nullable', 'date'],
-        ]);
+            'medio_pago_id' => array_filter([
+                'nullable',
+                $esCliente ? 'required_if:tipo,pago' : null,
+                Rule::exists('medios_pago', 'id')
+                    ->where('activo', true)
+                    ->whereNot('tipo', 'cuenta_corriente'),
+            ]),
+        ], [], ['medio_pago_id' => 'medio de pago']);
+
+        $medioPagoId = $datos['tipo'] === 'pago' ? ($datos['medio_pago_id'] ?? null) : null;
+        $cajaSesionId = $esCliente && $medioPagoId
+            ? CajaSesion::abiertaParaUsuario(auth()->user())?->id
+            : null;
 
         $importe = (float) $datos['importe'];
         if ($datos['tipo'] === 'pago') {
@@ -152,11 +174,17 @@ class CuentaCorrienteController extends Controller
             'tipo' => $datos['tipo'],
             'concepto' => $datos['concepto'],
             'importe' => $importe,
+            'medio_pago_id' => $medioPagoId,
+            'caja_sesion_id' => $cajaSesionId,
             'user_id' => auth()->id(),
             'fecha' => $datos['fecha'],
             'vencimiento' => $datos['tipo'] === 'factura' ? ($datos['vencimiento'] ?? null) : null,
         ]);
 
-        return back()->with('ok', 'Movimiento registrado.');
+        if ($esCliente && $medioPagoId && ! $cajaSesionId) {
+            return back()->with('ok', 'Pago registrado. No hay caja abierta en tu sucursal: no se sumará a ningún cierre.');
+        }
+
+        return back()->with('ok', $cajaSesionId ? 'Pago registrado y sumado a la caja abierta.' : 'Movimiento registrado.');
     }
 }
