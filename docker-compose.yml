@@ -43,6 +43,14 @@ services:
       APP_LOCALE: es
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       AUTORUN_ENABLED: "true"   # corre migraciones y cachea config al iniciar
+    healthcheck:
+      # Sin "test": usa el healthcheck de la imagen, solo cambia la frecuencia.
+      # Cada chequeo es un exec que pasa por dockerd/containerd: con 10 s y
+      # 4 tenants, Docker gastaba mas CPU que las apps y Hostinger limito el
+      # VPS al 40 % (06/10/2026). start_interval mantiene rapido el arranque.
+      interval: 60s
+      start_period: 30s
+      start_interval: 5s
     depends_on:
       mysql:
         condition: service_healthy
@@ -67,7 +75,9 @@ services:
       AUTORUN_ENABLED: "false"
     healthcheck:
       test: ["CMD", "healthcheck-queue"]
+      interval: 60s
       start_period: 10s
+      start_interval: 5s
     depends_on:
       mysql:
         condition: service_healthy
@@ -92,7 +102,9 @@ services:
       AUTORUN_ENABLED: "false"
     healthcheck:
       test: ["CMD", "healthcheck-schedule"]
+      interval: 60s
       start_period: 10s
+      start_interval: 5s
     depends_on:
       mysql:
         condition: service_healthy
@@ -125,10 +137,11 @@ services:
       - mysql-data:/var/lib/mysql
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root --password=$$MYSQL_ROOT_PASSWORD"]
-      interval: 10s
+      interval: 60s
       timeout: 5s
       retries: 10
       start_period: 30s
+      start_interval: 5s
 
   redis:
     image: redis:7-alpine
@@ -144,13 +157,18 @@ services:
       - redis-data:/data
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping | grep PONG"]
-      interval: 10s
+      interval: 60s
       timeout: 5s
       retries: 10
+      start_period: 10s
+      start_interval: 5s
 
-  # Adminer - Admin de base de datos vía web (opcional, deshabilitar en producción si no se usa)
+  # Adminer - Admin de base de datos vía web. Apagado por defecto (profile
+  # "tools"): estaba en dokploy-network, la red compartida con todos los
+  # clientes. Para usarlo puntualmente: docker exec o tunel SSH.
   adminer:
     image: adminer:4
+    profiles: ["tools"]
     restart: unless-stopped
     deploy:
       resources:
