@@ -91,7 +91,11 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
-    command: ["php", "/var/www/html/artisan", "schedule:work"]
+    # schedule:work bootea Laravel cada minuto y era ~27 % de CPU por tenant
+    # (Hostinger limito el VPS el 05/10/2026). Las tareas son diarias/horarias,
+    # asi que alcanza con correr schedule:run en cada cuarto de hora (:00 :15 :30 :45).
+    # Si se agrega una tarea con frecuencia menor a 15 min, volver a schedule:work.
+    command: ["sh", "-c", "trap 'exit 0' TERM INT; while true; do sleep $$((900 - $$(date +%s) % 900)) & wait $$!; php /var/www/html/artisan schedule:run --no-interaction; done"]
     stop_signal: SIGTERM
     deploy:
       resources:
@@ -101,7 +105,7 @@ services:
       <<: *app-env
       AUTORUN_ENABLED: "false"
     healthcheck:
-      test: ["CMD", "healthcheck-schedule"]
+      test: ["CMD", "pgrep", "-f", "while true"]
       interval: 60s
       start_period: 10s
       start_interval: 5s
