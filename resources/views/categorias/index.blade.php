@@ -75,7 +75,7 @@
                                    class="whitespace-nowrap rounded-md border border-emerald-200 px-2 py-1 text-xs text-emerald-700 hover:bg-emerald-50"
                                    title="Compartir por WhatsApp">WA</a>
                                 @can('categorias.gestionar')
-                                    <form method="POST" action="{{ route('categorias.update', $cat) }" class="inline">
+                                    <form method="POST" action="{{ route('categorias.update', $cat) }}" class="inline">
                                         @csrf @method('PUT')
                                         <input type="hidden" name="nombre" value="{{ $cat->nombre }}">
                                         <input type="hidden" name="activa" value="{{ $cat->activa ? 0 : 1 }}">
