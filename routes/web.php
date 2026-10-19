@@ -55,19 +55,23 @@ use Illuminate\Support\Facades\Storage;
 
 // Webhook Tiendanube (sin auth, validado por HMAC)
 Route::post('/webhooks/tiendanube', [TiendanubeWebhookController::class, 'handle'])
+    ->middleware('throttle:webhooks')
     ->name('tiendanube.webhook')
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
 // Webhook Shopify (sin auth, validado por X-Shopify-Hmac-Sha256)
 Route::post('/webhooks/shopify', [ShopifyWebhookController::class, 'handle'])
+    ->middleware('throttle:webhooks')
     ->name('shopify.webhook')
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
 Route::post('/webhooks/ycloud', [YcloudWebhookController::class, 'handle'])
+    ->middleware('throttle:webhooks')
     ->name('ycloud.webhook')
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
 Route::post('/webhooks/n8n', [N8nWebhookController::class, 'handle'])
+    ->middleware('throttle:webhooks')
     ->name('n8n.webhook')
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 

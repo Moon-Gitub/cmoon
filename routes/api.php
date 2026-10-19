@@ -11,9 +11,10 @@ use App\Http\Middleware\AuthenticateDesktop;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('desktop')->group(function () {
-    Route::post('/activate', [DesktopApiController::class, 'activate']);
+    Route::post('/activate', [DesktopApiController::class, 'activate'])
+        ->middleware('throttle:api-auth');
 
-    Route::middleware(AuthenticateDesktop::class)->group(function () {
+    Route::middleware([AuthenticateDesktop::class, 'throttle:api'])->group(function () {
         Route::get('/license', [DesktopApiController::class, 'license']);
         Route::get('/catalog', [DesktopApiController::class, 'catalog']);
         Route::get('/status', [DesktopApiController::class, 'estado']);
@@ -36,22 +37,32 @@ Route::prefix('desktop')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('v1')->group(function () {
-    Route::post('/auth/token', [AuthTokenController::class, 'login']);
+    Route::post('/auth/token', [AuthTokenController::class, 'login'])
+        ->middleware('throttle:api-auth');
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/auth/logout', [AuthTokenController::class, 'logout']);
         Route::get('/auth/me', [AuthTokenController::class, 'me']);
 
-        Route::get('/productos', [ProductoApiController::class, 'index']);
-        Route::get('/productos/{id}', [ProductoApiController::class, 'show'])->whereNumber('id');
+        Route::middleware('permission:productos.ver')->group(function () {
+            Route::get('/productos', [ProductoApiController::class, 'index']);
+            Route::get('/productos/{id}', [ProductoApiController::class, 'show'])->whereNumber('id');
+        });
 
-        Route::get('/clientes', [ClienteApiController::class, 'index']);
+        Route::middleware('permission:clientes.ver')->group(function () {
+            Route::get('/clientes', [ClienteApiController::class, 'index']);
+        });
 
-        Route::get('/ventas', [VentaApiController::class, 'index']);
-        Route::get('/ventas/{id}', [VentaApiController::class, 'show'])->whereNumber('id');
+        Route::middleware('permission:ventas.ver')->group(function () {
+            Route::get('/ventas', [VentaApiController::class, 'index']);
+            Route::get('/ventas/{id}', [VentaApiController::class, 'show'])->whereNumber('id');
+        });
+
         Route::post('/ventas', [VentaApiController::class, 'store']);
 
-        Route::get('/shopify/status', [ShopifyApiController::class, 'status']);
-        Route::post('/shopify/sync/productos', [ShopifyApiController::class, 'syncProductos']);
+        Route::middleware('permission:empresa.editar')->group(function () {
+            Route::get('/shopify/status', [ShopifyApiController::class, 'status']);
+            Route::post('/shopify/sync/productos', [ShopifyApiController::class, 'syncProductos']);
+        });
     });
 });

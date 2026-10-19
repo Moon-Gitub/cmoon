@@ -7,9 +7,12 @@ use App\Listeners\SyncStockToTiendanubeOnChange;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 
@@ -39,7 +42,31 @@ class AppServiceProvider extends ServiceProvider
             Event::listen(StockUpdated::class, SyncStockToTiendanubeOnChange::class);
         }
 
+        $this->configureRateLimiting();
         $this->configureScramble();
+    }
+
+    private function configureRateLimiting(): void
+    {
+        // API autenticada: 60 req/min por usuario (o IP si aún no hay user)
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Login / activación: 5/min por IP y 5/min por usuario (cubre rotación de IP/CF)
+        RateLimiter::for('api-auth', function (Request $request) {
+            $usuario = Str::lower((string) $request->input('usuario', 'unknown'));
+
+            return [
+                Limit::perMinute(5)->by('api-auth:ip:'.$request->ip()),
+                Limit::perMinute(5)->by('api-auth:user:'.$usuario),
+            ];
+        });
+
+        // Webhooks públicos: tope por IP para mitigar flood
+        RateLimiter::for('webhooks', function (Request $request) {
+            return Limit::perMinute(120)->by($request->ip());
+        });
     }
 
     private function configureScramble(): void
