@@ -53,11 +53,14 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
 
-        // Login / activación de dispositivo: 5 intentos/min por IP+usuario
+        // Login / activación: 5/min por IP y 5/min por usuario (cubre rotación de IP/CF)
         RateLimiter::for('api-auth', function (Request $request) {
-            $usuario = Str::lower((string) $request->input('usuario', ''));
+            $usuario = Str::lower((string) $request->input('usuario', 'unknown'));
 
-            return Limit::perMinute(5)->by($request->ip().'|'.$usuario);
+            return [
+                Limit::perMinute(5)->by('api-auth:ip:'.$request->ip()),
+                Limit::perMinute(5)->by('api-auth:user:'.$usuario),
+            ];
         });
 
         // Webhooks públicos: tope por IP para mitigar flood

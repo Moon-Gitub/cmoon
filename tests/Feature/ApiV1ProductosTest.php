@@ -92,7 +92,8 @@ class ApiV1ProductosTest extends TestCase
 
     public function test_auth_token_rate_limit_tras_fallos(): void
     {
-        RateLimiter::clear('api-auth-login:bruteforce|127.0.0.1');
+        RateLimiter::clear('api-auth-login:user:bruteforce');
+        RateLimiter::clear('api-auth-login:ip:127.0.0.1');
 
         for ($i = 0; $i < 5; $i++) {
             $this->postJson('/api/v1/auth/token', [
@@ -110,6 +111,11 @@ class ApiV1ProductosTest extends TestCase
             in_array($blocked->status(), [422, 429], true),
             'Esperaba 422 (RateLimiter) o 429 (throttle), got '.$blocked->status()
         );
+
+        if ($blocked->status() === 422) {
+            $blocked->assertJsonValidationErrors(['usuario']);
+            $this->assertStringContainsString('Demasiados intentos', $blocked->json('errors.usuario.0'));
+        }
     }
 
     public function test_shopify_webhook_rechaza_hmac_invalido(): void

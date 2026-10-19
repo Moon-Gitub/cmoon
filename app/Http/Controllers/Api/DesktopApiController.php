@@ -48,14 +48,19 @@ class DesktopApiController extends Controller
 
         $datos['moon_client_id'] = (int) ($datos['moon_client_id'] ?? 1);
 
-        $throttleKey = 'desktop-activate:'.Str::lower($datos['usuario']).'|'.$request->ip();
+        $throttleKeys = [
+            'desktop-activate:user:'.Str::lower($datos['usuario']),
+            'desktop-activate:ip:'.$request->ip(),
+        ];
 
-        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
-            $segundos = RateLimiter::availableIn($throttleKey);
+        foreach ($throttleKeys as $throttleKey) {
+            if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+                $segundos = RateLimiter::availableIn($throttleKey);
 
-            throw ValidationException::withMessages([
-                'usuario' => "Demasiados intentos. Probá de nuevo en {$segundos} segundos.",
-            ]);
+                throw ValidationException::withMessages([
+                    'usuario' => "Demasiados intentos. Probá de nuevo en {$segundos} segundos.",
+                ]);
+            }
         }
 
         $user = User::where('usuario', $datos['usuario'])
@@ -63,12 +68,16 @@ class DesktopApiController extends Controller
             ->first();
 
         if (! $user || ! Hash::check($datos['password'], $user->password) || ! $user->activo) {
-            RateLimiter::hit($throttleKey, 60);
+            foreach ($throttleKeys as $throttleKey) {
+                RateLimiter::hit($throttleKey, 60);
+            }
 
             throw ValidationException::withMessages(['usuario' => 'Credenciales inválidas.']);
         }
 
-        RateLimiter::clear($throttleKey);
+        foreach ($throttleKeys as $throttleKey) {
+            RateLimiter::clear($throttleKey);
+        }
 
         $capabilities = [
             'can_sell' => $user->can('pos.vender'),

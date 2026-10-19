@@ -24,14 +24,19 @@ class AuthTokenController extends Controller
             'device_name' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $throttleKey = 'api-auth-login:'.Str::lower($datos['usuario']).'|'.$request->ip();
+        $throttleKeys = [
+            'api-auth-login:user:'.Str::lower($datos['usuario']),
+            'api-auth-login:ip:'.$request->ip(),
+        ];
 
-        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
-            $segundos = RateLimiter::availableIn($throttleKey);
+        foreach ($throttleKeys as $throttleKey) {
+            if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+                $segundos = RateLimiter::availableIn($throttleKey);
 
-            throw ValidationException::withMessages([
-                'usuario' => ["Demasiados intentos. Probá de nuevo en {$segundos} segundos."],
-            ]);
+                throw ValidationException::withMessages([
+                    'usuario' => ["Demasiados intentos. Probá de nuevo en {$segundos} segundos."],
+                ]);
+            }
         }
 
         $user = User::query()
@@ -40,14 +45,18 @@ class AuthTokenController extends Controller
             ->first();
 
         if (! $user || ! Hash::check($datos['password'], $user->password) || ! $user->activo) {
-            RateLimiter::hit($throttleKey, 60);
+            foreach ($throttleKeys as $throttleKey) {
+                RateLimiter::hit($throttleKey, 60);
+            }
 
             throw ValidationException::withMessages([
                 'usuario' => ['Credenciales inválidas.'],
             ]);
         }
 
-        RateLimiter::clear($throttleKey);
+        foreach ($throttleKeys as $throttleKey) {
+            RateLimiter::clear($throttleKey);
+        }
 
         $token = $user->createToken($datos['device_name'] ?? 'api-v1');
 
