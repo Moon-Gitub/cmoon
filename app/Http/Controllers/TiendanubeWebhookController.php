@@ -29,11 +29,25 @@ class TiendanubeWebhookController extends Controller
             return response('Store not found', 404);
         }
 
-        // Verificar firma HMAC
+        // Verificar firma HMAC (obligatoria si hay client_secret configurado)
         $signature = $request->header('x-linkedstore-hmac-sha256');
-        if ($signature) {
+        $clientSecret = (string) config('tiendanube.client_secret');
+
+        if ($clientSecret !== '') {
+            if (! $signature) {
+                TiendanubeLog::registrar(
+                    $integracion,
+                    'webhook',
+                    'webhook',
+                    mensaje: "Webhook sin firma HMAC para evento {$event}",
+                    status: 'error',
+                );
+
+                return response('Missing signature', 401);
+            }
+
             $payload = $request->getContent();
-            $expected = hash_hmac('sha256', $payload, config('tiendanube.client_secret'));
+            $expected = hash_hmac('sha256', $payload, $clientSecret);
 
             if (! hash_equals($expected, $signature)) {
                 TiendanubeLog::registrar(

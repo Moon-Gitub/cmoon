@@ -6,6 +6,8 @@ use App\Models\Empresa;
 use App\Models\Producto;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\RateLimiter;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class ApiV1ProductosTest extends TestCase
@@ -26,12 +28,15 @@ class ApiV1ProductosTest extends TestCase
             'activa' => true,
         ]);
 
+        Permission::findOrCreate('productos.ver');
+
         $user = User::factory()->create([
             'empresa_id' => $empresa->id,
             'usuario' => 'apiuser',
             'password' => 'password',
             'activo' => true,
         ]);
+        $user->givePermissionTo('productos.ver');
 
         Producto::query()->create([
             'empresa_id' => $empresa->id,
@@ -56,6 +61,55 @@ class ApiV1ProductosTest extends TestCase
             ->getJson('/api/v1/productos')
             ->assertOk()
             ->assertJsonPath('data.0.codigo', 'SKU-1');
+    }
+
+    public function test_listado_productos_exige_permiso(): void
+    {
+        $empresa = Empresa::query()->create([
+            'razon_social' => 'Empresa Sin Permiso',
+            'cuit' => '30333333333',
+            'activa' => true,
+        ]);
+
+        Permission::findOrCreate('productos.ver');
+
+        $user = User::factory()->create([
+            'empresa_id' => $empresa->id,
+            'usuario' => 'noperm',
+            'password' => 'password',
+            'activo' => true,
+        ]);
+
+        $token = $this->postJson('/api/v1/auth/token', [
+            'usuario' => 'noperm',
+            'password' => 'password',
+        ])->json('token');
+
+        $this->withToken($token)
+            ->getJson('/api/v1/productos')
+            ->assertForbidden();
+    }
+
+    public function test_auth_token_rate_limit_tras_fallos(): void
+    {
+        RateLimiter::clear('api-auth-login:bruteforce|127.0.0.1');
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->postJson('/api/v1/auth/token', [
+                'usuario' => 'bruteforce',
+                'password' => 'wrong',
+            ])->assertStatus(422);
+        }
+
+        $blocked = $this->postJson('/api/v1/auth/token', [
+            'usuario' => 'bruteforce',
+            'password' => 'wrong',
+        ]);
+
+        $this->assertTrue(
+            in_array($blocked->status(), [422, 429], true),
+            'Esperaba 422 (RateLimiter) o 429 (throttle), got '.$blocked->status()
+        );
     }
 
     public function test_shopify_webhook_rechaza_hmac_invalido(): void

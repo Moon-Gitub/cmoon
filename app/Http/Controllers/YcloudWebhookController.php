@@ -33,10 +33,14 @@ class YcloudWebhookController extends Controller
             return response('no integration', 200);
         }
 
-        if ($secret = $integracion->webhook_secret ?: config('ycloud.webhook_secret')) {
-            if (! $this->firmaValida($request, (string) $secret)) {
-                return response('invalid signature', 401);
-            }
+        $secret = (string) ($integracion->webhook_secret ?: config('ycloud.webhook_secret') ?: '');
+
+        if ($secret === '') {
+            Log::warning('YCloud webhook sin webhook_secret: se acepta sin firma', [
+                'integracion_id' => $integracion->id,
+            ]);
+        } elseif (! $this->firmaValida($request, $secret)) {
+            return response('invalid signature', 401);
         }
 
         ResponderConsultaWhatsApp::dispatch($integracion->id, $inbound);

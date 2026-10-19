@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class AuthTokenController extends Controller
@@ -22,16 +24,30 @@ class AuthTokenController extends Controller
             'device_name' => ['nullable', 'string', 'max:100'],
         ]);
 
+        $throttleKey = 'api-auth-login:'.Str::lower($datos['usuario']).'|'.$request->ip();
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $segundos = RateLimiter::availableIn($throttleKey);
+
+            throw ValidationException::withMessages([
+                'usuario' => ["Demasiados intentos. Probá de nuevo en {$segundos} segundos."],
+            ]);
+        }
+
         $user = User::query()
             ->where('usuario', $datos['usuario'])
             ->orWhere('email', $datos['usuario'])
             ->first();
 
         if (! $user || ! Hash::check($datos['password'], $user->password) || ! $user->activo) {
+            RateLimiter::hit($throttleKey, 60);
+
             throw ValidationException::withMessages([
                 'usuario' => ['Credenciales inválidas.'],
             ]);
         }
+
+        RateLimiter::clear($throttleKey);
 
         $token = $user->createToken($datos['device_name'] ?? 'api-v1');
 

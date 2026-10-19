@@ -20,6 +20,8 @@ use App\Services\VentaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class DesktopApiController extends Controller
@@ -46,13 +48,27 @@ class DesktopApiController extends Controller
 
         $datos['moon_client_id'] = (int) ($datos['moon_client_id'] ?? 1);
 
+        $throttleKey = 'desktop-activate:'.Str::lower($datos['usuario']).'|'.$request->ip();
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $segundos = RateLimiter::availableIn($throttleKey);
+
+            throw ValidationException::withMessages([
+                'usuario' => "Demasiados intentos. Probá de nuevo en {$segundos} segundos.",
+            ]);
+        }
+
         $user = User::where('usuario', $datos['usuario'])
             ->orWhere('email', $datos['usuario'])
             ->first();
 
         if (! $user || ! Hash::check($datos['password'], $user->password) || ! $user->activo) {
+            RateLimiter::hit($throttleKey, 60);
+
             throw ValidationException::withMessages(['usuario' => 'Credenciales inválidas.']);
         }
+
+        RateLimiter::clear($throttleKey);
 
         $capabilities = [
             'can_sell' => $user->can('pos.vender'),
