@@ -67,6 +67,13 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('webhooks', function (Request $request) {
             return Limit::perMinute(120)->by($request->ip());
         });
+
+        // MCP: 30 req/min por token (o IP)
+        RateLimiter::for('mcp', function (Request $request) {
+            $tokenId = $request->user()?->currentAccessToken()?->id ?? $request->ip();
+
+            return Limit::perMinute(30)->by('mcp:'.$tokenId);
+        });
     }
 
     private function configureScramble(): void

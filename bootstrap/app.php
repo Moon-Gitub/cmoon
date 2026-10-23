@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'desktop.auth' => \App\Http\Middleware\AuthenticateDesktop::class,
             'superadmin' => \App\Http\Middleware\EnsureSuperadmin::class,
+            'mcp.token' => \App\Http\Middleware\EnsureMcpToken::class,
         ]);
 
         // El POS sincroniza ventas encoladas offline: el token CSRF de la página
@@ -33,10 +35,19 @@ return Application::configure(basePath: dirname(__DIR__))
             'webhooks/shopify',
             'webhooks/ycloud',
             'webhooks/n8n',
+            'mcp',
         ]);
+
+        $middleware->appendToGroup('api', \App\Http\Middleware\RejectMcpReadOnlyToken::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*'),
+            fn (Request $request) => $request->is('api/*') || $request->is('mcp'),
         );
+
+        $exceptions->renderable(function (AuthenticationException $e, Request $request) {
+            if ($request->is('mcp')) {
+                return response()->json(['message' => 'No autenticado.'], 401);
+            }
+        });
     })->create();

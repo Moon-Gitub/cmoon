@@ -58,7 +58,7 @@ class AuthTokenController extends Controller
             RateLimiter::clear($throttleKey);
         }
 
-        $token = $user->createToken($datos['device_name'] ?? 'api-v1');
+        $token = $user->createToken($datos['device_name'] ?? 'api-v1', ['api']);
 
         return response()->json([
             'token' => $token->plainTextToken,
