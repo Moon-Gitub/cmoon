@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'desktop.auth' => \App\Http\Middleware\AuthenticateDesktop::class,
             'superadmin' => \App\Http\Middleware\EnsureSuperadmin::class,
+            'mcp.token' => \App\Http\Middleware\EnsureMcpToken::class,
         ]);
 
         // El POS sincroniza ventas encoladas offline: el token CSRF de la página
@@ -33,7 +34,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'webhooks/shopify',
             'webhooks/ycloud',
             'webhooks/n8n',
+            'mcp',
         ]);
+
+        $middleware->appendToGroup('api', \App\Http\Middleware\RejectMcpReadOnlyToken::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
