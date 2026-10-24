@@ -1,0 +1,22 @@
+name: security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  composer-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - name: Instalar dependencias
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress
+      - name: Auditoría de Composer (falla si hay high)
+        run: composer audit --no-dev --abandoned=ignore
+      - name: PHP mínimo 8.4.27
+        run: php -r 'exit(version_compare(PHP_VERSION, "8.4.27", "<") ? 1 : 0);'

@@ -47,11 +47,11 @@ class EmisorController extends Controller
         abort_unless(auth()->user()->can('emisores.gestionar'), 403);
 
         $request->validate([
-            'certificado' => ['required', 'file', 'max:64'],
-            'clave_privada' => ['required', 'file', 'max:64'],
+            'certificado' => ['required', 'file', 'max:64', 'extensions:crt,pem,cer'],
+            'clave_privada' => ['required', 'file', 'max:64', 'extensions:key,pem'],
         ], [], [
-            'certificado' => 'certificado (.crt)',
-            'clave_privada' => 'clave privada (.key)',
+            'certificado' => 'certificado (.crt / .pem)',
+            'clave_privada' => 'clave privada (.key / .pem)',
         ]);
 
         $certPath = $request->file('certificado')->storeAs('afip/certs', "emisor-{$emisor->id}.crt");

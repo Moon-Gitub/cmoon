@@ -53,6 +53,8 @@ use App\Services\Afip\AfipSoap;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 
+Route::get('/up', fn () => response()->json(['ok' => true]))->name('health');
+
 // Webhook Tiendanube (sin auth, validado por HMAC)
 Route::post('/webhooks/tiendanube', [TiendanubeWebhookController::class, 'handle'])
     ->middleware('throttle:webhooks')
@@ -112,6 +114,8 @@ Route::get('/_diag/afip', function () {
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->name('login.attempt');
+    Route::get('/login/2fa', [LoginController::class, 'showTwoFactor'])->name('login.2fa');
+    Route::post('/login/2fa', [LoginController::class, 'challengeTwoFactor'])->name('login.2fa.attempt');
 });
 
 Route::middleware('auth')->group(function () {
@@ -154,6 +158,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/perfil', [PerfilController::class, 'edit'])->name('perfil.edit');
     Route::put('/perfil/password', [PerfilController::class, 'updatePassword'])->name('perfil.password');
+    Route::post('/perfil/2fa', [PerfilController::class, 'enableTwoFactor'])->name('perfil.2fa.enable');
+    Route::post('/perfil/2fa/confirmar', [PerfilController::class, 'confirmTwoFactor'])->name('perfil.2fa.confirm');
+    Route::delete('/perfil/2fa', [PerfilController::class, 'disableTwoFactor'])->name('perfil.2fa.disable');
 
     Route::middleware('permission:usuarios.ver')->group(function () {
         Route::resource('usuarios', UsuarioController::class)->except('show');

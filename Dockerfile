@@ -30,7 +30,7 @@ COPY public ./public
 RUN npm run build
 
 # --- Etapa 3: runtime (PHP-FPM + nginx en un contenedor) -----
-FROM serversideup/php:8.4-fpm-nginx AS app
+FROM serversideup/php:8.4-fpm-nginx-v5.0.3 AS app
 
 # Extensiones extra que el POS va a necesitar (imagenes, locales, PDFs)
 USER root
@@ -38,6 +38,7 @@ RUN install-php-extensions intl gd exif bcmath soap
 
 # PHP timezone (evita timestamps en UTC/GMT+0)
 COPY docker/php/zz-timezone.ini /usr/local/etc/php/conf.d/zz-timezone.ini
+COPY docker/php/zz-security.ini /usr/local/etc/php/conf.d/zz-security.ini
 
 ENV PHP_OPCACHE_ENABLE=1 \
     AUTORUN_ENABLED=true \

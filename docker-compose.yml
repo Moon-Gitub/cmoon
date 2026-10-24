@@ -38,6 +38,7 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?Falta REDIS_PASSWORD en Environment de Dokploy}
       CACHE_STORE: redis
       SESSION_DRIVER: redis
+      SESSION_ENCRYPT: ${SESSION_ENCRYPT:-true}
       QUEUE_CONNECTION: redis
       LOG_CHANNEL: stderr
       APP_LOCALE: es

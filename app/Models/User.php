@@ -25,7 +25,7 @@ use Laravel\Sanctum\HasApiTokens;
     'foto_path',
     'ultimo_acceso_at',
 ])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -39,7 +39,14 @@ class User extends Authenticatable
             'activo' => 'boolean',
             'es_superadmin' => 'boolean',
             'ultimo_acceso_at' => 'datetime',
+            'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    public function tieneDosFactores(): bool
+    {
+        return $this->two_factor_confirmed_at !== null
+            && filled($this->two_factor_secret);
     }
 
     public function esSuperadmin(): bool
