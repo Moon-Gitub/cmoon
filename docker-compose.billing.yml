@@ -1,0 +1,223 @@
+# ============================================================
+# Moon Cobros - Stack Dokploy propio (NO es un tenant POS)
+#
+# En Dokploy: proyecto "moon-cobros", tipo Compose,
+#   Compose Path ./docker-compose.billing.yml, rama moon-cobros.
+#   autoDeploy APAGADO (deploy manual).
+# Dominio: cobros.cluna.ar -> servicio app, puerto 8080, HTTPS.
+# Spec: docs/24-moon-cobros-specs.md
+#
+# Environment obligatorio en Dokploy:
+#   APP_KEY, DB_PASSWORD, DB_ROOT_PASSWORD, REDIS_PASSWORD,
+#   MP_ACCESS_TOKEN, MP_WEBHOOK_SECRET, MP_COLLECTOR_ID
+# Opcional: MOON_DB_* (legacy, solo lectura para importar), MAIL_*,
+#   YCLOUD_*, BILLING_* (reglas, avisos, transferencia), BILLING_SLACK_WEBHOOK
+# ============================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    networks:
+      - default
+      - dokploy-network
+    environment: &billing-env
+      APP_NAME: "Moon Cobros"
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: "false"
+      APP_KEY: ${APP_KEY:?Falta APP_KEY}
+      APP_URL: ${APP_URL:-https://pagos.posmoon.com.ar}
+      APP_TIMEZONE: America/Argentina/Buenos_Aires
+      TZ: America/Argentina/Buenos_Aires
+      APP_LOCALE: es
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: moon_cobros
+      DB_USERNAME: moon_cobros
+      DB_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Falta REDIS_PASSWORD}
+      CACHE_STORE: redis
+      SESSION_DRIVER: redis
+      SESSION_ENCRYPT: "true"
+      QUEUE_CONNECTION: redis
+      AUTORUN_ENABLED: "true"
+      # --- Hub de cobros ---
+      BILLING_HUB_ENABLED: "true"
+      BILLING_PUBLIC_URL: ${BILLING_PUBLIC_URL:-https://pagos.posmoon.com.ar}
+      BILLING_TIMEZONE: America/Argentina/Mendoza
+      BILLING_GENERAR_CUOTAS: ${BILLING_GENERAR_CUOTAS:-false}
+      BILLING_DUNNING_ENABLED: ${BILLING_DUNNING_ENABLED:-false}
+      BILLING_DUNNING_CANALES: ${BILLING_DUNNING_CANALES:-mail,whatsapp}
+      BILLING_LEGACY_SYNC: ${BILLING_LEGACY_SYNC:-false}
+      BILLING_LEGACY_EXCLUIR: ${BILLING_LEGACY_EXCLUIR:-1,999}
+      BILLING_DIA_VENCIMIENTO: ${BILLING_DIA_VENCIMIENTO:-10}
+      BILLING_RECARGO_T1_DIA: ${BILLING_RECARGO_T1_DIA:-11}
+      BILLING_RECARGO_T1_PCT: ${BILLING_RECARGO_T1_PCT:-10}
+      BILLING_RECARGO_T2_DIA: ${BILLING_RECARGO_T2_DIA:-21}
+      BILLING_RECARGO_T2_PCT: ${BILLING_RECARGO_T2_PCT:-15}
+      BILLING_DIA_SUSPENSION: ${BILLING_DIA_SUSPENSION:-26}
+      BILLING_TOLERANCIA: ${BILLING_TOLERANCIA:-100}
+      BILLING_ADMIN_EMAIL: ${BILLING_ADMIN_EMAIL:-}
+      BILLING_SLACK_WEBHOOK: ${BILLING_SLACK_WEBHOOK:-}
+      BILLING_TRANSFER_ALIAS: ${BILLING_TRANSFER_ALIAS:-}
+      BILLING_TRANSFER_CBU: ${BILLING_TRANSFER_CBU:-}
+      BILLING_TRANSFER_TITULAR: ${BILLING_TRANSFER_TITULAR:-}
+      BILLING_WA_TPL_CUOTA: ${BILLING_WA_TPL_CUOTA:-}
+      BILLING_WA_TPL_RECORDATORIO: ${BILLING_WA_TPL_RECORDATORIO:-}
+      BILLING_WA_TPL_VENCIDO: ${BILLING_WA_TPL_VENCIDO:-}
+      BILLING_WA_TPL_SUSPENSION: ${BILLING_WA_TPL_SUSPENSION:-}
+      BILLING_WA_TPL_RECIBO: ${BILLING_WA_TPL_RECIBO:-}
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:?Falta MP_ACCESS_TOKEN}
+      MP_WEBHOOK_SECRET: ${MP_WEBHOOK_SECRET:?Falta MP_WEBHOOK_SECRET}
+      MP_COLLECTOR_ID: ${MP_COLLECTOR_ID:?Falta MP_COLLECTOR_ID}
+      MP_MAX_CUOTAS: ${MP_MAX_CUOTAS:-3}
+      MP_ACEPTAR_SANDBOX: ${MP_ACEPTAR_SANDBOX:-false}
+      MP_STATEMENT_DESCRIPTOR: ${MP_STATEMENT_DESCRIPTOR:-POSMOON}
+      # --- Base legacy cobrosposmooncom_db (solo lectura; usar un usuario con SELECT) ---
+      MOON_DB_HOST: ${MOON_DB_HOST:-}
+      MOON_DB_PORT: ${MOON_DB_PORT:-3306}
+      MOON_DB_DATABASE: ${MOON_DB_DATABASE:-}
+      MOON_DB_USERNAME: ${MOON_DB_USERNAME:-}
+      MOON_DB_PASSWORD: ${MOON_DB_PASSWORD:-}
+      # --- Mail y WhatsApp ---
+      MAIL_MAILER: ${MAIL_MAILER:-log}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-cobros@posmoon.com.ar}
+      MAIL_FROM_NAME: "Moon Cobros"
+      YCLOUD_API_KEY: ${YCLOUD_API_KEY:-}
+      YCLOUD_PHONE_FROM: ${YCLOUD_PHONE_FROM:-}
+    healthcheck:
+      interval: 60s
+      start_period: 30s
+      start_interval: 5s
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - billing-storage:/var/www/html/storage/app
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: ["php", "/var/www/html/artisan", "queue:work", "--tries=6", "--timeout=90"]
+    stop_signal: SIGTERM
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    environment:
+      <<: *billing-env
+      AUTORUN_ENABLED: "false"
+    healthcheck:
+      test: ["CMD", "healthcheck-queue"]
+      interval: 60s
+      start_period: 10s
+      start_interval: 5s
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - billing-storage:/var/www/html/storage/app
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # schedule:run cada 15 min (:00 :15 :30 :45): la tarea más frecuente del hub
+    # es billing:sincronizar-pendientes, cada 15 min.
+    command: ["sh", "-c", "trap 'exit 0' TERM INT; while true; do sleep $$((900 - $$(date +%s) % 900)) & wait $$!; php /var/www/html/artisan schedule:run --no-interaction; done"]
+    stop_signal: SIGTERM
+    deploy:
+      resources:
+        limits:
+          memory: 160M
+    environment:
+      <<: *billing-env
+      AUTORUN_ENABLED: "false"
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "while true"]
+      interval: 60s
+      start_period: 10s
+      start_interval: 5s
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - billing-storage:/var/www/html/storage/app
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb-buffer-pool-size=128M
+      - --performance-schema=OFF
+    environment:
+      MYSQL_DATABASE: moon_cobros
+      MYSQL_USER: moon_cobros
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Falta DB_ROOT_PASSWORD}
+    volumes:
+      - billing-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root --password=$$MYSQL_ROOT_PASSWORD"]
+      interval: 60s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+      start_interval: 5s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Falta REDIS_PASSWORD}
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+      - billing-redis:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping | grep PONG"]
+      interval: 60s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+      start_interval: 5s
+
+volumes:
+  billing-storage:
+  billing-mysql:
+  billing-redis:
+
+networks:
+  dokploy-network:
+    external: true

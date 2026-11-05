@@ -16,6 +16,18 @@ return [
         'password' => env('MOON_DB_PASSWORD', ''),
     ],
 
+    /*
+    | Hub Moon Cobros (stack moon-cobros). Si url+key están, reemplaza la
+    | lectura directa de la base legacy. Bloquear exige además enforce=true.
+    */
+    'billing' => [
+        'url' => rtrim((string) env('MOON_BILLING_URL', ''), '/'),
+        'key' => env('MOON_BILLING_KEY', ''),
+        'enforce' => (bool) env('MOON_BILLING_ENFORCE', false),
+        'cache_min' => (int) env('MOON_BILLING_CACHE_MIN', 10),
+        'fallback_horas' => (int) env('MOON_BILLING_FALLBACK_HORAS', 72),
+    ],
+
     /** Días de gracia offline cuando el abono está al día */
     'offline_grace_days' => (int) env('DESKTOP_OFFLINE_GRACE_DAYS', 7),
 

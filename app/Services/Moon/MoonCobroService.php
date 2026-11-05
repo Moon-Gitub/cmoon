@@ -64,6 +64,11 @@ class MoonCobroService
      */
     public function evaluarLicencia(int $moonClientId): array
     {
+        $hub = app(MoonBillingClient::class);
+        if ($hub->configurado()) {
+            return $this->desdeHub($hub->estado());
+        }
+
         $cliente = $this->cliente($moonClientId);
         $cta = $this->saldoCuenta($moonClientId);
 
@@ -138,6 +143,31 @@ class MoonCobroService
             'message' => null,
             'saldo' => $saldo,
             'mensual' => $mensual,
+        ];
+    }
+
+    /** Traduce el estado del hub Moon Cobros al formato de licencia existente. */
+    private function desdeHub(?array $e): array
+    {
+        if (! $e) {
+            return ['can_sell' => true, 'blocked' => false, 'level' => 'unknown', 'message' => null, 'saldo' => 0.0, 'mensual' => 0.0, 'pay_url' => null];
+        }
+
+        $level = match (true) {
+            $e['bloquear'] => 'blocked',
+            in_array($e['nivel'], ['por_suspender', 'moroso', 'suspendido'], true) => 'warning',
+            $e['nivel'] === 'vencido' => 'reminder',
+            default => 'ok',
+        };
+
+        return [
+            'can_sell' => ! $e['bloquear'],
+            'blocked' => $e['bloquear'],
+            'level' => $level,
+            'message' => $level === 'ok' ? null : $e['mensaje'],
+            'saldo' => $e['saldo'],
+            'mensual' => 0.0,
+            'pay_url' => $e['pay_url'],
         ];
     }
 

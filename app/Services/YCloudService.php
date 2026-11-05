@@ -59,6 +59,25 @@ class YCloudService
         ]);
     }
 
+    /** @param list<string> $bodyParams */
+    public function sendTemplate(string $to, string $templateName, array $bodyParams = [], string $language = 'es'): array
+    {
+        $template = ['name' => $templateName, 'language' => ['code' => $language]];
+        if ($bodyParams) {
+            $template['components'] = [[
+                'type' => 'body',
+                'parameters' => array_map(fn ($p) => ['type' => 'text', 'text' => (string) $p], $bodyParams),
+            ]];
+        }
+
+        return $this->post('/whatsapp/messages/sendDirectly', [
+            'from' => $this->from(),
+            'to' => $this->normalizePhone($to),
+            'type' => 'template',
+            'template' => $template,
+        ]);
+    }
+
     public function getBalance(): array
     {
         $response = $this->client()->get($this->base().'/balance');
