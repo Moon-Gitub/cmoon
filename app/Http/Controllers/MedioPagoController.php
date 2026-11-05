@@ -62,7 +62,7 @@ class MedioPagoController extends Controller
 
     private function validar(Request $request, ?MedioPago $medio = null): array
     {
-        return $request->validate([
+        $datos = $request->validate([
             'nombre' => [
                 'required', 'string', 'max:100',
                 Rule::unique('medios_pago', 'nombre')
@@ -72,9 +72,12 @@ class MedioPagoController extends Controller
             'tipo' => ['required', 'in:efectivo,tarjeta_debito,tarjeta_credito,transferencia,qr,cheque,cuenta_corriente,otro'],
             'recargo_porcentaje' => ['nullable', 'numeric', 'between:-99,200'],
             'activo' => ['boolean'],
-        ]) + [
-            'activo' => $request->boolean('activo'),
-            'recargo_porcentaje' => $request->input('recargo_porcentaje') ?: 0,
-        ];
+        ]);
+
+        // NOT NULL en DB: el + de arrays no pisa claves ya validadas (null/'').
+        $datos['activo'] = $request->boolean('activo');
+        $datos['recargo_porcentaje'] = $datos['recargo_porcentaje'] ?: 0;
+
+        return $datos;
     }
 }

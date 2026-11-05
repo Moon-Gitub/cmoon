@@ -90,7 +90,7 @@ class ProveedorController extends Controller
 
     private function validar(Request $request): array
     {
-        return $request->validate([
+        $datos = $request->validate([
             'razon_social' => ['required', 'string', 'max:255'],
             'cuit' => ['nullable', 'string', 'max:13'],
             'condicion_iva' => ['required', 'in:RESPONSABLE_INSCRIPTO,MONOTRIBUTO,EXENTO'],
@@ -105,9 +105,12 @@ class ProveedorController extends Controller
             'razon_social' => 'razón social',
             'condicion_iva' => 'condición frente al IVA',
             'alicuota_retencion_iibb' => 'alícuota de retención IIBB',
-        ]) + [
-            'activo' => $request->boolean('activo'),
-            'alicuota_retencion_iibb' => $request->input('alicuota_retencion_iibb') ?: 0,
-        ];
+        ]);
+
+        // NOT NULL en DB: el + de arrays no pisa claves ya validadas (null/'').
+        $datos['activo'] = $request->boolean('activo');
+        $datos['alicuota_retencion_iibb'] = $datos['alicuota_retencion_iibb'] ?: 0;
+
+        return $datos;
     }
 }
