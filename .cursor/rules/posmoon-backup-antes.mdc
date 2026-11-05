@@ -1,0 +1,27 @@
+---
+description: Backup obligatorio antes de tocar datos en tenants POSMoon (producción). Aplicar siempre ante SQL, restores, borrados, migraciones o deploys que puedan alterar la DB.
+alwaysApply: true
+---
+
+# Backup antes de tocar datos (obligatorio)
+
+**Nunca** ejecutar en un tenant de producción (cmoon, Abisko, Esquina53, CabañasDelCerro, Jamrod u otro en Dokploy) un cambio que pueda alterar o borrar datos **sin backup previo**.
+
+Incluye, entre otros:
+
+- `UPDATE` / `DELETE` / `INSERT` masivos o de recuperación
+- Restaurar desde binlog o dumps
+- Borrar/reasignar sucursales, cajas, sesiones, stock
+- Migraciones o imports legacy que escriban la DB
+- Cualquier `docker exec … mysql` o tinker que modifique filas
+- Deploys o cambios de compose que toquen volúmenes MySQL
+
+## Procedimiento mínimo
+
+1. **Backup** del MySQL del tenant (`mysqldump --single-transaction --routines --triggers`, al menos la base `cmoon`; ideal `--all-databases` del contenedor).
+2. Verificar que el dump termine con `-- Dump completed`.
+3. **Copiar el `.sql` / `.sql.gz` fuera del VPS** (máquina local o almacenamiento externo). No dejarlo solo dentro del contenedor.
+4. Recién ahí aplicar el cambio.
+5. Si algo no cuadra en conteos post-cambio: restaurar desde ese backup y avisar.
+
+Sin backup verificado y bajado → **no se toca la base**.

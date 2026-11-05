@@ -84,6 +84,11 @@ Procedimiento para cambiar el compose:
 
 ## Antes de cualquier cambio que toque datos
 
+**Obligatorio** (ver también `.cursor/rules/posmoon-backup-antes.mdc`, alwaysApply).
+
+Sin backup verificado y bajado del VPS → no se toca la DB (ni restores, ni
+DELETE/UPDATE masivos, ni reasignar sucursales/cajas, ni imports).
+
 `mysqldump --single-transaction --routines --triggers --events --all-databases`,
 verificar que termine con `-- Dump completed`, y **bajarlo fuera del servidor**.
 
