@@ -28,6 +28,8 @@
 | [21-n8n-ia.md](./21-n8n-ia.md) | **n8n** webhooks + **chat IA** con cupo mensual / abono |
 | [22-ia-operativa.md](./22-ia-operativa.md) | **IA en productos / AFIP / canales** (cupo free vs abono) |
 | [23-mejoras-gauchada.md](./23-mejoras-gauchada.md) | **3 fases** cobranzas/cheques/OC/remitos/bancos/CRM vs Gauchada |
+| [24-moon-cobros-specs.md](./24-moon-cobros-specs.md) | **Moon Cobros:** diseño del hub de cobros con Mercado Pago |
+| [26-moon-cobros-operacion.md](./26-moon-cobros-operacion.md) | **Moon Cobros en producción:** estado, pendientes y cómo retomar |
 
 ## Inicio rápido
 
