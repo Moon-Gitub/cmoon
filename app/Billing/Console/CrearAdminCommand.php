@@ -19,7 +19,7 @@ class CrearAdminCommand extends Command
         $user = User::where('email', $this->argument('email'))->first() ?? new User(['email' => $this->argument('email')]);
         $user->forceFill([
             'name' => $user->name ?: $this->option('nombre'),
-            'usuario' => $user->usuario ?: Str::before($user->email, '@'),
+            'usuario' => $user->usuario ?: $this->usuarioLibre($user->email),
             'password' => Hash::make($password),
             'activo' => true,
             'es_superadmin' => true,
@@ -28,5 +28,12 @@ class CrearAdminCommand extends Command
         $this->info("Superadmin {$user->email} listo. Contraseña (guardala ahora): {$password}");
 
         return self::SUCCESS;
+    }
+
+    private function usuarioLibre(string $email): string
+    {
+        $base = Str::before($email, '@');
+
+        return User::withTrashed()->where('usuario', $base)->exists() ? $email : $base;
     }
 }

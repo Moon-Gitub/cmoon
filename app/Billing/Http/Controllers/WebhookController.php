@@ -29,7 +29,7 @@ class WebhookController extends Controller
             'request_id' => $request->header('x-request-id'),
             'firma_valida' => $valida,
             'payload' => $request->all(),
-            'headers' => array_intersect_key($request->headers->all(), array_flip(['x-request-id', 'user-agent', 'content-type'])),
+            'headers' => array_intersect_key($request->headers->all(), array_flip(['x-request-id', 'x-signature', 'user-agent', 'content-type'])),
         ]);
 
         if (! $valida) {
