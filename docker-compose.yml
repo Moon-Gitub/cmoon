@@ -43,6 +43,10 @@ services:
       LOG_CHANNEL: stderr
       APP_LOCALE: es
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # Hub Moon Cobros. Vacío = sin consulta de abono. Bloquear exige ENFORCE=true.
+      MOON_BILLING_URL: ${MOON_BILLING_URL:-}
+      MOON_BILLING_KEY: ${MOON_BILLING_KEY:-}
+      MOON_BILLING_ENFORCE: ${MOON_BILLING_ENFORCE:-false}
       AUTORUN_ENABLED: "true"   # corre migraciones y cachea config al iniciar
     healthcheck:
       # Sin "test": usa el healthcheck de la imagen, solo cambia la frecuencia.
