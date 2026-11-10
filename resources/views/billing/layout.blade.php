@@ -7,11 +7,9 @@
     <title>@yield('titulo', 'Pagar abono') · POSMoon</title>
     @vite(['resources/css/app.css'])
 </head>
-<body class="min-h-screen bg-slate-100 font-sans text-slate-900 antialiased">
+<body class="nv min-h-screen bg-[#f5f5f5] text-[#1a1a1a] antialiased">
     <div class="mx-auto max-w-lg px-4 py-6 sm:py-10">
-        <div class="mb-6 flex items-center gap-2 text-lg font-semibold">
-            <span class="text-2xl">🌙</span> POSMoon
-        </div>
+        <div class="mb-6 text-lg font-semibold tracking-tight">POSMoon</div>
 
         @if (session('error'))
             <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ session('error') }}</div>

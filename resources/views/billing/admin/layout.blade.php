@@ -7,16 +7,17 @@
     <title>@yield('titulo', 'Cobros') · Moon Cobros</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-slate-100 font-sans text-slate-900 antialiased">
-    <header class="bg-slate-900 text-white">
+<body class="nv min-h-screen bg-[#f5f5f5] text-[#1a1a1a] antialiased">
+    <header class="bg-black text-white">
         <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-6 px-4 py-3">
-            <span class="font-semibold">🌙 Moon Cobros</span>
-            <nav class="flex gap-4 text-sm">
+            <a href="{{ route('dashboard') }}" class="font-semibold tracking-tight">Moon Cobros</a>
+            <nav class="flex gap-1 text-sm">
                 @foreach (['dashboard' => 'Tablero', 'clientes' => 'Clientes', 'pagos' => 'Pagos', 'avisos' => 'Avisos', 'eventos' => 'Eventos'] as $r => $t)
-                    <a href="{{ route('billing.admin.'.$r) }}" class="{{ request()->routeIs('billing.admin.'.$r.'*') ? 'text-white' : 'text-slate-400 hover:text-white' }}">{{ $t }}</a>
+                    <a href="{{ route('billing.admin.'.$r) }}"
+                       class="rounded px-3 py-1.5 {{ request()->routeIs('billing.admin.'.$r.'*') ? 'bg-[#76b900] font-semibold text-black' : 'text-white/70 hover:text-white' }}">{{ $t }}</a>
                 @endforeach
             </nav>
-            <span class="ml-auto text-xs text-slate-400">{{ auth()->user()?->email }}</span>
+            <span class="ml-auto text-xs text-white/50">{{ auth()->user()?->email }}</span>
         </div>
     </header>
 

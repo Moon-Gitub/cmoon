@@ -7,8 +7,9 @@
     <title>@yield('titulo', 'Panel') · {{ config('app.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @php($empresaActual = auth()->user()->empresa)
-    @php($colorAccento = $empresaActual?->color_primario ?? '#4f46e5')
-    @php($colorOscuro = \App\Support\Color::oscurecer($colorAccento, 0.15))
+    @php($esHub = (bool) config('billing.hub_enabled'))
+    @php($colorAccento = $esHub ? '#76b900' : ($empresaActual?->color_primario ?? '#4f46e5'))
+    @php($colorOscuro = $esHub ? '#5c8f00' : \App\Support\Color::oscurecer($colorAccento, 0.15))
     <style>
         /* Personalización visual por empresa: pisa el color de acento de la UI */
         :root { --accent: {{ $colorAccento }}; --accent-dark: {{ $colorOscuro }}; }
@@ -21,7 +22,7 @@
         .bg-indigo-50 { background-color: color-mix(in srgb, var(--accent) 6%, white) !important; }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased" x-data="{ menuAbierto: false }">
+<body class="bg-slate-100 text-slate-800 antialiased {{ $esHub ? 'nv' : '' }}" x-data="{ menuAbierto: false }">
 <div class="flex min-h-screen">
 
     {{-- Sidebar escritorio --}}

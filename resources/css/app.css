@@ -10,3 +10,40 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* Hub Moon Cobros: sistema visual NVIDIA (verde de marca, negro, botón con texto negro). */
+.nv {
+    --nv-green: #76b900;
+    --nv-green-dark: #5c8f00;
+    --nv-black: #000;
+    --nv-ink: #1a1a1a;
+    --nv-line: #e5e5e5;
+    background: #f5f5f5;
+    color: var(--nv-ink);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+.nv aside {
+    background: var(--nv-black) !important;
+    color: #fff;
+}
+.nv .border-slate-800 { border-color: #1a1a1a !important; }
+.nv header { border-color: var(--nv-line); }
+.nv .bg-indigo-600,
+.nv .bg-indigo-500 {
+    background: var(--nv-green) !important;
+    color: #000 !important;
+}
+.nv .hover\:bg-indigo-700:hover { background: var(--nv-green-dark) !important; color: #000 !important; }
+.nv .text-indigo-600,
+.nv .text-indigo-700 { color: #5c8f00 !important; }
+.nv main .text-3xl.text-indigo-600,
+.nv main .text-4xl { color: var(--nv-green) !important; }
+.nv .bg-indigo-100 { background: color-mix(in srgb, var(--nv-green) 22%, white) !important; }
+.nv .bg-indigo-50 { background: color-mix(in srgb, var(--nv-green) 10%, white) !important; }
+.nv main .rounded-xl,
+.nv main .rounded-2xl,
+.nv main .rounded-lg { border-radius: 4px; }
+.nv main .shadow-sm,
+.nv main .shadow-lg { box-shadow: none; }
+.nv main .border-slate-200 { border-color: var(--nv-line); }
+.nv main .bg-indigo-500 { background: var(--nv-green) !important; }
