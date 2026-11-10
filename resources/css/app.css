@@ -286,3 +286,97 @@ body.md.md-auth {
     .md .md-kpi > div:nth-child(1),
     .md .md-kpi > div:nth-child(2) { border-bottom: 1px solid var(--md-edge); }
 }
+
+/* Hub admin: tablero tipo enterprise (fondo slate, tarjetas elevadas, gráficos con rejilla). */
+body.md.md-hub {
+    background: #2a3d56 !important;
+    color: var(--md-ink) !important;
+}
+.md-hub main {
+    color: var(--md-ink);
+}
+.md-hub .md-dash-card {
+    background: #354a68;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.22);
+}
+.md-hub .md-dash-kpi {
+    background: #354a68;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 1.35rem 1.5rem;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+}
+.md-hub .md-dash-kpi .kpi-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #a8bdd4;
+}
+.md-hub .md-dash-kpi .kpi-value {
+    margin-top: 0.5rem;
+    font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
+    font-size: clamp(1.35rem, 2.5vw, 1.85rem);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: #f4faff;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+.md-hub .md-dash-kpi .kpi-hint {
+    margin-top: 0.35rem;
+    font-size: 0.9rem;
+    color: #8fa6c4;
+}
+.md-hub .md-dash-title {
+    font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
+    font-size: 1.75rem;
+    font-weight: 500;
+    color: #fff;
+    letter-spacing: -0.02em;
+}
+.md-hub .md-dash-sub {
+    color: #a8bdd4;
+    font-size: 1rem;
+}
+.md-hub .md-panel {
+    background: #354a68 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.22) !important;
+    color: #f4faff !important;
+}
+.md-hub main table thead {
+    background: rgba(0, 0, 0, 0.15) !important;
+}
+.md-hub main thead th {
+    color: #a8bdd4 !important;
+    border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+}
+.md-hub main tbody td {
+    color: #eef5fc !important;
+    border-top-color: rgba(255, 255, 255, 0.08) !important;
+}
+.md-hub main tbody tr:hover td {
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+.md-hub main a {
+    color: #c5dcff !important;
+}
+.md-hub .md-btn-soft {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #e7f6ff;
+}
+.md-hub .md-btn-soft:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+.md-hub .md-badge-mute {
+    background: rgba(255, 255, 255, 0.12);
+    color: #e7f6ff;
+}
+.md-hub .md-badge-danger {
+    background: rgba(224, 112, 104, 0.25);
+    color: #ffc9c4;
+}

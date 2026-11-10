@@ -9,7 +9,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>[x-cloak]{display:none !important}</style>
 </head>
-<body class="md min-h-screen antialiased">
+<body class="md md-hub min-h-screen antialiased">
     <header class="md-top sticky top-0 z-30">
         <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-4 px-6 py-3.5">
             <a href="{{ route('dashboard') }}" class="flex items-center gap-3 font-display">
