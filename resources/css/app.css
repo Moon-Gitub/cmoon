@@ -16,18 +16,47 @@
     --nv-green: #76b900;
     --nv-green-dark: #5c8f00;
     --nv-black: #000;
-    --nv-ink: #1a1a1a;
-    --nv-line: #e5e5e5;
-    background: #f5f5f5;
+    --nv-ink: #f5f5f5;
+    --nv-line: #2a2a2a;
+    background: #000;
     color: var(--nv-ink);
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
+body.nv,
+body.nv.bg-slate-100 { background-color: #000 !important; color: #f5f5f5 !important; }
 .nv aside {
     background: var(--nv-black) !important;
     color: #fff;
 }
 .nv .border-slate-800 { border-color: #1a1a1a !important; }
-.nv header { border-color: var(--nv-line); }
+.nv header {
+    background: #000 !important;
+    color: #fff !important;
+    border-color: #1a1a1a !important;
+}
+.nv .bg-white { background-color: #1a1a1a !important; color: #f5f5f5; }
+.nv .bg-slate-50 { background-color: #141414 !important; }
+.nv .bg-slate-100 { background-color: #2a2a2a !important; }
+.nv .text-slate-900,
+.nv .text-slate-800,
+.nv .text-slate-700 { color: #f5f5f5 !important; }
+.nv .text-slate-600,
+.nv .text-slate-500,
+.nv .text-slate-400 { color: #a3a3a3 !important; }
+.nv .border-slate-200,
+.nv .border-slate-100,
+.nv .border-slate-300 { border-color: #2a2a2a !important; }
+.nv .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.nv .divide-slate-200 > :not([hidden]) ~ :not([hidden]) { border-color: #2a2a2a !important; }
+.nv .hover\:bg-slate-50:hover,
+.nv .hover\:bg-slate-100:hover { background-color: #222 !important; }
+.nv input:not([type="checkbox"]):not([type="radio"]),
+.nv select,
+.nv textarea {
+    background: #000;
+    color: #fff;
+    border-color: #333;
+}
 .nv .bg-indigo-600,
 .nv .bg-indigo-500 {
     background: var(--nv-green) !important;
