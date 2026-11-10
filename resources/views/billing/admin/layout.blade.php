@@ -6,6 +6,7 @@
     <meta name="robots" content="noindex, nofollow">
     <title>@yield('titulo', 'Cobros') · Moon Cobros</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>[x-cloak]{display:none !important}</style>
 </head>
 <body class="nv min-h-screen bg-[#f5f5f5] text-[#1a1a1a] antialiased">
     <header class="bg-black text-white">

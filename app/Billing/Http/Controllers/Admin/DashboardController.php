@@ -43,6 +43,32 @@ class DashboardController extends Controller
         }
         usort($deudores, fn ($a, $b) => $b['saldo'] <=> $a['saldo']);
 
+        $serie = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $m = $hoy->copy()->startOfMonth()->subMonths($i);
+            $serie[$m->format('Y-m')] = [
+                'clave' => $m->format('Y-m'),
+                'label' => $m->locale('es')->translatedFormat('M'),
+                'cargos' => 0,
+                'cobros' => 0,
+            ];
+        }
+        $movs = LedgerEntry::query()
+            ->where('fecha', '>=', $hoy->copy()->startOfMonth()->subMonths(11))
+            ->whereIn('tipo', ['cuota', 'recargo', 'legacy_cargo', 'pago', 'legacy_pago', 'bonificacion'])
+            ->get(['fecha', 'tipo', 'importe_centavos']);
+        foreach ($movs as $e) {
+            $clave = $e->fecha->format('Y-m');
+            if (! isset($serie[$clave])) {
+                continue;
+            }
+            if (in_array($e->tipo, ['pago', 'legacy_pago', 'bonificacion'], true)) {
+                $serie[$clave]['cobros'] += abs((int) $e->importe_centavos);
+            } else {
+                $serie[$clave]['cargos'] += (int) $e->importe_centavos;
+            }
+        }
+
         $facturado = (int) LedgerEntry::where('importe_centavos', '>', 0)
             ->whereIn('tipo', ['cuota', 'recargo', 'legacy_cargo'])
             ->whereBetween('fecha', [$hoy->copy()->startOfMonth(), $hoy->copy()->endOfMonth()])->sum('importe_centavos');
@@ -59,7 +85,13 @@ class DashboardController extends Controller
             'deudaTotal' => array_sum(array_filter($saldos, fn ($s) => $s > $tol)),
             'aging' => $aging,
             'niveles' => $niveles,
-            'deudores' => array_slice($deudores, 0, 15),
+            'serie' => array_values($serie),
+            'deudores' => array_map(fn ($d) => [
+                'nombre' => $d['c']->nombre,
+                'url' => route('billing.admin.cliente', $d['c']),
+                'saldo' => $d['saldo'],
+                'nivel' => $d['nivel'],
+            ], $deudores),
             'ultimosPagos' => LedgerEntry::with('customer')->whereIn('tipo', ['legacy_pago', 'pago', 'bonificacion'])->orderByDesc('fecha')->limit(10)->get(),
             'webhooksConError' => WebhookEvent::whereNull('procesado_at')->where('created_at', '<', now()->subMinutes(30))->count(),
             'ultimaConciliacion' => Reconciliation::latest('id')->first(),
