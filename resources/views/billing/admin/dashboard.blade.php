@@ -3,7 +3,8 @@
 @php use App\Billing\Support\Money; @endphp
 
 @section('contenido')
-    <script type="application/json" id="cobros-datos">@json(['serie' => $serie, 'deudores' => $deudores, 'aging' => $aging, 'niveles' => $niveles])</script>
+    @php($tableroJson = json_encode(['serie' => $serie, 'deudores' => $deudores, 'aging' => $aging, 'niveles' => $niveles], JSON_UNESCAPED_UNICODE))
+    <script type="application/json" id="cobros-datos">{!! $tableroJson !!}</script>
 
     <div x-data="cobrosTablero()" x-cloak>
         <p class="max-w-3xl text-lg leading-snug">
