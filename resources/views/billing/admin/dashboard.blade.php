@@ -54,10 +54,10 @@
             <table class="mt-3 w-full text-sm">
                 @forelse ($ultimosPagos as $p)
                     <tr class="border-t border-slate-100">
-                        <td class="py-2">{{ $p->aprobado_at?->format('d/m H:i') }}</td>
+                        <td class="py-2">{{ $p->fecha->format('d/m/Y') }}</td>
                         <td>{{ $p->customer?->nombre ?? '—' }}</td>
-                        <td class="text-slate-500">{{ $p->proveedor }}</td>
-                        <td class="text-right font-medium">{{ Money::formato($p->importe_centavos) }}</td>
+                        <td class="text-slate-500">{{ $p->tipo === 'legacy_pago' ? 'cuenta anterior' : $p->tipo }}</td>
+                        <td class="text-right font-medium">{{ Money::formato(abs($p->importe_centavos)) }}</td>
                     </tr>
                 @empty
                     <tr><td class="py-2 text-slate-500">Todavía no hay pagos.</td></tr>

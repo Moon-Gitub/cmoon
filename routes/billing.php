@@ -38,4 +38,5 @@ Route::middleware(['web', 'auth', 'superadmin'])->prefix('cobros')->name('billin
     Route::post('/clientes/{customer}/ajuste', [CustomerController::class, 'ajuste'])->name('cliente.ajuste');
     Route::post('/clientes/{customer}/link', [CustomerController::class, 'regenerarLink'])->name('cliente.link');
     Route::post('/clientes/{customer}/api-key', [CustomerController::class, 'regenerarApiKey'])->name('cliente.apikey');
+    Route::post('/clientes/{customer}/whatsapp', [CustomerController::class, 'whatsapp'])->name('cliente.whatsapp');
 });

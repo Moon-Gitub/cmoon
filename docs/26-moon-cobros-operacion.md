@@ -27,6 +27,30 @@ manda avisos.
       acreditado una sola vez, saldo en cero, el duplicado se ignora).
 - [x] cmoon consulta el hub y muestra el aviso. No bloquea.
 - [x] MCP de Dokploy apunta a `https://dokploy.cluna.ar/` (el puerto 3000 está cerrado).
+- [x] Ficha del cliente con documento, dirección, condición de IVA y abono. Pantalla
+      Pagos lista la cuenta corriente (pagos viejos y nuevos). Botón de WhatsApp
+      `wa.me` con saldo y link de pago.
+
+## Datos del sistema anterior (2026-11-10)
+
+El import sigue siendo incremental y no duplica asientos (`legacy:{id}`).
+Además guarda, sin tocar el saldo:
+
+| Dato viejo | Dónde queda |
+|------------|-------------|
+| documento, tipo, CUIT, condición IVA, dirección, teléfono, email, observaciones | ficha del cliente |
+| abono `mensual` | suscripción "Abono mensual" |
+| método, número de recibo, referencia MP | tabla `billing_legacy_detalles` y columnas de Pagos / cuenta corriente |
+| flag `estado_bloqueo` | `legacy_bloqueado`, solo un aviso en la ficha. No prende `modo_cobro=bloqueo` ni el enforce |
+
+No se copian intentos de checkout, webhooks ni la auditoría vieja: no cambian el saldo.
+La pantalla Pagos lee el libro (`legacy_pago`, `pago`, `bonificacion`), no
+`billing_payments`, así que el historial aparece una sola vez.
+
+WhatsApp del panel: abre `https://wa.me/549…` con el texto y el link. El envío
+automático por API no está activo: no hay `YCLOUD_API_KEY` ni `YCLOUD_PHONE_FROM`
+en el hub ni en los tenants. Cuando existan, el botón "Enviar por la API" llama
+a YCloud. Los avisos programados siguen apagados (`BILLING_DUNNING_ENABLED=false`).
 
 ## Qué falta, en orden
 
@@ -35,8 +59,10 @@ manda avisos.
    barrido `billing:sincronizar-pendientes` corre cada 15 minutos. Ver más abajo.
 2. **Un pago real chico** de los $150 del cliente piloto, con una tarjeta o
    cuenta que no sea la de Moon (MP no deja pagarse a uno mismo).
-3. **Mail y WhatsApp.** No hay servidor de mail ni credenciales de YCloud, así
-   que los avisos están apagados a propósito.
+3. **Mail y WhatsApp automático.** El botón manual `wa.me` ya funciona. Falta
+   `YCLOUD_API_KEY` + `YCLOUD_PHONE_FROM` (y las plantillas `BILLING_WA_TPL_*`)
+   para el envío por API, y un mail real para los avisos. `BILLING_DUNNING_ENABLED`
+   sigue en false.
 4. **Contraseñas por defecto `CMoon2026!`** todavía activas (ver tabla). No se
    cambiaron para no dejar a nadie afuera sin aviso.
 5. **Conectar el resto de los POS** (Jamrod, Abisko, Cabañas, Esquina53). Exige

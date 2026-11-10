@@ -11,7 +11,8 @@ class Customer extends Model
     protected $table = 'billing_customers';
 
     protected $fillable = [
-        'legacy_id', 'nombre', 'razon_social', 'cuit', 'email', 'telefono', 'dominio',
+        'legacy_id', 'nombre', 'razon_social', 'tipo_documento', 'documento', 'cuit', 'condicion_iva',
+        'email', 'telefono', 'direccion', 'dominio', 'legacy_bloqueado',
         'plataforma', 'estado', 'modo_cobro', 'aplicar_recargos', 'prorroga_hasta',
         'pay_token', 'notas',
     ];
@@ -29,6 +30,7 @@ class Customer extends Model
     {
         return [
             'aplicar_recargos' => 'boolean',
+            'legacy_bloqueado' => 'boolean',
             'prorroga_hasta' => 'date',
         ];
     }

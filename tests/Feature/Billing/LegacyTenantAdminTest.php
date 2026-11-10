@@ -3,6 +3,7 @@
 namespace Tests\Feature\Billing;
 
 use App\Billing\Models\Customer;
+use App\Billing\Models\LegacyDetalle;
 use App\Billing\Services\LegacyImporter;
 use App\Models\User;
 use App\Services\Moon\MoonBillingClient;
@@ -26,6 +27,9 @@ class LegacyTenantAdminTest extends BillingTestCase
             $t->string('documento')->nullable();
             $t->text('email')->nullable();
             $t->text('telefono')->nullable();
+            $t->text('direccion')->nullable();
+            $t->string('tipo_documento')->nullable();
+            $t->string('condicion_iva')->nullable();
             $t->integer('mensual');
             $t->text('observaciones')->nullable();
             $t->integer('estado_bloqueo')->default(0);
@@ -39,19 +43,22 @@ class LegacyTenantAdminTest extends BillingTestCase
             $t->text('descripcion')->nullable();
             $t->decimal('importe', 11, 2);
             $t->text('metodo_pago')->nullable();
+            $t->string('numero_recibo')->nullable();
+            $t->string('referencia_mp')->nullable();
+            $t->string('origen')->nullable();
         });
         $db = DB::connection('legacy_test');
         $db->table('clientes')->insert([
-            ['id' => 1, 'nombre' => 'Consumidor final', 'mensual' => 0, 'email' => null, 'documento' => '0', 'dominio' => null, 'telefono' => null],
-            ['id' => 19, 'nombre' => 'JAMROD (Marta James)', 'mensual' => 7500, 'email' => 'x', 'documento' => '20-27892455-7', 'dominio' => 'jamrod.posmoon.com', 'telefono' => '(260) 469-0410'],
-            ['id' => 20, 'nombre' => 'ABISKO', 'mensual' => 8000, 'email' => 'a@abisko.com', 'documento' => '', 'dominio' => 'abisko.posmoon.com', 'telefono' => ''],
+            ['id' => 1, 'nombre' => 'Consumidor final', 'mensual' => 0, 'email' => null, 'documento' => '0', 'dominio' => null, 'telefono' => null, 'direccion' => null, 'tipo_documento' => null, 'condicion_iva' => null],
+            ['id' => 19, 'nombre' => 'JAMROD (Marta James)', 'mensual' => 7500, 'email' => 'x', 'documento' => '20-27892455-7', 'dominio' => 'jamrod.posmoon.com', 'telefono' => '(260) 469-0410', 'direccion' => 'San Martín 123', 'tipo_documento' => 'CUIT', 'condicion_iva' => 'MONOTRIBUTO'],
+            ['id' => 20, 'nombre' => 'ABISKO', 'mensual' => 8000, 'email' => 'a@abisko.com', 'documento' => '', 'dominio' => 'abisko.posmoon.com', 'telefono' => '', 'direccion' => null, 'tipo_documento' => null, 'condicion_iva' => null],
         ]);
         $db->table('clientes_cuenta_corriente')->insert([
-            ['id' => 10, 'fecha' => '2026-09-01 04:00:00', 'id_cliente' => 19, 'tipo' => 0, 'descripcion' => 'Servicio POS septiembre/2026', 'importe' => 7500, 'metodo_pago' => null],
-            ['id' => 11, 'fecha' => '2026-10-01 04:00:00', 'id_cliente' => 19, 'tipo' => 0, 'descripcion' => 'Servicio POS octubre/2026', 'importe' => 7500, 'metodo_pago' => null],
-            ['id' => 12, 'fecha' => '2026-09-05 10:00:00', 'id_cliente' => 19, 'tipo' => 1, 'descripcion' => 'Pago', 'importe' => 7500, 'metodo_pago' => 'TR--'],
-            ['id' => 13, 'fecha' => '2026-10-01 04:00:00', 'id_cliente' => 20, 'tipo' => 0, 'descripcion' => 'Servicio POS octubre/2026', 'importe' => 0, 'metodo_pago' => null],
-            ['id' => 14, 'fecha' => '2026-10-01 04:00:00', 'id_cliente' => 1, 'tipo' => 0, 'descripcion' => 'x', 'importe' => 100, 'metodo_pago' => null],
+            ['id' => 10, 'fecha' => '2026-09-01 04:00:00', 'id_cliente' => 19, 'tipo' => 0, 'descripcion' => 'Servicio POS septiembre/2026', 'importe' => 7500, 'metodo_pago' => null, 'numero_recibo' => null, 'referencia_mp' => null, 'origen' => null],
+            ['id' => 11, 'fecha' => '2026-10-01 04:00:00', 'id_cliente' => 19, 'tipo' => 0, 'descripcion' => 'Servicio POS octubre/2026', 'importe' => 7500, 'metodo_pago' => null, 'numero_recibo' => null, 'referencia_mp' => null, 'origen' => null],
+            ['id' => 12, 'fecha' => '2026-09-05 10:00:00', 'id_cliente' => 19, 'tipo' => 1, 'descripcion' => 'Pago', 'importe' => 7500, 'metodo_pago' => 'TR--', 'numero_recibo' => '155', 'referencia_mp' => 'MP-99', 'origen' => 'manual'],
+            ['id' => 13, 'fecha' => '2026-10-01 04:00:00', 'id_cliente' => 20, 'tipo' => 0, 'descripcion' => 'Servicio POS octubre/2026', 'importe' => 0, 'metodo_pago' => null, 'numero_recibo' => null, 'referencia_mp' => null, 'origen' => null],
+            ['id' => 14, 'fecha' => '2026-10-01 04:00:00', 'id_cliente' => 1, 'tipo' => 0, 'descripcion' => 'x', 'importe' => 100, 'metodo_pago' => null, 'numero_recibo' => null, 'referencia_mp' => null, 'origen' => null],
         ]);
     }
 
@@ -69,7 +76,22 @@ class LegacyTenantAdminTest extends BillingTestCase
         $jamrod = Customer::where('legacy_id', 19)->first();
         $this->assertSame(750000, $this->saldo($jamrod));
         $this->assertSame('20278924557', $jamrod->cuit);
+        $this->assertSame('20-27892455-7', $jamrod->documento);
+        $this->assertSame('San Martín 123', $jamrod->direccion);
+        $this->assertSame('CUIT', $jamrod->tipo_documento);
         $this->assertNull($jamrod->email);
+        $det = LegacyDetalle::where('legacy_movimiento_id', 12)->first();
+        $this->assertSame('TR--', $det->metodo_pago);
+        $this->assertSame('155', $det->numero_recibo);
+        $this->assertSame('MP-99', $det->referencia_mp);
+        $this->assertSame(1, LegacyDetalle::where('legacy_movimiento_id', 12)->count());
+
+        $admin = User::factory()->create(['es_superadmin' => true]);
+        $this->actingAs($admin)->get('/cobros/pagos')->assertOk()->assertSee('JAMROD')->assertSee('TR--')->assertSee('MP-99');
+        $this->actingAs($admin)->get('/cobros/clientes/'.$jamrod->id)->assertOk()
+            ->assertSee('wa.me/5492604690410', false)
+            ->assertSee('20-27892455-7')
+            ->assertSee('San Martín 123');
         $this->assertSame('solo_aviso', $jamrod->modo_cobro);
         $this->assertSame(750000, $jamrod->abonoMensualCentavos());
         $this->assertNull(Customer::where('legacy_id', 1)->first());

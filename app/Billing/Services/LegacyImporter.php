@@ -5,6 +5,7 @@ namespace App\Billing\Services;
 use App\Billing\Models\AuditLog;
 use App\Billing\Models\Customer;
 use App\Billing\Models\LedgerEntry;
+use App\Billing\Models\LegacyDetalle;
 use App\Billing\Models\Subscription;
 use App\Billing\Support\Money;
 use Carbon\Carbon;
@@ -29,7 +30,10 @@ class LegacyImporter
         $movimientos = $legacy->table('clientes_cuenta_corriente')
             ->whereNotIn('id_cliente', $excluir)
             ->orderBy('id')
-            ->get(['id', 'fecha', 'id_cliente', 'tipo', 'descripcion', 'importe', 'metodo_pago']);
+            ->get($this->columnas($legacy, 'clientes_cuenta_corriente', [
+                'id', 'fecha', 'id_cliente', 'tipo', 'descripcion', 'importe', 'metodo_pago',
+                'numero_recibo', 'referencia_mp', 'origen',
+            ]));
 
         $r = ['clientes_nuevos' => 0, 'clientes_actualizados' => 0, 'movimientos' => 0, 'diferencias' => 0, 'saldos_distintos' => []];
 
@@ -70,9 +74,12 @@ class LegacyImporter
                     'legacy',
                     $m->fecha ? Carbon::parse($m->fecha) : now(),
                 ) && $r['movimientos']++;
+                $this->guardarDetalle($c, $m);
 
                 continue;
             }
+
+            $this->guardarDetalle($c, $m);
 
             if ($actual[(int) $m->id]['importe'] !== $objetivo) {
                 $this->compensar($actual[(int) $m->id], $objetivo, "editado en legacy: {$this->descripcion($m)}");
@@ -96,16 +103,22 @@ class LegacyImporter
 
     private function upsertCliente(object $l, array &$r): Customer
     {
-        $email = filter_var(trim((string) $l->email), FILTER_VALIDATE_EMAIL) ?: null;
-        $doc = preg_replace('/\D/', '', (string) $l->documento);
+        $email = filter_var(trim((string) ($l->email ?? '')), FILTER_VALIDATE_EMAIL) ?: null;
+        $docRaw = trim((string) ($l->documento ?? ''));
+        $doc = preg_replace('/\D/', '', $docRaw);
         $datos = [
             'nombre' => trim((string) $l->nombre),
             'email' => $email,
-            'telefono' => trim((string) $l->telefono) ?: null,
-            'dominio' => trim((string) $l->dominio) ?: null,
+            'telefono' => trim((string) ($l->telefono ?? '')) ?: null,
+            'direccion' => trim((string) ($l->direccion ?? '')) ?: null,
+            'dominio' => trim((string) ($l->dominio ?? '')) ?: null,
+            'tipo_documento' => trim((string) ($l->tipo_documento ?? '')) ?: null,
+            'documento' => $docRaw !== '' ? $docRaw : null,
             'cuit' => strlen($doc) === 11 ? $doc : null,
+            'condicion_iva' => trim((string) ($l->condicion_iva ?? '')) ?: null,
             'aplicar_recargos' => (bool) ($l->aplicar_recargos ?? true),
-            'notas' => trim((string) $l->observaciones) ?: null,
+            'legacy_bloqueado' => (bool) ($l->estado_bloqueo ?? false),
+            'notas' => trim((string) ($l->observaciones ?? '')) ?: null,
         ];
 
         $c = Customer::where('legacy_id', $l->id)->first();
@@ -113,9 +126,20 @@ class LegacyImporter
             $c = Customer::create($datos + ['legacy_id' => $l->id, 'plataforma' => 'legacy', 'estado' => 'activo', 'modo_cobro' => 'solo_aviso']);
             $r['clientes_nuevos']++;
         } else {
-            $vacios = array_filter($datos, fn ($v, $k) => $c->{$k} === null && $v !== null, ARRAY_FILTER_USE_BOTH);
-            if ($vacios || $c->nombre !== $datos['nombre']) {
-                $c->update($vacios + ['nombre' => $datos['nombre']]);
+            $patch = $datos;
+            foreach (['email', 'telefono', 'direccion', 'dominio', 'tipo_documento', 'documento', 'cuit', 'condicion_iva'] as $k) {
+                if ($patch[$k] === null) {
+                    unset($patch[$k]);
+                }
+            }
+            if ($c->notas) {
+                unset($patch['notas']);
+            } elseif ($patch['notas'] === null) {
+                unset($patch['notas']);
+            }
+            $c->fill($patch);
+            if ($c->isDirty()) {
+                $c->save();
                 $r['clientes_actualizados']++;
             }
         }
@@ -164,6 +188,40 @@ class LegacyImporter
         );
     }
 
+    /** @param list<string> $queridas */
+    private function columnas($legacy, string $tabla, array $queridas): array
+    {
+        $schema = $legacy->getSchemaBuilder();
+
+        return array_values(array_filter($queridas, fn (string $c) => $schema->hasColumn($tabla, $c)));
+    }
+
+    private function guardarDetalle(Customer $c, object $m): void
+    {
+        $datos = [
+            'customer_id' => $c->id,
+            'metodo_pago' => $this->metodo($m) ?: null,
+            'numero_recibo' => trim((string) ($m->numero_recibo ?? '')) ?: null,
+            'referencia_mp' => trim((string) ($m->referencia_mp ?? '')) ?: null,
+            'origen' => trim((string) ($m->origen ?? '')) ?: null,
+        ];
+        if (! array_filter($datos, fn ($v, $k) => $k !== 'customer_id' && $v !== null, ARRAY_FILTER_USE_BOTH)) {
+            return;
+        }
+
+        LegacyDetalle::updateOrCreate(['legacy_movimiento_id' => (int) $m->id], $datos);
+    }
+
+    private function metodo(object $m): string
+    {
+        $metodo = trim((string) ($m->metodo_pago ?? ''));
+        if ($metodo !== '' && str_starts_with($metodo, '[')) {
+            $metodo = (string) (json_decode($metodo, true)[0]['tipo'] ?? '');
+        }
+
+        return $metodo;
+    }
+
     private function importeFirmado(object $m): int
     {
         $centavos = Money::centavos((float) $m->importe);
@@ -173,12 +231,13 @@ class LegacyImporter
 
     private function descripcion(object $m): string
     {
-        $metodo = trim((string) $m->metodo_pago);
-        if ($metodo !== '' && str_starts_with($metodo, '[')) {
-            $metodo = (string) (json_decode($metodo, true)[0]['tipo'] ?? '');
-        }
+        $extra = array_filter([
+            $this->metodo($m),
+            ($recibo = trim((string) ($m->numero_recibo ?? ''))) !== '' ? "recibo {$recibo}" : null,
+            ($ref = trim((string) ($m->referencia_mp ?? ''))) !== '' ? $ref : null,
+        ]);
 
-        return trim(((string) $m->descripcion ?: 'Movimiento legacy').($metodo !== '' ? " · {$metodo}" : ''));
+        return trim(((string) $m->descripcion ?: 'Movimiento legacy').($extra ? ' · '.implode(' · ', $extra) : ''));
     }
 
     /** @param array<int, Customer> $mapa */

@@ -4,10 +4,14 @@ namespace App\Billing\Http\Controllers\Admin;
 
 use App\Billing\Models\AuditLog;
 use App\Billing\Models\Customer;
+use App\Billing\Models\LedgerEntry;
+use App\Billing\Models\LegacyDetalle;
 use App\Billing\Models\Subscription;
 use App\Billing\Services\CustomerStatusService;
+use App\Billing\Services\DunningService;
 use App\Billing\Services\LedgerService;
 use App\Billing\Services\PaymentProcessor;
+use App\Services\YCloudService;
 use App\Billing\Support\Money;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -26,7 +30,8 @@ class CustomerController extends Controller
 
         $clientes = Customer::query()
             ->when($q !== '', fn ($w) => $w->where(fn ($x) => $x->where('nombre', 'like', "%{$q}%")
-                ->orWhere('dominio', 'like', "%{$q}%")->orWhere('cuit', 'like', "%{$q}%")))
+                ->orWhere('dominio', 'like', "%{$q}%")->orWhere('cuit', 'like', "%{$q}%")
+                ->orWhere('documento', 'like', "%{$q}%")->orWhere('telefono', 'like', "%{$q}%")))
             ->orderBy('nombre')
             ->get()
             ->map(fn (Customer $c) => [
@@ -42,15 +47,46 @@ class CustomerController extends Controller
 
     public function show(Customer $customer, LedgerService $ledger, CustomerStatusService $status): View
     {
+        $estado = $status->estado($customer);
+        $movimientos = $customer->ledger()->orderByDesc('fecha')->orderByDesc('id')->paginate(40);
+        $ids = collect($movimientos->items())->map(fn (LedgerEntry $e) => LegacyDetalle::idDesdeReferencia($e->referencia))->filter();
+        $cel = DunningService::celularArgentino((string) $customer->telefono);
+        $mensaje = DunningService::textoLinkPago($customer, (int) $estado['saldo']);
+
         return view('billing.admin.cliente', [
             'c' => $customer,
-            'estado' => $status->estado($customer),
-            'movimientos' => $customer->ledger()->orderByDesc('fecha')->orderByDesc('id')->paginate(40),
+            'estado' => $estado,
+            'movimientos' => $movimientos,
+            'detalles' => LegacyDetalle::whereIn('legacy_movimiento_id', $ids)->get()->keyBy('legacy_movimiento_id'),
             'suscripciones' => $customer->subscriptions()->get(),
-            'pagos' => $customer->payments()->latest('id')->limit(20)->get(),
+            'pagos' => $customer->ledger()->whereIn('tipo', ['legacy_pago', 'pago', 'bonificacion'])->orderByDesc('fecha')->limit(20)->get(),
             'avisos' => $customer->notifications()->latest('id')->limit(20)->get(),
             'aging' => $ledger->aging($customer, CustomerStatusService::hoy()),
+            'whatsapp' => $cel ? 'https://wa.me/'.$cel.'?text='.rawurlencode($mensaje) : null,
+            'whatsappApi' => (bool) (config('ycloud.api_key') && config('ycloud.phone_from')),
         ]);
+    }
+
+    public function whatsapp(Customer $customer, CustomerStatusService $status): RedirectResponse
+    {
+        if (! config('ycloud.api_key') || ! config('ycloud.phone_from')) {
+            return back()->with('error', 'Falta configurar YCloud. Usá el botón que abre WhatsApp.');
+        }
+
+        $cel = DunningService::celularArgentino((string) $customer->telefono);
+        if (! $cel) {
+            return back()->with('error', 'El teléfono no es un celular argentino.');
+        }
+
+        $estado = $status->estado($customer);
+        $resp = YCloudService::make()->sendText($cel, DunningService::textoLinkPago($customer, (int) $estado['saldo']));
+        if (isset($resp['error']) || (isset($resp['ok']) && ! $resp['ok'])) {
+            return back()->with('error', 'WhatsApp no se pudo enviar. Abrí el chat con el botón.');
+        }
+
+        AuditLog::registrar('whatsapp_manual', ['destino' => $cel], $customer->id);
+
+        return back()->with('ok', 'WhatsApp enviado.');
     }
 
     public function update(Request $request, Customer $customer): RedirectResponse

@@ -1,12 +1,20 @@
 @extends('billing.admin.layout')
 @section('titulo', $c->nombre)
-@php use App\Billing\Support\Money; $input = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm'; @endphp
+@php use App\Billing\Models\LegacyDetalle; use App\Billing\Support\Money; $input = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm'; @endphp
 
 @section('contenido')
     <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
             <h1 class="text-2xl font-semibold">{{ $c->nombre }}</h1>
-            <p class="text-sm text-slate-500">{{ $c->dominio }} · legacy #{{ $c->legacy_id ?? '—' }} · {{ $c->plataforma }}</p>
+            <p class="text-sm text-slate-500">{{ $c->dominio ?: 'sin dominio' }} · legacy #{{ $c->legacy_id ?? '—' }} · {{ $c->plataforma }}</p>
+            <p class="mt-1 text-sm text-slate-600">
+                {{ $c->tipo_documento }} {{ $c->documento ?: $c->cuit ?: 'sin documento' }}
+                @if ($c->condicion_iva) · {{ $c->condicion_iva }} @endif
+                @if ($c->telefono) · {{ $c->telefono }} @endif
+                @if ($c->email) · {{ $c->email }} @endif
+            </p>
+            @if ($c->direccion)<p class="text-sm text-slate-500">{{ $c->direccion }}</p>@endif
+            @if ($c->legacy_bloqueado)<p class="mt-1 text-xs font-medium text-amber-700">En el sistema anterior figuraba bloqueado. Acá solo avisa: no corta el POS.</p>@endif
         </div>
         <div class="text-right">
             <p class="text-xs text-slate-500">Saldo</p>
@@ -25,6 +33,14 @@
 
     <div class="mt-4 flex flex-wrap gap-2 text-sm">
         <input readonly value="{{ $c->payUrl() }}" class="{{ $input }} max-w-xl font-mono text-xs" onclick="this.select()">
+        @if ($whatsapp)
+            <a href="{{ $whatsapp }}" target="_blank" rel="noopener" class="rounded-lg bg-emerald-600 px-3 py-2 font-semibold text-white">WhatsApp con link de pago</a>
+        @else
+            <span class="rounded-lg border border-slate-300 px-3 py-2 text-slate-500">Sin celular para WhatsApp</span>
+        @endif
+        @if ($whatsappApi && $whatsapp)
+            <form method="post" action="{{ route('billing.admin.cliente.whatsapp', $c) }}">@csrf<button class="rounded-lg border border-emerald-700 px-3 py-2 text-emerald-800">Enviar por la API</button></form>
+        @endif
         <form method="post" action="{{ route('billing.admin.cliente.link', $c) }}" onsubmit="return confirm('¿Regenerar? El link actual deja de funcionar.')">@csrf<button class="rounded-lg border px-3 py-2">Regenerar link</button></form>
         <form method="post" action="{{ route('billing.admin.cliente.apikey', $c) }}" onsubmit="return confirm('¿Generar nueva API key? La anterior deja de funcionar.')">@csrf<button class="rounded-lg border px-3 py-2">API key tenant</button></form>
     </div>
@@ -105,12 +121,14 @@
             <div class="rounded-xl bg-white p-4 shadow-sm">
                 <h2 class="font-semibold">Cuenta corriente</h2>
                 <table class="mt-3 w-full text-sm">
-                    <thead class="text-left text-xs uppercase text-slate-500"><tr><th>Fecha</th><th>Concepto</th><th>Origen</th><th class="text-right">Importe</th></tr></thead>
+                    <thead class="text-left text-xs uppercase text-slate-500"><tr><th>Fecha</th><th>Concepto</th><th>Medio</th><th>Recibo / MP</th><th class="text-right">Importe</th></tr></thead>
                     @foreach ($movimientos as $m)
+                        @php $d = $detalles[LegacyDetalle::idDesdeReferencia($m->referencia)] ?? null; @endphp
                         <tr class="border-t border-slate-100">
                             <td class="py-1.5 whitespace-nowrap">{{ $m->fecha->format('d/m/Y') }}</td>
                             <td>{{ $m->descripcion }}</td>
-                            <td class="text-xs text-slate-500">{{ $m->origen }}</td>
+                            <td class="text-xs text-slate-500">{{ $d->metodo_pago ?? $m->origen }}</td>
+                            <td class="text-xs text-slate-500">{{ $d?->numero_recibo }} {{ $d?->referencia_mp }}</td>
                             <td class="text-right font-medium {{ $m->importe_centavos < 0 ? 'text-emerald-700' : '' }}">{{ Money::formato($m->importe_centavos) }}</td>
                         </tr>
                     @endforeach
@@ -123,8 +141,8 @@
                     <h2 class="font-semibold">Pagos</h2>
                     <ul class="mt-2 space-y-1 text-sm">
                         @forelse ($pagos as $p)
-                            <li class="flex justify-between"><span>{{ $p->created_at->format('d/m/Y') }} · {{ $p->proveedor }} · {{ $p->estado }}</span><b>{{ Money::formato($p->importe_centavos) }}</b></li>
-                        @empty <li class="text-slate-500">Sin pagos en el sistema nuevo.</li> @endforelse
+                            <li class="flex justify-between gap-2"><span>{{ $p->fecha->format('d/m/Y') }} · {{ \Illuminate\Support\Str::limit($p->descripcion, 42) }}</span><b class="text-emerald-700">{{ Money::formato(abs($p->importe_centavos)) }}</b></li>
+                        @empty <li class="text-slate-500">Sin pagos.</li> @endforelse
                     </ul>
                 </div>
                 <div class="rounded-xl bg-white p-4 shadow-sm">

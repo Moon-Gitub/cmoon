@@ -98,6 +98,15 @@ class DunningService
         return $resultados;
     }
 
+    /** Mensaje corto para el botón de WhatsApp del panel. */
+    public static function textoLinkPago(Customer $c, int $saldoCentavos): string
+    {
+        $nombre = trim(strtok($c->nombre, '(') ?: $c->nombre);
+
+        return "Hola {$nombre}. Tu saldo de POSMoon es ".Money::formato($saldoCentavos)
+            .'. Pagalo en un minuto por este link: '.$c->payUrl();
+    }
+
     public static function texto(Customer $c, string $tipo, array $estado, ?Payment $pago = null): string
     {
         $total = Money::formato(($estado['saldo'] ?? 0) + ($estado['recargo'] ?? 0));

@@ -6,7 +6,7 @@ use App\Billing\Models\AuditLog;
 use App\Billing\Models\Customer;
 use App\Billing\Models\Invoice;
 use App\Billing\Models\LedgerEntry;
-use App\Billing\Models\Payment;
+use App\Billing\Models\LegacyDetalle;
 use App\Billing\Models\Reconciliation;
 use App\Billing\Models\Subscription;
 use App\Billing\Models\WebhookEvent;
@@ -58,7 +58,7 @@ class DashboardController extends Controller
             'aging' => $aging,
             'niveles' => $niveles,
             'deudores' => array_slice($deudores, 0, 15),
-            'ultimosPagos' => Payment::with('customer')->where('estado', 'approved')->latest('aprobado_at')->limit(10)->get(),
+            'ultimosPagos' => LedgerEntry::with('customer')->whereIn('tipo', ['legacy_pago', 'pago', 'bonificacion'])->orderByDesc('fecha')->limit(10)->get(),
             'webhooksConError' => WebhookEvent::whereNull('procesado_at')->where('created_at', '<', now()->subMinutes(30))->count(),
             'ultimaConciliacion' => Reconciliation::latest('id')->first(),
             'alertas' => AuditLog::whereIn('nivel', ['warning', 'alerta', 'error'])->latest('id')->limit(10)->get(),
@@ -68,9 +68,23 @@ class DashboardController extends Controller
 
     public function pagos(): View
     {
+        $pagos = LedgerEntry::with('customer')
+            ->whereIn('tipo', ['legacy_pago', 'pago', 'bonificacion'])
+            ->orderByDesc('fecha')->orderByDesc('id')
+            ->paginate(50);
+
         return view('billing.admin.pagos', [
-            'pagos' => Payment::with('customer')->latest('id')->paginate(50),
+            'pagos' => $pagos,
+            'detalles' => $this->detallesDe($pagos->getCollection()),
         ]);
+    }
+
+    /** @param \Illuminate\Support\Collection<int, LedgerEntry> $movimientos */
+    private function detallesDe($movimientos)
+    {
+        $ids = $movimientos->map(fn (LedgerEntry $e) => LegacyDetalle::idDesdeReferencia($e->referencia))->filter()->all();
+
+        return LegacyDetalle::whereIn('legacy_movimiento_id', $ids)->get()->keyBy('legacy_movimiento_id');
     }
 
     public function eventos(): View
