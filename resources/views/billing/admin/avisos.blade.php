@@ -13,11 +13,11 @@
 @section('contenido')
     <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div class="max-w-3xl">
-            <h1 class="font-display text-3xl font-medium tracking-tight text-white">Avisos de hoy</h1>
-            <p class="mt-2 text-base text-[var(--md-ink-mute)]">
+            <h1 class="font-display text-[2rem] font-medium tracking-tight text-[var(--md-text)]">Avisos de hoy</h1>
+            <p class="mt-2 text-[1.05rem] text-[var(--md-text-mute)]">
                 Día {{ $cola['dia'] }}. El automático avisa el 1 (cuota), el 8 (recordatorio), el 15 (vencido) y el 22 (por suspender, solo si el cliente está en modo bloqueo).
                 @if ($cola['programado'])
-                    Hoy correspondería <b class="text-white">{{ $nombres[$cola['programado']] }}</b>.
+                    Hoy correspondería <b class="text-[var(--md-text)]">{{ $nombres[$cola['programado']] }}</b>.
                 @else
                     Hoy no toca un aviso automático. Igual aparecen los que deben, para mandarlo a mano.
                 @endif
@@ -25,7 +25,7 @@
                 @unless ($automaticoActivo) El envío automático está apagado. @endunless
             </p>
         </div>
-        <p class="text-base text-[var(--md-ink-mute)]">{{ count($cola['filas']) }} con saldo</p>
+        <p class="text-[1.05rem] text-[var(--md-text-mute)]">{{ count($cola['filas']) }} con saldo</p>
     </div>
 
     <div class="md-panel overflow-x-auto">
@@ -74,8 +74,8 @@
     </div>
 
     @if (count($cola['avisados']))
-        <h2 class="mt-8 text-lg font-semibold text-white">Ya avisados hoy ({{ count($cola['avisados']) }})</h2>
-        <ul class="mt-3 space-y-2 text-base text-[var(--md-ink-mute)]">
+        <h2 class="mt-8 text-lg font-semibold text-[var(--md-text)]">Ya avisados hoy ({{ count($cola['avisados']) }})</h2>
+        <ul class="mt-3 space-y-2 text-base text-[var(--md-text-mute)]">
             @foreach ($cola['avisados'] as $f)
                 <li>{{ $f['customer']->nombre }} · {{ Money::formato($f['saldo']) }}</li>
             @endforeach

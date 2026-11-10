@@ -10,9 +10,9 @@
 </head>
 <body class="md min-h-screen antialiased">
     <div class="mx-auto max-w-lg px-4 py-6 sm:py-10">
-        <div class="mb-8 flex items-center gap-3 font-display tracking-[0.18em]">
-            <img src="{{ asset('brand/moon-mark.svg') }}" alt="" class="h-9 w-9" width="36" height="36">
-            <span class="text-sm font-light text-[var(--md-ink)]">MOON <span class="font-normal text-[var(--md-ink-mute)]">COBROS</span></span>
+        <div class="mb-8 flex items-center gap-3 font-display tracking-[0.18em] text-[var(--md-slate)]">
+            <img src="{{ asset('brand/moon-mark-on-light.svg') }}" alt="" class="h-9 w-9" width="36" height="36">
+            <span class="text-sm font-light">MOON <span class="font-medium text-[var(--md-text-mute)]">COBROS</span></span>
         </div>
 
         @if (session('error'))

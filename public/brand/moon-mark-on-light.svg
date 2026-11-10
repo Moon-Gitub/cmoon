@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Moon Desarrollos">
+  <circle cx="32" cy="32" r="30" fill="none" stroke="#4F658A" stroke-width="1.25"/>
+  <path fill="#9096A2" d="M32 10c12.15 0 22 9.85 22 22S44.15 54 32 54c-4.2 0-8.12-1.18-11.48-3.23 7.1-2.55 12.18-9.25 12.18-17.27S27.62 18.78 20.52 16.23A21.9 21.9 0 0 1 32 10Z"/>
+  <g fill="none" stroke="#4F658A" stroke-width="0.9" stroke-linecap="round">
+    <path d="M18 28 L26 22 L34 26 L42 20"/><path d="M26 22 L28 34 L34 26"/>
+    <path d="M28 34 L22 42 L34 40 L42 34"/><path d="M34 40 L42 20"/>
+  </g>
+  <g fill="#4F658A">
+    <circle cx="18" cy="28" r="1.6"/><circle cx="26" cy="22" r="1.6"/>
+    <circle cx="34" cy="26" r="1.6"/><circle cx="42" cy="20" r="1.6"/>
+    <circle cx="28" cy="34" r="1.6"/><circle cx="22" cy="42" r="1.6"/>
+    <circle cx="34" cy="40" r="1.6"/><circle cx="42" cy="34" r="1.35"/>
+  </g>
+</svg>

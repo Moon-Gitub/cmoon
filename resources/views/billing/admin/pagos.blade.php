@@ -4,8 +4,8 @@
 
 @section('contenido')
     <div class="mb-6">
-        <h1 class="font-display text-3xl font-medium tracking-tight text-white">Pagos</h1>
-        <p class="mt-1 text-base text-[var(--md-ink-mute)]">Cuenta anterior y sistema nuevo. Un pago no se lista dos veces.</p>
+        <h1 class="font-display text-[2rem] font-medium tracking-tight text-[var(--md-text)]">Pagos</h1>
+        <p class="mt-1 text-[1.05rem] text-[var(--md-text-mute)]">Cuenta anterior y sistema nuevo. Un pago no se lista dos veces.</p>
     </div>
 
     <div class="md-panel overflow-x-auto">
@@ -36,5 +36,5 @@
             </tbody>
         </table>
     </div>
-    <div class="mt-5 text-white">{{ $pagos->links() }}</div>
+    <div class="mt-5">{{ $pagos->links() }}</div>
 @endsection

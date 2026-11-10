@@ -2,7 +2,7 @@
 @section('titulo', 'Eventos')
 
 @section('contenido')
-    <h1 class="mb-6 font-display text-3xl font-medium tracking-tight text-white">Eventos</h1>
+    <h1 class="mb-6 font-display text-[2rem] font-medium tracking-tight text-[var(--md-text)]">Eventos</h1>
 
     <div class="grid gap-6 lg:grid-cols-2">
         <div class="md-panel p-5">

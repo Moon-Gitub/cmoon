@@ -10,12 +10,12 @@
     @endif
     @vite(['resources/css/app.css'])
 </head>
-<body class="flex min-h-screen items-center justify-center p-4 antialiased {{ $esHub ? 'md' : 'bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900' }}">
+<body class="flex min-h-screen items-center justify-center p-4 antialiased {{ $esHub ? 'md md-auth' : 'bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900' }}">
 
     <div class="w-full max-w-md">
         <div class="mb-8 text-center">
             @if ($esHub)
-                <img src="{{ asset('brand/moon-mark.svg') }}" alt="Moon Desarrollos" class="mx-auto mb-5 h-20 w-20" width="80" height="80">
+                <img src="{{ asset('brand/moon-mark-on-dark.svg') }}" alt="Moon Desarrollos" class="mx-auto mb-5 h-20 w-20" width="80" height="80">
                 <h1 class="font-display text-2xl font-light tracking-[0.28em] text-white">MOON</h1>
                 <p class="mt-1 font-display text-xs tracking-[0.42em] text-[var(--md-ink-mute)]">DESARROLLOS</p>
                 <p class="mt-4 text-base text-[var(--md-ink-mute)]">Moon Cobros · ingresá para continuar</p>
