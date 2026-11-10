@@ -6,13 +6,14 @@
     <title>Ingresar · {{ config('app.name') }}</title>
     @vite(['resources/css/app.css'])
 </head>
-<body class="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-4 antialiased">
+@php($esHub = (bool) config('billing.hub_enabled'))
+<body class="flex min-h-screen items-center justify-center p-4 antialiased {{ $esHub ? 'nv bg-black' : 'bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900' }}">
 
     <div class="w-full max-w-sm">
         <div class="mb-6 text-center">
-            <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500 text-2xl font-bold text-white shadow-lg shadow-indigo-500/30">C</div>
-            <h1 class="text-2xl font-bold text-white">POSMoon</h1>
-            <p class="text-sm text-slate-400">Ingresá con tu usuario para continuar</p>
+            <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded text-2xl font-bold {{ $esHub ? 'bg-[#76b900] text-black' : 'rounded-2xl bg-indigo-500 text-white shadow-lg shadow-indigo-500/30' }}">{{ $esHub ? 'M' : 'C' }}</div>
+            <h1 class="text-2xl font-bold text-white">{{ $esHub ? 'Moon Cobros' : 'POSMoon' }}</h1>
+            <p class="text-sm text-white/60">Ingresá con tu usuario para continuar</p>
         </div>
 
         <form method="POST" action="{{ route('login.attempt') }}"
@@ -44,7 +45,7 @@
             </label>
 
             <button type="submit"
-                    class="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                    class="w-full rounded py-2.5 text-sm font-semibold transition focus:outline-none {{ $esHub ? 'bg-[#76b900] text-black hover:bg-[#5c8f00]' : 'rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-300' }}">
                 Ingresar
             </button>
         </form>
