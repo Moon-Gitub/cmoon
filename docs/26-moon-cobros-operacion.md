@@ -47,6 +47,12 @@ No se copian intentos de checkout, webhooks ni la auditoría vieja: no cambian e
 La pantalla Pagos lee el libro (`legacy_pago`, `pago`, `bonificacion`), no
 `billing_payments`, así que el historial aparece una sola vez.
 
+Verificado en producción el 2026-11-10 (commit `180455b`): el import actualizó
+las 45 fichas, no agregó movimientos y la segunda corrida quedó en cero. Los
+saldos siguen 1 a 1. Deuda $2.468.925, que es la del legacy más los $150 del
+piloto. El libro tiene 646 pagos; 635 traen método, recibo o referencia MP.
+Hay 38 documentos y 43 direcciones. Nadie quedó en `modo_cobro=bloqueo`.
+
 WhatsApp del panel: abre `https://wa.me/549…` con el texto y el link. El envío
 automático por API no está activo: no hay `YCLOUD_API_KEY` ni `YCLOUD_PHONE_FROM`
 en el hub ni en los tenants. Cuando existan, el botón "Enviar por la API" llama
