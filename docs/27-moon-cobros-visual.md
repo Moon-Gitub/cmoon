@@ -1,6 +1,6 @@
 # Moon Cobros — Spec visual (identidad Moon Desarrollos)
 
-**Fecha:** 10/11/2026 · **Rama:** `moon-cobros` · **Estado:** en implementación / deploy hub  
+**Fecha:** 10/11/2026 · **Rama:** `moon-cobros` · **Estado:** implementado en hub (`b3d6e54`, pagos.posmoon.com.ar)  
 **Reemplaza:** el skin NVIDIA (negro + `#76b900`) aplicado al hub. Ese look se descarta.  
 **Fuente oficial de color:** `public/brand/moon-desarrollos-referencia.jpg` (logo Moon Desarrollos).
 
