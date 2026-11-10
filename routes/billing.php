@@ -29,6 +29,7 @@ Route::middleware(['web', 'throttle:30,1'])->prefix('pagar/{token}')->group(func
 Route::middleware(['web', 'auth', 'superadmin'])->prefix('cobros')->name('billing.admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/pagos', [DashboardController::class, 'pagos'])->name('pagos');
+    Route::get('/avisos', [DashboardController::class, 'avisos'])->name('avisos');
     Route::get('/eventos', [DashboardController::class, 'eventos'])->name('eventos');
     Route::get('/clientes', [CustomerController::class, 'index'])->name('clientes');
     Route::get('/clientes/{customer}', [CustomerController::class, 'show'])->name('cliente');

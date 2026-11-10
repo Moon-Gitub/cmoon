@@ -11,6 +11,7 @@ use App\Billing\Models\Reconciliation;
 use App\Billing\Models\Subscription;
 use App\Billing\Models\WebhookEvent;
 use App\Billing\Services\CustomerStatusService;
+use App\Billing\Services\DunningService;
 use App\Billing\Services\LedgerService;
 use Illuminate\Routing\Controller;
 use Illuminate\View\View;
@@ -85,6 +86,14 @@ class DashboardController extends Controller
         $ids = $movimientos->map(fn (LedgerEntry $e) => LegacyDetalle::idDesdeReferencia($e->referencia))->filter()->all();
 
         return LegacyDetalle::whereIn('legacy_movimiento_id', $ids)->get()->keyBy('legacy_movimiento_id');
+    }
+
+    public function avisos(DunningService $dunning): View
+    {
+        return view('billing.admin.avisos', [
+            'cola' => $dunning->cola(CustomerStatusService::hoy()),
+            'automaticoActivo' => (bool) config('billing.avisos.enabled'),
+        ]);
     }
 
     public function eventos(): View

@@ -5,6 +5,7 @@ namespace Tests\Feature\Billing;
 use App\Billing\Mail\AvisoCobroMail;
 use App\Billing\Models\Notification;
 use App\Billing\Services\DunningService;
+use App\Models\User;
 use App\Billing\Services\InvoiceGenerator;
 use App\Billing\Services\LedgerService;
 use App\Billing\Services\PaymentProcessor;
@@ -83,5 +84,26 @@ class ReconciliationAndDunningTest extends BillingTestCase
         $this->assertSame('5492604690410', DunningService::celularArgentino('(260) 469-0410'));
         $this->assertSame('5492604690410', DunningService::celularArgentino('+54 260 4690410'));
         $this->assertNull(DunningService::celularArgentino('(213) 213'));
+    }
+
+    public function test_cola_de_avisos_lista_deudores_sin_enviar(): void
+    {
+        config(['billing.avisos.enabled' => false]);
+        $c = $this->cliente(['nombre' => 'Deudor Aviso', 'telefono' => '(260) 469-0410']);
+        $this->cargo($c, 8000);
+
+        $cola = app(DunningService::class)->cola(Carbon::parse('2026-11-10'));
+
+        $this->assertNull($cola['programado']);
+        $this->assertCount(1, $cola['filas']);
+        $this->assertSame('vencido', $cola['filas'][0]['tipo']);
+        $this->assertStringStartsWith('https://wa.me/5492604690410?text=', $cola['filas'][0]['whatsapp']);
+        $this->assertSame(0, Notification::count());
+
+        $admin = User::factory()->create(['es_superadmin' => true]);
+        $this->actingAs($admin)->get('/cobros/avisos')->assertOk()
+            ->assertSee('Deudor Aviso')
+            ->assertSee('wa.me/5492604690410', false)
+            ->assertSee('no envía nada');
     }
 }

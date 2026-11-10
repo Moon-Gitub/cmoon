@@ -55,8 +55,17 @@ Hay 38 documentos y 43 direcciones. Nadie quedó en `modo_cobro=bloqueo`.
 
 WhatsApp del panel: abre `https://wa.me/549…` con el texto y el link. El envío
 automático por API no está activo: no hay `YCLOUD_API_KEY` ni `YCLOUD_PHONE_FROM`
-en el hub ni en los tenants. Cuando existan, el botón "Enviar por la API" llama
+en el hub ni en los tenants POS. Cuando existan, el botón "Enviar por la API" llama
 a YCloud. Los avisos programados siguen apagados (`BILLING_DUNNING_ENABLED=false`).
+
+Cola de avisos (2026-11-10): en el panel, **Avisos** lista a quien debe más que
+la tolerancia, con saldo, teléfono y un `wa.me` ya armado. Si el día es 1, 8, 15
+o 22, el texto es el del cronograma (el 22 solo entra en el automático si el
+cliente está en modo bloqueo). El resto de los días la lista sigue, con el texto
+según el estado, para mandarlo a mano. No crea avisos ni manda mail ni WhatsApp.
+Se buscó mail SMTP y YCloud en los env de Dokploy de los POS, en `~/.config/posmoon`
+y en el código: no hay credencial usable de POSMoon. En Dokploy hay una clave de
+YCloud de otro producto (OdontoGravity); no se copió. No se cargó mail en el hub.
 
 ## Qué falta, en orden
 
@@ -65,10 +74,10 @@ a YCloud. Los avisos programados siguen apagados (`BILLING_DUNNING_ENABLED=false
    barrido `billing:sincronizar-pendientes` corre cada 15 minutos. Ver más abajo.
 2. **Un pago real chico** de los $150 del cliente piloto, con una tarjeta o
    cuenta que no sea la de Moon (MP no deja pagarse a uno mismo).
-3. **Mail y WhatsApp automático.** El botón manual `wa.me` ya funciona. Falta
-   `YCLOUD_API_KEY` + `YCLOUD_PHONE_FROM` (y las plantillas `BILLING_WA_TPL_*`)
-   para el envío por API, y un mail real para los avisos. `BILLING_DUNNING_ENABLED`
-   sigue en false.
+3. **Mail y WhatsApp automático.** El botón manual `wa.me` y la cola **Avisos**
+   ya sirven para cobrar a mano. Falta `YCLOUD_API_KEY` + `YCLOUD_PHONE_FROM`
+   (y las plantillas `BILLING_WA_TPL_*`) de POSMoon, y un mail SMTP real.
+   No se inventaron credenciales. `BILLING_DUNNING_ENABLED` sigue en false.
 4. **Contraseñas por defecto `CMoon2026!`** todavía activas (ver tabla). No se
    cambiaron para no dejar a nadie afuera sin aviso.
 5. **Conectar el resto de los POS** (Jamrod, Abisko, Cabañas, Esquina53). Exige

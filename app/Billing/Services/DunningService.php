@@ -56,6 +56,56 @@ class DunningService
         return $r;
     }
 
+    /**
+     * Quién habría que avisar, sin enviar nada.
+     * Si el día está en el cronograma, el texto es el de ese día (el 22 solo
+     * entra en el automático si el cliente está en modo bloqueo). Si no, lista
+     * igual a los que superan la tolerancia para mandarlos a mano.
+     *
+     * @return array{dia: int, programado: ?string, filas: list<array>}
+     */
+    public function cola(CarbonInterface $hoy): array
+    {
+        $programado = config('billing.avisos.cronograma')[(int) $hoy->day] ?? null;
+        $tol = (int) config('billing.reglas.tolerancia_centavos');
+        $saldos = $this->ledger->saldos();
+        $filas = [];
+
+        foreach (Customer::where('estado', 'activo')->orderBy('nombre')->get() as $c) {
+            $saldo = (int) ($saldos[$c->id] ?? 0);
+            if ($saldo <= $tol) {
+                continue;
+            }
+            $estado = $this->status->estado($c, $hoy, $saldo);
+            $automatico = $programado !== null && ! ($programado === 'por_suspender' && $c->modo_cobro !== 'bloqueo');
+            $tipo = $automatico ? $programado : $this->tipoManual($estado['nivel'] ?? 'vencido');
+            $cel = self::celularArgentino((string) $c->telefono);
+            $texto = self::texto($c, $tipo, $estado);
+            $filas[] = [
+                'customer' => $c,
+                'saldo' => $saldo,
+                'nivel' => $estado['nivel'] ?? '',
+                'tipo' => $tipo,
+                'automatico' => $automatico,
+                'texto' => $texto,
+                'whatsapp' => $cel ? 'https://wa.me/'.$cel.'?text='.rawurlencode($texto) : null,
+            ];
+        }
+
+        usort($filas, fn ($a, $b) => $b['saldo'] <=> $a['saldo']);
+
+        return ['dia' => (int) $hoy->day, 'programado' => $programado, 'filas' => $filas];
+    }
+
+    private function tipoManual(string $nivel): string
+    {
+        return match ($nivel) {
+            'pendiente' => 'recordatorio',
+            'por_suspender' => 'por_suspender',
+            default => 'vencido',
+        };
+    }
+
     public function enviarRecibo(Customer $c, Payment $p): void
     {
         $this->enviar($c, 'recibo', 'pago:'.$p->id, $this->status->estado($c), $p);

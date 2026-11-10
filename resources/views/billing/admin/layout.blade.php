@@ -12,7 +12,7 @@
         <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-6 px-4 py-3">
             <span class="font-semibold">🌙 Moon Cobros</span>
             <nav class="flex gap-4 text-sm">
-                @foreach (['dashboard' => 'Tablero', 'clientes' => 'Clientes', 'pagos' => 'Pagos', 'eventos' => 'Eventos'] as $r => $t)
+                @foreach (['dashboard' => 'Tablero', 'clientes' => 'Clientes', 'pagos' => 'Pagos', 'avisos' => 'Avisos', 'eventos' => 'Eventos'] as $r => $t)
                     <a href="{{ route('billing.admin.'.$r) }}" class="{{ request()->routeIs('billing.admin.'.$r.'*') ? 'text-white' : 'text-slate-400 hover:text-white' }}">{{ $t }}</a>
                 @endforeach
             </nav>
