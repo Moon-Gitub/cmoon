@@ -11,7 +11,7 @@
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
-/* Hub Moon Cobros: identidad Moon Desarrollos (slate oficial, no NVIDIA). */
+/* Hub Moon Cobros — Moon Desarrollos: chrome de marca + superficie clara para leer. */
 @font-face {
     font-family: 'Jost';
     font-style: normal;
@@ -50,89 +50,198 @@
 
 .md {
     --md-slate: #4F658A;
-    --md-slate-deep: #3E5272;
+    --md-slate-deep: #354A68;
     --md-slate-mid: #5B759A;
-    --md-slate-line: #6A82A3;
-    --md-ink: #E7F6FF;
-    --md-ink-mute: #B8C6D6;
+    --md-slate-line: #7A92B0;
+    --md-ink: #F4FAFF;
+    --md-ink-mute: #C5D3E3;
+    --md-paper: #F4F7FB;
+    --md-paper-2: #E8EEF5;
+    --md-edge: #CDD7E4;
+    --md-text: #1B2738;
+    --md-text-mute: #526279;
     --md-moon: #9096A2;
-    --md-moon-deep: #444F61;
-    --md-danger: #C45B52;
-    --md-warn: #C4A35A;
-    --md-ok: #6F8F7A;
+    --md-danger: #B84941;
+    --md-warn: #B8923F;
+    --md-ok: #4F7A5C;
     --md-mp: #009EE3;
+    --md-link: #2F5F9A;
     background: var(--md-slate);
     color: var(--md-ink);
     font-family: 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.55;
 }
 body.md,
 body.md.bg-slate-100 {
-    background-color: var(--md-slate) !important;
+    background: linear-gradient(165deg, #5A7499 0%, #4F658A 38%, #3E5272 100%) !important;
     color: var(--md-ink) !important;
 }
+.md .font-display { font-family: 'Jost', ui-sans-serif, system-ui, sans-serif; }
+.md .md-money {
+    font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+}
+
+/* Chrome del hub */
 .md aside {
     background: var(--md-slate-deep) !important;
     color: var(--md-ink);
 }
-.md .border-slate-800 { border-color: var(--md-slate-line) !important; }
-.md header {
+.md .border-slate-800 { border-color: rgba(255, 255, 255, 0.12) !important; }
+.md > header,
+.md header.md-top {
+    background: rgba(53, 74, 104, 0.92) !important;
+    color: var(--md-ink) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    backdrop-filter: blur(10px);
+}
+
+/* Superficie de trabajo: papel claro sobre el slate */
+.md main {
+    color: var(--md-text);
+}
+.md .md-panel,
+.md .bg-white {
+    background: var(--md-paper) !important;
+    color: var(--md-text) !important;
+    border: 1px solid var(--md-edge);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(30, 45, 70, 0.18);
+}
+.md .bg-slate-50 { background-color: var(--md-paper-2) !important; color: var(--md-text-mute) !important; }
+.md .bg-slate-100 { background-color: var(--md-paper-2) !important; }
+.md .bg-slate-900 {
     background: var(--md-slate-deep) !important;
     color: var(--md-ink) !important;
-    border-color: var(--md-slate-line) !important;
 }
-.md .bg-white {
-    background-color: var(--md-slate-mid) !important;
-    color: var(--md-ink);
-}
-.md .bg-slate-50 { background-color: var(--md-slate-deep) !important; }
-.md .bg-slate-100 { background-color: color-mix(in srgb, var(--md-slate-deep) 70%, black) !important; }
-.md .bg-slate-900 { background-color: var(--md-slate-deep) !important; }
 .md .text-slate-900,
 .md .text-slate-800,
-.md .text-slate-700,
-.md .text-white { color: var(--md-ink) !important; }
+.md .text-slate-700 { color: var(--md-text) !important; }
 .md .text-slate-600,
 .md .text-slate-500,
-.md .text-slate-400,
-.md .text-white\/70,
-.md .text-white\/60,
-.md .text-white\/50 { color: var(--md-ink-mute) !important; }
+.md .text-slate-400 { color: var(--md-text-mute) !important; }
+.md .text-sky-700,
+.md .text-sky-800 { color: var(--md-link) !important; }
+.md .text-emerald-700 { color: var(--md-ok) !important; }
 .md .border-slate-200,
 .md .border-slate-100,
-.md .border-slate-300 { border-color: var(--md-slate-line) !important; }
+.md .border-slate-300 { border-color: var(--md-edge) !important; }
 .md .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
-.md .divide-slate-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--md-slate-line) !important; }
+.md .divide-slate-200 > :not([hidden]) ~ :not([hidden]) { border-color: var(--md-edge) !important; }
 .md .hover\:bg-slate-50:hover,
-.md .hover\:bg-slate-100:hover { background-color: var(--md-slate-deep) !important; }
+.md .hover\:bg-slate-100:hover { background-color: #E1E8F1 !important; }
+
 .md input:not([type='checkbox']):not([type='radio']),
 .md select,
 .md textarea {
-    background: var(--md-slate-deep);
-    color: var(--md-ink);
-    border-color: var(--md-slate-line);
+    background: #fff;
+    color: var(--md-text);
+    border: 1px solid var(--md-edge);
+    border-radius: 10px;
+    font-size: 1.05rem;
+    padding: 0.7rem 0.95rem;
 }
+.md input:focus,
+.md select:focus,
+.md textarea:focus {
+    outline: 2px solid color-mix(in srgb, var(--md-slate) 45%, white);
+    border-color: var(--md-slate-mid);
+}
+
 .md .bg-indigo-600,
-.md .bg-indigo-500 {
-    background: var(--md-ink) !important;
-    color: var(--md-slate-deep) !important;
+.md .bg-indigo-500,
+.md button.bg-slate-900 {
+    background: var(--md-slate-deep) !important;
+    color: var(--md-ink) !important;
+    border-radius: 10px;
 }
-.md .hover\:bg-indigo-700:hover {
-    background: #fff !important;
-    color: var(--md-slate-deep) !important;
-}
+.md .hover\:bg-indigo-700:hover { background: var(--md-slate) !important; color: #fff !important; }
 .md .text-indigo-600,
-.md .text-indigo-700 { color: var(--md-ink) !important; }
-.md main .text-3xl.text-indigo-600,
-.md main .text-4xl { color: var(--md-ink) !important; }
+.md .text-indigo-700 { color: var(--md-slate) !important; }
 .md .bg-indigo-100,
 .md .bg-indigo-50 {
-    background: color-mix(in srgb, var(--md-ink) 12%, var(--md-slate-deep)) !important;
-    color: var(--md-ink) !important;
+    background: color-mix(in srgb, var(--md-slate) 12%, white) !important;
+    color: var(--md-slate-deep) !important;
 }
-.md main .rounded-xl,
-.md main .rounded-2xl,
-.md main .rounded-lg { border-radius: 2px; }
-.md main .shadow-sm,
-.md main .shadow-lg { box-shadow: none; }
-.md .font-display { font-family: 'Jost', ui-sans-serif, system-ui, sans-serif; }
-.md .md-money { font-family: 'Jost', ui-sans-serif, system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+
+/* Tablas legibles en todo el admin */
+.md main table {
+    font-size: 1.05rem;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+.md main thead {
+    background: var(--md-paper-2) !important;
+}
+.md main thead th {
+    color: var(--md-text-mute) !important;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.95rem 1.15rem !important;
+}
+.md main tbody td {
+    padding: 1rem 1.15rem !important;
+    vertical-align: middle;
+    border-top: 1px solid var(--md-edge) !important;
+    color: var(--md-text);
+}
+.md main tbody tr:hover td {
+    background: #EAF0F7;
+}
+.md main .text-xs {
+    font-size: 0.92rem !important;
+    line-height: 1.4;
+}
+.md main .text-sm {
+    font-size: 1.02rem !important;
+}
+.md main a {
+    color: var(--md-link);
+    font-weight: 600;
+}
+.md main a:hover { color: var(--md-slate-deep); text-decoration: underline; }
+
+.md .md-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.28rem 0.7rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.2;
+    border: 0;
+}
+.md .md-badge-ok { background: #D8E8DD; color: #2F5A3C; }
+.md .md-badge-warn { background: #F3E4BE; color: #6F5420; }
+.md .md-badge-danger { background: #F2D4D1; color: #7A2E28; }
+.md .md-badge-mute { background: #DDE4EE; color: #445468; }
+.md .md-badge-solid { background: var(--md-danger); color: #fff; }
+
+.md .md-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 10px;
+    padding: 0.65rem 1.1rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+.md .md-btn-primary {
+    background: var(--md-slate-deep);
+    color: var(--md-ink);
+}
+.md .md-btn-primary:hover { background: var(--md-slate); color: #fff; }
+.md .md-btn-ghost {
+    background: transparent;
+    color: var(--md-link);
+}
+.md .md-btn-wa {
+    background: #1F6B45;
+    color: #fff;
+}
+.md .md-btn-wa:hover { background: #185536; color: #fff; text-decoration: none; }

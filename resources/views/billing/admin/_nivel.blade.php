@@ -1,11 +1,11 @@
 @php
     $estilos = [
-        'al_dia' => 'border-[var(--md-ok)] text-[var(--md-ok)]',
-        'pendiente' => 'border-[var(--md-ink-mute)] text-[var(--md-ink-mute)]',
-        'vencido' => 'border-[var(--md-warn)] text-[var(--md-warn)]',
-        'por_suspender' => 'border-[var(--md-warn)] text-[var(--md-warn)]',
-        'moroso' => 'border-[var(--md-danger)] text-[var(--md-danger)]',
-        'suspendido' => 'border-[var(--md-danger)] bg-[var(--md-danger)] text-[var(--md-ink)]',
+        'al_dia' => 'md-badge md-badge-ok',
+        'pendiente' => 'md-badge md-badge-mute',
+        'vencido' => 'md-badge md-badge-warn',
+        'por_suspender' => 'md-badge md-badge-warn',
+        'moroso' => 'md-badge md-badge-danger',
+        'suspendido' => 'md-badge md-badge-solid',
     ];
 @endphp
-<span class="inline-block border px-2 py-0.5 text-xs font-medium tracking-wide {{ $estilos[$nivel] ?? 'border-[var(--md-slate-line)]' }}">{{ str_replace('_', ' ', $nivel) }}</span>
+<span class="{{ $estilos[$nivel] ?? 'md-badge md-badge-mute' }}">{{ str_replace('_', ' ', $nivel) }}</span>

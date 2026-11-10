@@ -10,31 +10,31 @@
     <style>[x-cloak]{display:none !important}</style>
 </head>
 <body class="md min-h-screen antialiased">
-    <header class="border-b border-[var(--md-slate-line)] bg-[var(--md-slate-deep)]">
-        <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-6 px-4 py-3">
-            <a href="{{ route('dashboard') }}" class="flex items-center gap-3 font-display tracking-[0.18em]">
-                <img src="{{ asset('brand/moon-mark.svg') }}" alt="" class="h-8 w-8" width="32" height="32">
-                <span class="text-sm font-light text-[var(--md-ink)]">MOON <span class="font-normal text-[var(--md-ink-mute)]">COBROS</span></span>
+    <header class="md-top sticky top-0 z-30 border-b">
+        <div class="mx-auto flex max-w-7xl flex-wrap items-center gap-5 px-5 py-4">
+            <a href="{{ route('dashboard') }}" class="flex items-center gap-3 font-display">
+                <img src="{{ asset('brand/moon-mark.svg') }}" alt="" class="h-10 w-10" width="40" height="40">
+                <span class="text-base tracking-[0.2em] text-[var(--md-ink)]">MOON <span class="font-medium text-white">COBROS</span></span>
             </a>
-            <nav class="flex gap-1 text-sm font-display tracking-wide">
+            <nav class="flex flex-wrap gap-1 text-base">
                 @foreach (['dashboard' => 'Tablero', 'clientes' => 'Clientes', 'pagos' => 'Pagos', 'avisos' => 'Avisos', 'eventos' => 'Eventos'] as $r => $t)
                     <a href="{{ route('billing.admin.'.$r) }}"
-                       class="px-3 py-1.5 {{ request()->routeIs('billing.admin.'.$r.'*') ? 'border-b-2 border-[var(--md-ink)] font-medium text-[var(--md-ink)]' : 'text-[var(--md-ink-mute)] hover:text-[var(--md-ink)]' }}">{{ $t }}</a>
+                       class="rounded-lg px-3.5 py-2 {{ request()->routeIs('billing.admin.'.$r.'*') ? 'bg-white/15 font-semibold text-white' : 'text-[var(--md-ink-mute)] hover:bg-white/10 hover:text-white' }}">{{ $t }}</a>
                 @endforeach
             </nav>
-            <span class="ml-auto text-xs text-[var(--md-ink-mute)]">{{ auth()->user()?->email }}</span>
+            <span class="ml-auto text-sm text-[var(--md-ink-mute)]">{{ auth()->user()?->email }}</span>
         </div>
     </header>
 
-    <main class="mx-auto max-w-7xl px-4 py-6">
+    <main class="mx-auto max-w-7xl px-5 py-8">
         @if (session('ok'))
-            <div class="mb-4 border border-[var(--md-ok)] px-4 py-3 text-sm text-[var(--md-ink)]">{{ session('ok') }}</div>
+            <div class="md-panel mb-5 px-5 py-4 text-[var(--md-ok)]">{{ session('ok') }}</div>
         @endif
         @if (session('error'))
-            <div class="mb-4 border border-[var(--md-danger)] px-4 py-3 text-sm text-[var(--md-ink)]">{{ session('error') }}</div>
+            <div class="md-panel mb-5 px-5 py-4 text-[var(--md-danger)]">{{ session('error') }}</div>
         @endif
         @if ($errors->any())
-            <div class="mb-4 border border-[var(--md-danger)] px-4 py-3 text-sm text-[var(--md-ink)]">{{ $errors->first() }}</div>
+            <div class="md-panel mb-5 px-5 py-4 text-[var(--md-danger)]">{{ $errors->first() }}</div>
         @endif
 
         @yield('contenido')
