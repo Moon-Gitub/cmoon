@@ -19,14 +19,14 @@
                 <span><span class="inline-block h-2 w-2 bg-[#76b900]"></span> Cobros</span>
             </p>
             <div class="flex gap-2 text-sm">
-                <button type="button" @click="rango = 6" :class="rango === 6 ? 'text-[#76b900]' : 'text-[#a3a3a3]'" class="hover:text-white">6 meses</button>
-                <button type="button" @click="rango = 12" :class="rango === 12 ? 'text-[#76b900]' : 'text-[#a3a3a3]'" class="hover:text-white">12 meses</button>
+                <button type="button" x-on:click="rango = 6" :class="rango === 6 ? 'text-[#76b900]' : 'text-[#a3a3a3]'" class="hover:text-white">6 meses</button>
+                <button type="button" x-on:click="rango = 12" :class="rango === 12 ? 'text-[#76b900]' : 'text-[#a3a3a3]'" class="hover:text-white">12 meses</button>
             </div>
         </div>
 
-        <div class="mt-3 flex h-52 items-end gap-1" @mouseleave="mes = visible.length - 1">
+        <div class="mt-3 flex h-52 items-end gap-1" x-on:mouseleave="mes = visible.length - 1">
             <template x-for="(m, i) in visible" :key="m.clave">
-                <button type="button" class="flex h-full min-w-0 flex-1 flex-col justify-end" @mouseenter="mes = i" @focus="mes = i">
+                <button type="button" class="flex h-full min-w-0 flex-1 flex-col justify-end" x-on:mouseenter="mes = i" x-on:focus="mes = i">
                     <span class="flex h-44 items-end gap-0.5">
                         <span class="w-1/2 bg-[#3a3a3a]" :style="`height:${Math.max(m.cargos ? 2 : 0, alto(m.cargos) / 180 * 100)}%`"></span>
                         <span class="w-1/2 bg-[#76b900]" :style="`height:${Math.max(m.cobros ? 2 : 0, alto(m.cobros) / 180 * 100)}%`"></span>
@@ -47,16 +47,16 @@
             <div class="mt-2 flex h-8 overflow-hidden">
                 <template x-for="t in tramos" :key="t.clave">
                     <button type="button" class="h-full min-w-2" :style="`width:${t.pct}%; background:${t.color}`"
-                            :title="t.texto" @click="tramo = t.clave"></button>
+                            :title="t.texto" x-on:click="tramo = t.clave"></button>
                 </template>
             </div>
             <p class="mt-2 text-sm" x-text="tramoActivo"></p>
         </div>
 
         <div class="mt-8 flex flex-wrap gap-x-4 gap-y-2 text-sm">
-            <button type="button" @click="nivel = 'todos'" :class="nivel === 'todos' ? 'text-[#76b900]' : 'text-[#a3a3a3]'" class="hover:text-white">Todos</button>
+            <button type="button" x-on:click="nivel = 'todos'" :class="nivel === 'todos' ? 'text-[#76b900]' : 'text-[#a3a3a3]'" class="hover:text-white">Todos</button>
             <template x-for="n in listaNiveles" :key="n.clave">
-                <button type="button" @click="nivel = n.clave" :class="nivel === n.clave ? 'text-[#76b900]' : 'text-[#a3a3a3]'" class="hover:text-white">
+                <button type="button" x-on:click="nivel = n.clave" :class="nivel === n.clave ? 'text-[#76b900]' : 'text-[#a3a3a3]'" class="hover:text-white">
                     <span x-text="n.texto"></span> <span x-text="n.cant"></span>
                 </button>
             </template>
