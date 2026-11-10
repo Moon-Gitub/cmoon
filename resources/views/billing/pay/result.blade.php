@@ -11,7 +11,7 @@
 @endphp
 
 @section('contenido')
-    <div class="rounded-2xl bg-white p-6 text-center shadow-sm" id="resultado"
+    <div class="border border-[var(--md-slate-line)] bg-[var(--md-slate-mid)] p-6 text-center" id="resultado"
          data-estado-url="{{ route('billing.pagar.estado', [$customer->pay_token, 'payment_id' => $paymentId]) }}"
          data-destino="{{ $destino }}"
          data-acreditado="{{ $acreditado ? '1' : '0' }}"
@@ -19,29 +19,29 @@
 
         @if ($acreditado)
             <p class="text-5xl">✅</p>
-            <h1 class="mt-3 text-xl font-semibold">¡Pago acreditado!</h1>
-            <p class="mt-2 text-slate-600">Recibimos {{ Money::formato($pago->importe_centavos) }}. Operación #{{ $pago->external_id }}.</p>
-            <p class="mt-1 text-sm text-slate-500">Saldo actual: {{ Money::formato(max(0, $estado['saldo'])) }}</p>
+            <h1 class="mt-3 font-display text-xl font-light tracking-wide">¡Pago acreditado!</h1>
+            <p class="mt-2 text-[var(--md-ink-mute)]">Recibimos {{ Money::formato($pago->importe_centavos) }}. Operación #{{ $pago->external_id }}.</p>
+            <p class="mt-1 text-sm text-[var(--md-ink-mute)]">Saldo actual: {{ Money::formato(max(0, $estado['saldo'])) }}</p>
         @elseif ($rechazado)
             <p class="text-5xl">❌</p>
-            <h1 class="mt-3 text-xl font-semibold">El pago no se completó</h1>
-            <p class="mt-2 text-slate-600">Mercado Pago lo rechazó. Podés intentarlo con otro medio.</p>
+            <h1 class="mt-3 font-display text-xl font-light tracking-wide">El pago no se completó</h1>
+            <p class="mt-2 text-[var(--md-ink-mute)]">Mercado Pago lo rechazó. Podés intentarlo con otro medio.</p>
             <a href="{{ route('billing.pagar', $customer->pay_token) }}" class="mt-6 inline-block rounded-xl bg-[#009ee3] px-6 py-3 font-semibold text-white">Intentar de nuevo</a>
         @elseif ($pendiente)
             <p class="text-5xl">⏳</p>
-            <h1 class="mt-3 text-xl font-semibold">Pago pendiente</h1>
-            <p class="mt-2 text-slate-600">Cuando Mercado Pago lo apruebe se acredita solo. Si pagaste en efectivo, puede demorar hasta 48 h hábiles.</p>
+            <h1 class="mt-3 font-display text-xl font-light tracking-wide">Pago pendiente</h1>
+            <p class="mt-2 text-[var(--md-ink-mute)]">Cuando Mercado Pago lo apruebe se acredita solo. Si pagaste en efectivo, puede demorar hasta 48 h hábiles.</p>
         @elseif ($paymentId)
             <p class="text-5xl" id="spinner">🔄</p>
-            <h1 class="mt-3 text-xl font-semibold" id="titulo">Verificando tu pago…</h1>
-            <p class="mt-2 text-slate-600" id="detalle">Estamos confirmando con Mercado Pago. No cierres esta pantalla.</p>
+            <h1 class="mt-3 font-display text-xl font-light tracking-wide" id="titulo">Verificando tu pago…</h1>
+            <p class="mt-2 text-[var(--md-ink-mute)]" id="detalle">Estamos confirmando con Mercado Pago. No cierres esta pantalla.</p>
         @else
             <p class="text-5xl">ℹ️</p>
-            <h1 class="mt-3 text-xl font-semibold">No recibimos un pago</h1>
-            <p class="mt-2 text-slate-600">Si ya pagaste, se acreditará automáticamente en unos minutos.</p>
+            <h1 class="mt-3 font-display text-xl font-light tracking-wide">No recibimos un pago</h1>
+            <p class="mt-2 text-[var(--md-ink-mute)]">Si ya pagaste, se acreditará automáticamente en unos minutos.</p>
         @endif
 
-        <a href="{{ $destino }}" class="mt-6 block w-full rounded-xl border border-slate-300 px-4 py-3 font-medium">Volver al sistema</a>
+        <a href="{{ $destino }}" class="mt-6 block w-full border border-[var(--md-slate-line)] px-4 py-3 font-medium hover:bg-[var(--md-slate-deep)]">Volver al sistema</a>
     </div>
 @endsection
 

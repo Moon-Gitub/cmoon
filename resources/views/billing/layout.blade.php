@@ -4,20 +4,24 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <title>@yield('titulo', 'Pagar abono') · POSMoon</title>
+    <title>@yield('titulo', 'Pagar abono') · Moon Cobros</title>
+    <link rel="icon" href="{{ asset('brand/moon-mark.svg') }}" type="image/svg+xml">
     @vite(['resources/css/app.css'])
 </head>
-<body class="nv min-h-screen bg-[#f5f5f5] text-[#1a1a1a] antialiased">
+<body class="md min-h-screen antialiased">
     <div class="mx-auto max-w-lg px-4 py-6 sm:py-10">
-        <div class="mb-6 text-lg font-semibold tracking-tight">POSMoon</div>
+        <div class="mb-8 flex items-center gap-3 font-display tracking-[0.18em]">
+            <img src="{{ asset('brand/moon-mark.svg') }}" alt="" class="h-9 w-9" width="36" height="36">
+            <span class="text-sm font-light text-[var(--md-ink)]">MOON <span class="font-normal text-[var(--md-ink-mute)]">COBROS</span></span>
+        </div>
 
         @if (session('error'))
-            <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ session('error') }}</div>
+            <div class="mb-4 border border-[var(--md-danger)] px-4 py-3 text-sm">{{ session('error') }}</div>
         @endif
 
         @yield('contenido')
 
-        <p class="mt-8 text-center text-xs text-slate-500">Moon Desarrollos · Pagos procesados por Mercado Pago</p>
+        <p class="mt-8 text-center text-xs text-[var(--md-ink-mute)]">Moon Desarrollos · Pagos procesados por Mercado Pago</p>
     </div>
     @stack('scripts')
 </body>

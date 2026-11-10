@@ -1,8 +1,12 @@
 # Moon Cobros — estado y cómo retomarlo
 
-Foto al **2026-11-05**. El diseño está en
-[24-moon-cobros-specs.md](./24-moon-cobros-specs.md) y las reglas de trabajo en
-[25-moon-cobros-prompt.md](./25-moon-cobros-prompt.md). Este documento dice
+Foto al **2026-11-10**. El diseño de producto está en
+[24-moon-cobros-specs.md](./24-moon-cobros-specs.md), las reglas de trabajo en
+[25-moon-cobros-prompt.md](./25-moon-cobros-prompt.md) y la **identidad visual
+oficial Moon Desarrollos** en
+[27-moon-cobros-visual.md](./27-moon-cobros-visual.md) (mega prompt:
+[28-moon-cobros-visual-prompt.md](./28-moon-cobros-visual-prompt.md)).
+El skin NVIDIA (negro + `#76b900`) quedó descartado. Este documento dice
 **qué está en producción, qué falta y cómo seguir** sin rehacer el análisis.
 
 No hay contraseñas acá. Viven en `~/.config/posmoon/secrets/` (chmod 600).

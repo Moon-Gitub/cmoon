@@ -8,8 +8,11 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @php($empresaActual = auth()->user()->empresa)
     @php($esHub = (bool) config('billing.hub_enabled'))
-    @php($colorAccento = $esHub ? '#76b900' : ($empresaActual?->color_primario ?? '#4f46e5'))
-    @php($colorOscuro = $esHub ? '#5c8f00' : \App\Support\Color::oscurecer($colorAccento, 0.15))
+    @php($colorAccento = $esHub ? '#E7F6FF' : ($empresaActual?->color_primario ?? '#4f46e5'))
+    @php($colorOscuro = $esHub ? '#B8C6D6' : \App\Support\Color::oscurecer($colorAccento, 0.15))
+    @if ($esHub)
+        <link rel="icon" href="{{ asset('brand/moon-mark.svg') }}" type="image/svg+xml">
+    @endif
     <style>
         /* Personalización visual por empresa: pisa el color de acento de la UI */
         :root { --accent: {{ $colorAccento }}; --accent-dark: {{ $colorOscuro }}; }
@@ -22,24 +25,34 @@
         .bg-indigo-50 { background-color: color-mix(in srgb, var(--accent) 6%, white) !important; }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased {{ $esHub ? 'nv' : '' }}" x-data="{ menuAbierto: false }">
+<body class="bg-slate-100 text-slate-800 antialiased {{ $esHub ? 'md' : '' }}" x-data="{ menuAbierto: false }">
 <div class="flex min-h-screen">
 
     {{-- Sidebar escritorio --}}
     <aside class="hidden w-64 shrink-0 flex-col bg-slate-900 text-slate-200 md:flex">
         <div class="flex h-16 items-center gap-2 border-b border-slate-800 px-5">
-            @if ($empresaActual?->logo_path)
+            @if ($esHub)
+                <img src="{{ asset('brand/moon-mark.svg') }}" alt="" class="h-9 w-9" width="36" height="36">
+                <div>
+                    <p class="font-display text-sm font-light tracking-[0.18em] text-white">MOON COBROS</p>
+                    <p class="text-xs text-slate-400">Moon Desarrollos</p>
+                </div>
+            @elseif ($empresaActual?->logo_path)
                 <img src="{{ asset('storage/'.$empresaActual->logo_path) }}" alt="Logo"
                      class="h-9 w-9 rounded-lg bg-white object-contain p-0.5">
+                <div>
+                    <p class="text-sm font-semibold leading-tight text-white">{{ $empresaActual?->nombre_fantasia ?? 'POSMoon' }}</p>
+                    <p class="text-xs text-slate-400">{{ $empresaActual?->razon_social ?? 'Sistema de ventas' }}</p>
+                </div>
             @else
                 <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500 font-bold text-white">
                     {{ strtoupper(substr($empresaActual?->nombre_fantasia ?? $empresaActual?->razon_social ?? 'C', 0, 1)) }}
                 </div>
+                <div>
+                    <p class="text-sm font-semibold leading-tight text-white">{{ $empresaActual?->nombre_fantasia ?? 'POSMoon' }}</p>
+                    <p class="text-xs text-slate-400">{{ $empresaActual?->razon_social ?? 'Sistema de ventas' }}</p>
+                </div>
             @endif
-            <div>
-                <p class="text-sm font-semibold leading-tight text-white">{{ $empresaActual?->nombre_fantasia ?? 'POSMoon' }}</p>
-                <p class="text-xs text-slate-400">{{ $empresaActual?->razon_social ?? 'Sistema de ventas' }}</p>
-            </div>
         </div>
 
         <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4 text-sm">

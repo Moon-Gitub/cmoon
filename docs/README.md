@@ -30,6 +30,8 @@
 | [23-mejoras-gauchada.md](./23-mejoras-gauchada.md) | **3 fases** cobranzas/cheques/OC/remitos/bancos/CRM vs Gauchada |
 | [24-moon-cobros-specs.md](./24-moon-cobros-specs.md) | **Moon Cobros:** diseño del hub de cobros con Mercado Pago |
 | [26-moon-cobros-operacion.md](./26-moon-cobros-operacion.md) | **Moon Cobros en producción:** estado, pendientes y cómo retomar |
+| [27-moon-cobros-visual.md](./27-moon-cobros-visual.md) | **Identidad visual Moon Desarrollos** en el hub (paleta, logo, layout) |
+| [28-moon-cobros-visual-prompt.md](./28-moon-cobros-visual-prompt.md) | Mega prompt para implementar el skin oficial (sin NVIDIA) |
 
 ## Inicio rápido
 

@@ -8,44 +8,44 @@
 
     <div x-data="cobrosTablero()" x-cloak>
         <p class="max-w-3xl text-lg leading-snug">
-            Deuda total <span class="text-[#76b900]">{{ Money::formato($deudaTotal) }}</span>.
+            Deuda total <span class="md-money text-[var(--md-ink)]">{{ Money::formato($deudaTotal) }}</span>.
             En {{ $periodo }} se facturó {{ Money::formato($facturado) }} y entraron {{ Money::formato($cobrado) }}
             @if ($tasa !== null)({{ $tasa }} %)@endif.
             El abono mensual de quienes están activos suma {{ Money::formato($mrr) }}.
         </p>
 
         <div class="mt-8 flex items-end justify-between gap-4">
-            <p class="text-sm text-[#a3a3a3]">
-                <span class="mr-4"><span class="inline-block h-2 w-2 bg-[#3a3a3a]"></span> Cargos</span>
-                <span><span class="inline-block h-2 w-2 bg-[#76b900]"></span> Cobros</span>
+            <p class="text-sm text-[var(--md-ink-mute)]">
+                <span class="mr-4"><span class="inline-block h-2 w-2 bg-[var(--md-slate-deep)]"></span> Cargos</span>
+                <span><span class="inline-block h-2 w-2 bg-[var(--md-ink)]"></span> Cobros</span>
             </p>
-            <div class="flex gap-2 text-sm">
-                <button type="button" x-on:click="rango = 6" :class="rango === 6 ? 'text-[#76b900]' : 'text-[#a3a3a3]'" class="hover:text-white">6 meses</button>
-                <button type="button" x-on:click="rango = 12" :class="rango === 12 ? 'text-[#76b900]' : 'text-[#a3a3a3]'" class="hover:text-white">12 meses</button>
+            <div class="flex gap-2 font-display text-sm tracking-wide">
+                <button type="button" x-on:click="rango = 6" :class="rango === 6 ? 'text-[var(--md-ink)]' : 'text-[var(--md-ink-mute)]'" class="hover:text-[var(--md-ink)]">6 meses</button>
+                <button type="button" x-on:click="rango = 12" :class="rango === 12 ? 'text-[var(--md-ink)]' : 'text-[var(--md-ink-mute)]'" class="hover:text-[var(--md-ink)]">12 meses</button>
             </div>
         </div>
 
-        <div class="mt-3 flex h-52 items-end gap-1" x-on:mouseleave="mes = visible.length - 1">
+        <div class="mt-3 flex h-52 items-end gap-1 border-b border-[var(--md-slate-line)]" x-on:mouseleave="mes = visible.length - 1">
             <template x-for="(m, i) in visible" :key="m.clave">
                 <button type="button" class="flex h-full min-w-0 flex-1 flex-col justify-end" x-on:mouseenter="mes = i" x-on:focus="mes = i">
                     <span class="flex h-44 items-end gap-0.5">
-                        <span class="w-1/2 bg-[#3a3a3a]" :style="`height:${Math.max(m.cargos ? 2 : 0, alto(m.cargos) / 180 * 100)}%`"></span>
-                        <span class="w-1/2 bg-[#76b900]" :style="`height:${Math.max(m.cobros ? 2 : 0, alto(m.cobros) / 180 * 100)}%`"></span>
+                        <span class="w-1/2 bg-[var(--md-slate-deep)]" :style="`height:${Math.max(m.cargos ? 2 : 0, alto(m.cargos) / 180 * 100)}%`"></span>
+                        <span class="w-1/2 bg-[var(--md-ink)]" :style="`height:${Math.max(m.cobros ? 2 : 0, alto(m.cobros) / 180 * 100)}%`"></span>
                     </span>
-                    <span class="mt-1 truncate text-center text-[11px] text-[#a3a3a3]" x-text="m.label"></span>
+                    <span class="mt-1 truncate text-center text-[11px] text-[var(--md-ink-mute)]" x-text="m.label"></span>
                 </button>
             </template>
         </div>
 
-        <p class="mt-2 text-2xl" x-show="actual">
+        <p class="mt-3 font-display text-2xl font-light tracking-wide" x-show="actual">
             <span x-text="actual.label"></span>
-            <span class="ml-4 text-base text-[#a3a3a3]">cargos <span class="text-white" x-text="plata(actual.cargos)"></span></span>
-            <span class="ml-4 text-base text-[#a3a3a3]">cobros <span class="text-[#76b900]" x-text="plata(actual.cobros)"></span></span>
+            <span class="ml-4 text-base text-[var(--md-ink-mute)]">cargos <span class="md-money text-[var(--md-ink)]" x-text="plata(actual.cargos)"></span></span>
+            <span class="ml-4 text-base text-[var(--md-ink-mute)]">cobros <span class="md-money text-[var(--md-ink)]" x-text="plata(actual.cobros)"></span></span>
         </p>
 
         <div class="mt-10">
-            <p class="text-sm text-[#a3a3a3]">Antigüedad de la deuda. Tocá un tramo.</p>
-            <div class="mt-2 flex h-8 overflow-hidden">
+            <p class="text-sm text-[var(--md-ink-mute)]">Antigüedad de la deuda. Tocá un tramo.</p>
+            <div class="mt-2 flex h-8 overflow-hidden border border-[var(--md-slate-line)]">
                 <template x-for="t in tramos" :key="t.clave">
                     <button type="button" class="h-full min-w-2" :style="`width:${t.pct}%; background:${t.color}`"
                             :title="t.texto" x-on:click="tramo = t.clave"></button>
@@ -54,10 +54,10 @@
             <p class="mt-2 text-sm" x-text="tramoActivo"></p>
         </div>
 
-        <div class="mt-8 flex flex-wrap gap-x-4 gap-y-2 text-sm">
-            <button type="button" x-on:click="nivel = 'todos'" :class="nivel === 'todos' ? 'text-[#76b900]' : 'text-[#a3a3a3]'" class="hover:text-white">Todos</button>
+        <div class="mt-8 flex flex-wrap gap-x-4 gap-y-2 font-display text-sm tracking-wide">
+            <button type="button" x-on:click="nivel = 'todos'" :class="nivel === 'todos' ? 'text-[var(--md-ink)]' : 'text-[var(--md-ink-mute)]'" class="hover:text-[var(--md-ink)]">Todos</button>
             <template x-for="n in listaNiveles" :key="n.clave">
-                <button type="button" x-on:click="nivel = n.clave" :class="nivel === n.clave ? 'text-[#76b900]' : 'text-[#a3a3a3]'" class="hover:text-white">
+                <button type="button" x-on:click="nivel = n.clave" :class="nivel === n.clave ? 'text-[var(--md-ink)]' : 'text-[var(--md-ink-mute)]'" class="hover:text-[var(--md-ink)]">
                     <span x-text="n.texto"></span> <span x-text="n.cant"></span>
                 </button>
             </template>
@@ -67,32 +67,32 @@
             <div>
                 <table class="w-full text-sm">
                     <template x-for="d in filtrados" :key="d.url">
-                        <tr class="border-t border-[#2a2a2a]">
-                            <td class="py-2"><a class="hover:text-[#76b900]" :href="d.url" x-text="d.nombre"></a></td>
-                            <td class="text-[#a3a3a3]" x-text="d.nivel.replace('_', ' ')"></td>
-                            <td class="py-2 text-right" x-text="plata(d.saldo)"></td>
+                        <tr class="border-t border-[var(--md-slate-line)]">
+                            <td class="py-2"><a class="hover:text-white" :href="d.url" x-text="d.nombre"></a></td>
+                            <td class="text-[var(--md-ink-mute)]" x-text="d.nivel.replace('_', ' ')"></td>
+                            <td class="md-money py-2 text-right" x-text="plata(d.saldo)"></td>
                         </tr>
                     </template>
                 </table>
-                <p class="mt-2 text-sm text-[#a3a3a3]" x-show="filtrados.length === 0">Nadie en ese estado con saldo.</p>
+                <p class="mt-2 text-sm text-[var(--md-ink-mute)]" x-show="filtrados.length === 0">Nadie en ese estado con saldo.</p>
             </div>
             <div>
-                <p class="text-sm text-[#a3a3a3]">Últimos pagos</p>
+                <p class="text-sm text-[var(--md-ink-mute)]">Últimos pagos</p>
                 <table class="mt-2 w-full text-sm">
                     @forelse ($ultimosPagos as $p)
-                        <tr class="border-t border-[#2a2a2a]">
+                        <tr class="border-t border-[var(--md-slate-line)]">
                             <td class="py-2">{{ $p->fecha->format('d/m/Y') }}</td>
                             <td>{{ $p->customer?->nombre ?? '—' }}</td>
-                            <td class="text-right">{{ Money::formato(abs($p->importe_centavos)) }}</td>
+                            <td class="md-money text-right">{{ Money::formato(abs($p->importe_centavos)) }}</td>
                         </tr>
                     @empty
-                        <tr><td class="py-2 text-[#a3a3a3]">Todavía no hay pagos.</td></tr>
+                        <tr><td class="py-2 text-[var(--md-ink-mute)]">Todavía no hay pagos.</td></tr>
                     @endforelse
                 </table>
             </div>
         </div>
 
-        <details class="mt-10 text-sm text-[#a3a3a3]">
+        <details class="mt-10 text-sm text-[var(--md-ink-mute)]">
             <summary class="cursor-pointer">Salud del sistema</summary>
             <ul class="mt-2 space-y-1">
                 <li>Cuotas generadas en {{ $periodo }}: {{ $cuotasMes }}</li>
@@ -113,7 +113,7 @@
             const datos = JSON.parse(document.getElementById('cobros-datos').textContent);
             const nombres = { al_dia: 'Al día', pendiente: 'Pendiente', vencido: 'Vencido', por_suspender: 'Por suspender', moroso: 'Moroso', suspendido: 'Suspendido' };
             const tramoNombre = { '0_30': '0 a 30 días', '31_60': '31 a 60 días', '61_90': '61 a 90 días', mas_90: 'Más de 90 días' };
-            const tramoColor = { '0_30': '#76b900', '31_60': '#5c8f00', '61_90': '#c4a35a', mas_90: '#e85d4c' };
+            const tramoColor = { '0_30': '#6F8F7A', '31_60': '#9096A2', '61_90': '#C4A35A', mas_90: '#C45B52' };
             return {
                 serie: datos.serie,
                 deudores: datos.deudores,
