@@ -67,6 +67,10 @@ Se buscó mail SMTP y YCloud en los env de Dokploy de los POS, en `~/.config/pos
 y en el código: no hay credencial usable de POSMoon. En Dokploy hay una clave de
 YCloud de otro producto (OdontoGravity); no se copió. No se cargó mail en el hub.
 
+Verificado en el panel el 2026-11-10 (día 10, no toca aviso automático): la cola
+lista 37 fichas con saldo, 33 con botón de WhatsApp y 4 sin celular. Incluye a
+los deudores del libro, el piloto y un cliente de prueba. No se envió nada.
+
 ## Qué falta, en orden
 
 1. **Clave real del webhook de Mercado Pago.** Hoy hay una clave provisoria, así
