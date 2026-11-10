@@ -53,17 +53,30 @@
                         @endif
                     </td>
                     <td class="text-right font-medium">{{ Money::formato($f['saldo']) }}</td>
-                    <td class="px-4 text-right">
+                    <td class="px-4 text-right whitespace-nowrap">
                         @if ($f['whatsapp'])
                             <a href="{{ $f['whatsapp'] }}" target="_blank" rel="noopener" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white">WhatsApp</a>
                         @else
                             <span class="text-xs text-slate-400">sin celular</span>
                         @endif
+                        <form method="POST" action="{{ route('billing.admin.avisos.marcar', $f['customer']) }}" class="inline">
+                            @csrf
+                            <button class="ml-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700">Marcar avisado</button>
+                        </form>
                     </td>
                 </tr>
             @empty
-                <tr><td class="px-4 py-6 text-slate-500" colspan="5">Nadie supera la tolerancia.</td></tr>
+                <tr><td class="px-4 py-6 text-slate-500" colspan="5">Nadie pendiente. {{ count($cola['avisados']) ? 'Los de hoy ya están marcados.' : 'Nadie supera la tolerancia.' }}</td></tr>
             @endforelse
         </table>
     </div>
+
+    @if (count($cola['avisados']))
+        <h2 class="mt-6 text-sm font-semibold text-slate-500">Ya avisados hoy ({{ count($cola['avisados']) }})</h2>
+        <ul class="mt-2 space-y-1 text-sm text-slate-600">
+            @foreach ($cola['avisados'] as $f)
+                <li>{{ $f['customer']->nombre }} · {{ Money::formato($f['saldo']) }}</li>
+            @endforeach
+        </ul>
+    @endif
 @endsection

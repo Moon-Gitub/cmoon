@@ -13,6 +13,7 @@ use App\Billing\Models\WebhookEvent;
 use App\Billing\Services\CustomerStatusService;
 use App\Billing\Services\DunningService;
 use App\Billing\Services\LedgerService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\View\View;
 
@@ -94,6 +95,15 @@ class DashboardController extends Controller
             'cola' => $dunning->cola(CustomerStatusService::hoy()),
             'automaticoActivo' => (bool) config('billing.avisos.enabled'),
         ]);
+    }
+
+    public function marcarAviso(Customer $customer, DunningService $dunning): RedirectResponse
+    {
+        $hoy = CustomerStatusService::hoy();
+        $fila = collect($dunning->cola($hoy)['filas'])->first(fn ($f) => $f['customer']->id === $customer->id);
+        $dunning->marcarManual($customer, $fila['tipo'] ?? 'vencido', $hoy);
+
+        return back();
     }
 
     public function eventos(): View

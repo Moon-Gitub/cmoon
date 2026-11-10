@@ -62,7 +62,9 @@ Cola de avisos (2026-11-10): en el panel, **Avisos** lista a quien debe más que
 la tolerancia, con saldo, teléfono y un `wa.me` ya armado. Si el día es 1, 8, 15
 o 22, el texto es el del cronograma (el 22 solo entra en el automático si el
 cliente está en modo bloqueo). El resto de los días la lista sigue, con el texto
-según el estado, para mandarlo a mano. No crea avisos ni manda mail ni WhatsApp.
+según el estado, para mandarlo a mano. No manda mail ni WhatsApp.
+**Marcar avisado** guarda `billing_notifications` con canal `whatsapp_manual` y
+estado `marcado`, y esa fila deja de figurar como pendiente ese día. No envía nada.
 Se buscó mail SMTP y YCloud en los env de Dokploy de los POS, en `~/.config/posmoon`
 y en el código: no hay credencial usable de POSMoon. En Dokploy hay una clave de
 YCloud de otro producto (OdontoGravity); no se copió. No se cargó mail en el hub.

@@ -11,6 +11,7 @@ use App\Billing\Services\LedgerService;
 use App\Billing\Services\PaymentProcessor;
 use App\Billing\Services\ReconciliationService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 
 class ReconciliationAndDunningTest extends BillingTestCase
@@ -104,6 +105,38 @@ class ReconciliationAndDunningTest extends BillingTestCase
         $this->actingAs($admin)->get('/cobros/avisos')->assertOk()
             ->assertSee('Deudor Aviso')
             ->assertSee('wa.me/5492604690410', false)
-            ->assertSee('no envía nada');
+            ->assertSee('no envía nada')
+            ->assertSee('Marcar avisado');
+    }
+
+    public function test_marcar_avisado_sale_de_la_cola_y_no_envia(): void
+    {
+        config(['billing.avisos.enabled' => false]);
+        Carbon::setTestNow(Carbon::parse('2026-11-10 12:00:00'));
+        $c = $this->cliente(['nombre' => 'Deudor Marcado', 'telefono' => '(260) 469-0410']);
+        $this->cargo($c, 8000);
+        $admin = User::factory()->create(['es_superadmin' => true]);
+
+        $this->actingAs($admin)->post('/cobros/avisos/'.$c->id)->assertRedirect();
+
+        $aviso = Notification::first();
+        $this->assertSame('whatsapp_manual', $aviso->canal);
+        $this->assertSame('marcado', $aviso->estado);
+        $this->assertSame('2026-11-10', $aviso->periodo);
+        $this->assertSame(1, Notification::count());
+        Mail::assertNothingSent();
+        Http::assertNothingSent();
+
+        $cola = app(DunningService::class)->cola(Carbon::parse('2026-11-10'));
+        $this->assertSame([], $cola['filas']);
+        $this->assertSame('Deudor Marcado', $cola['avisados'][0]['customer']->nombre);
+
+        $this->actingAs($admin)->post('/cobros/avisos/'.$c->id)->assertRedirect();
+        $this->assertSame(1, Notification::count());
+
+        $this->actingAs($admin)->get('/cobros/avisos')->assertOk()
+            ->assertDontSee('Marcar avisado')
+            ->assertSee('Ya avisados hoy')
+            ->assertSee('Deudor Marcado');
     }
 }

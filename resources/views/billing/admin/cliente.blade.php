@@ -149,7 +149,7 @@
                     <h2 class="font-semibold">Avisos enviados</h2>
                     <ul class="mt-2 space-y-1 text-sm">
                         @forelse ($avisos as $a)
-                            <li>{{ $a->created_at->format('d/m H:i') }} · {{ $a->tipo }} · {{ $a->canal }} · <span class="{{ $a->estado === 'enviado' ? 'text-emerald-700' : 'text-red-600' }}">{{ $a->estado }}</span></li>
+                            <li>{{ $a->created_at->format('d/m H:i') }} · {{ $a->tipo }} · {{ $a->canal }} · <span class="{{ in_array($a->estado, ['enviado', 'marcado'], true) ? 'text-emerald-700' : 'text-red-600' }}">{{ $a->estado === 'marcado' ? 'avisado a mano' : $a->estado }}</span></li>
                         @empty <li class="text-slate-500">Sin avisos.</li> @endforelse
                     </ul>
                 </div>

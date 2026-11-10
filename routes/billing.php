@@ -30,6 +30,7 @@ Route::middleware(['web', 'auth', 'superadmin'])->prefix('cobros')->name('billin
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/pagos', [DashboardController::class, 'pagos'])->name('pagos');
     Route::get('/avisos', [DashboardController::class, 'avisos'])->name('avisos');
+    Route::post('/avisos/{customer}', [DashboardController::class, 'marcarAviso'])->name('avisos.marcar');
     Route::get('/eventos', [DashboardController::class, 'eventos'])->name('eventos');
     Route::get('/clientes', [CustomerController::class, 'index'])->name('clientes');
     Route::get('/clientes/{customer}', [CustomerController::class, 'show'])->name('cliente');

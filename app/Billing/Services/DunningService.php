@@ -62,14 +62,20 @@ class DunningService
      * entra en el automático si el cliente está en modo bloqueo). Si no, lista
      * igual a los que superan la tolerancia para mandarlos a mano.
      *
-     * @return array{dia: int, programado: ?string, filas: list<array>}
+     * @return array{dia: int, programado: ?string, filas: list<array>, avisados: list<array>}
      */
     public function cola(CarbonInterface $hoy): array
     {
         $programado = config('billing.avisos.cronograma')[(int) $hoy->day] ?? null;
         $tol = (int) config('billing.reglas.tolerancia_centavos');
         $saldos = $this->ledger->saldos();
+        $marcados = Notification::query()
+            ->where('canal', 'whatsapp_manual')
+            ->where('periodo', $hoy->toDateString())
+            ->pluck('customer_id')
+            ->all();
         $filas = [];
+        $avisados = [];
 
         foreach (Customer::where('estado', 'activo')->orderBy('nombre')->get() as $c) {
             $saldo = (int) ($saldos[$c->id] ?? 0);
@@ -81,7 +87,7 @@ class DunningService
             $tipo = $automatico ? $programado : $this->tipoManual($estado['nivel'] ?? 'vencido');
             $cel = self::celularArgentino((string) $c->telefono);
             $texto = self::texto($c, $tipo, $estado);
-            $filas[] = [
+            $fila = [
                 'customer' => $c,
                 'saldo' => $saldo,
                 'nivel' => $estado['nivel'] ?? '',
@@ -90,11 +96,39 @@ class DunningService
                 'texto' => $texto,
                 'whatsapp' => $cel ? 'https://wa.me/'.$cel.'?text='.rawurlencode($texto) : null,
             ];
+            if (in_array($c->id, $marcados, true)) {
+                $avisados[] = $fila;
+
+                continue;
+            }
+            $filas[] = $fila;
         }
 
         usort($filas, fn ($a, $b) => $b['saldo'] <=> $a['saldo']);
+        usort($avisados, fn ($a, $b) => $b['saldo'] <=> $a['saldo']);
 
-        return ['dia' => (int) $hoy->day, 'programado' => $programado, 'filas' => $filas];
+        return ['dia' => (int) $hoy->day, 'programado' => $programado, 'filas' => $filas, 'avisados' => $avisados];
+    }
+
+    /** Anota que el operador ya avisó hoy. No manda mail ni WhatsApp. */
+    public function marcarManual(Customer $c, string $tipo, CarbonInterface $hoy): void
+    {
+        $ya = Notification::where('customer_id', $c->id)
+            ->where('canal', 'whatsapp_manual')
+            ->where('periodo', $hoy->toDateString())
+            ->exists();
+        if ($ya) {
+            return;
+        }
+
+        Notification::create([
+            'customer_id' => $c->id,
+            'tipo' => $tipo,
+            'periodo' => $hoy->toDateString(),
+            'canal' => 'whatsapp_manual',
+            'destino' => $c->telefono,
+            'estado' => 'marcado',
+        ]);
     }
 
     private function tipoManual(string $nivel): string
