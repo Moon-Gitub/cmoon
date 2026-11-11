@@ -380,3 +380,31 @@ body.md.md-hub {
     background: rgba(224, 112, 104, 0.25);
     color: #ffc9c4;
 }
+/* Fichas con paneles claros (cuenta corriente, etc.): texto oscuro legible */
+.md-hub .bg-white,
+.md-hub .md-panel-light {
+    color: var(--md-text) !important;
+}
+.md-hub .bg-white thead th,
+.md-hub .bg-white tbody td,
+.md-hub .md-panel-light thead th,
+.md-hub .md-panel-light tbody td {
+    color: var(--md-text) !important;
+}
+.md-hub .bg-white .text-slate-500,
+.md-hub .bg-white .text-slate-600,
+.md-hub .bg-white .text-slate-400,
+.md-hub .md-panel-light .text-slate-500,
+.md-hub .md-panel-light .text-slate-600 {
+    color: var(--md-text-mute) !important;
+}
+.md-hub .bg-white a,
+.md-hub .md-panel-light a {
+    color: var(--md-link) !important;
+}
+.md-hub .md-panel-light {
+    background: var(--md-paper) !important;
+    border: 1px solid var(--md-edge);
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}

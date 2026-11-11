@@ -118,20 +118,22 @@
         </div>
 
         <div class="space-y-6 lg:col-span-2">
-            <div class="rounded-xl bg-white p-4 shadow-sm">
-                <h2 class="font-semibold">Cuenta corriente</h2>
-                <table class="mt-3 w-full text-sm">
-                    <thead class="text-left text-xs uppercase text-slate-500"><tr><th>Fecha</th><th>Concepto</th><th>Medio</th><th>Recibo / MP</th><th class="text-right">Importe</th></tr></thead>
+            <div class="md-panel-light overflow-hidden p-5">
+                <h2 class="text-lg font-semibold text-[var(--md-text)]">Cuenta corriente</h2>
+                <table class="mt-3 w-full">
+                    <thead class="text-left"><tr><th>Fecha</th><th>Concepto</th><th>Medio</th><th>Recibo / MP</th><th class="text-right">Importe</th></tr></thead>
+                    <tbody>
                     @foreach ($movimientos as $m)
                         @php $d = $detalles[LegacyDetalle::idDesdeReferencia($m->referencia)] ?? null; @endphp
-                        <tr class="border-t border-slate-100">
-                            <td class="py-1.5 whitespace-nowrap">{{ $m->fecha->format('d/m/Y') }}</td>
-                            <td>{{ $m->descripcion }}</td>
-                            <td class="text-xs text-slate-500">{{ $d->metodo_pago ?? $m->origen }}</td>
-                            <td class="text-xs text-slate-500">{{ $d?->numero_recibo }} {{ $d?->referencia_mp }}</td>
-                            <td class="text-right font-medium {{ $m->importe_centavos < 0 ? 'text-emerald-700' : '' }}">{{ Money::formato($m->importe_centavos) }}</td>
+                        <tr>
+                            <td class="whitespace-nowrap">{{ $m->fecha->format('d/m/Y') }}</td>
+                            <td class="text-[var(--md-text)]">{{ $m->descripcion }}</td>
+                            <td class="text-[var(--md-text-mute)]">{{ $d?->metodo_pago ?? $m->origen }}</td>
+                            <td class="text-[var(--md-text-mute)]">{{ $d?->numero_recibo }} {{ $d?->referencia_mp }}</td>
+                            <td class="md-money text-right {{ $m->importe_centavos < 0 ? 'text-[var(--md-ok)]' : 'text-[var(--md-text)]' }}">{{ Money::formato($m->importe_centavos) }}</td>
                         </tr>
                     @endforeach
+                    </tbody>
                 </table>
                 <div class="mt-3">{{ $movimientos->links() }}</div>
             </div>
